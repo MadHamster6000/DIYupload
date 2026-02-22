@@ -129,22 +129,26 @@
     frameImg.onload = drawAll;
 
     function drawAll() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      photos.forEach((photoObj, i) => {
-        const { img, x, y, scale } = photoObj;
-        const w = img.width * scale;
-        const h = img.height * scale;
-        ctx.drawImage(img, x, y, w, h);
+  // 1. Draw ALL photos first (under the frame)
+  photos.forEach((photoObj, i) => {
+    const { img, x, y, scale } = photoObj;
+    const w = img.width * scale;
+    const h = img.height * scale;
+    ctx.drawImage(img, x, y, w, h);
 
-        if (i === activePhotoIndex) {
-          ctx.strokeStyle = '#4a90e2';
-          ctx.lineWidth = 4;
-          ctx.strokeRect(x - 2, y - 2, w + 4, h + 4);
-        }
-      });
+    // Highlight active photo border (still on top of photo but under frame)
+    if (i === activePhotoIndex) {
+      ctx.strokeStyle = '#4a90e2';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(x - 2, y - 2, w + 4, h + 4);
     }
+  });
+
+  // 2. Draw the frame LAST (so it overlays everything)
+  ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+}
 
     // Upload one at a time
     document.getElementById('upload').addEventListener('change', (e) => {
@@ -353,5 +357,6 @@ function downloadPDF() {
   </script>
 </body>
 </html>
+
 
 
