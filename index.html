@@ -289,7 +289,7 @@
           let zoomFactor = newDist / touchDist;
           zoomFactor = 1 + (zoomFactor - 1) * 0.45;
           photos[activePhotoIndex].scale *= zoomFactor;
-          photos[activePhotoIndex].scale = Math.max(0.1, Math.min(photos[activePhotoIndex].scale, 8));
+          photos[activePhotoIndex].scale = Math.max(0.01, Math.min(photos[activePhotoIndex].scale, 8));
         }
         touchDist = newDist;
         drawAll();
@@ -331,7 +331,7 @@
       if (activePhotoIndex < 0) return;
       const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
       photos[activePhotoIndex].scale *= zoomFactor;
-      photos[activePhotoIndex].scale = Math.max(0.1, Math.min(photos[activePhotoIndex].scale, 8));
+      photos[activePhotoIndex].scale = Math.max(0.01, Math.min(photos[activePhotoIndex].scale, 8));
       drawAll();
     });
 
@@ -364,3 +364,4 @@
   </script>
 </body>
 </html>
+
