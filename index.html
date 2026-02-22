@@ -296,40 +296,60 @@
     });
 
     // Download PDF with resized/compressed images
-    function downloadPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'pt',
-        format: 'letter'
-      });
+   function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'pt',
+    format: 'letter'
+  });
 
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const scale = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const scale = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
 
-      // Draw frame first (under photos)
-      doc.addImage(frameImg.src, 'PNG', 0, 0, canvas.width * scale, canvas.height * scale);
+  // Draw frame (low-res is fine for frame)
+  doc.addImage(frameImg.src, 'PNG', 0, 0, canvas.width * scale, canvas.height * scale);
 
-      // Draw photos resized and compressed
-      photos.forEach((photoObj) => {
-        const { img, x, y, scale: pScale } = photoObj;
+  // Draw photos with heavy compression
+  photos.forEach((photoObj) => {
+    const { img, x, y, scale: pScale } = photoObj;
 
-        // Resize photo to max 1200 px long side
-        const maxDim = 1200;
-        let tempW = img.width;
-        let tempH = img.height;
-        if (tempW > tempH) {
-          if (tempW > maxDim) {
-            tempH *= maxDim / tempW;
-            tempW = maxDim;
-          }
-        } else {
-          if (tempH > maxDim) {
-            tempW *= maxDim / tempH;
-            tempH = maxDim;
-          }
-        }
+    // Create very small temp canvas (max 800 px long side — good print quality, tiny file)
+    const maxDim = 800; // Lower = smaller PDF file
+    let tempW = img.width;
+    let tempH = img.height;
+    if (tempW > tempH) {
+      if (tempW > maxDim) {
+        tempH *= maxDim / tempW;
+        tempW = maxDim;
+      }
+    } else {
+      if (tempH > maxDim) {
+        tempW *= maxDim / tempH;
+        tempH = maxDim;
+      }
+    }
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = tempW;
+    tempCanvas.height = tempH;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(img, 0, 0, tempW, tempH);
+
+    // JPEG at low quality (0.6 = good print, very small file)
+    const resizedData = tempCanvas.toDataURL('image/jpeg', 0.6);
+
+    const pdfX = x * scale;
+    const pdfY = y * scale;
+    const pdfW = (tempW / img.width) * (img.width * pScale) * scale;
+    const pdfH = (tempH / img.height) * (img.height * pScale) * scale;
+
+    doc.addImage(resizedData, 'JPEG', pdfX, pdfY, pdfW, pdfH);
+  });
+
+  doc.save('your-custom-frame-letter-landscape.pdf');
+}
 
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = tempW;
@@ -352,3 +372,4 @@
   </script>
 </body>
 </html>
+
