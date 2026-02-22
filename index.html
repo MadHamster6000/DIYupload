@@ -124,6 +124,16 @@
       text-align: center;
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
+    .privacy-note {
+      font-size: 1em;
+      color: #444;
+      background: #fff9e6;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px auto;
+      max-width: 600px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
   </style>
 </head>
 <body>
@@ -140,13 +150,19 @@
     <canvas id="canvas" width="500" height="600"></canvas>
   </div>
 
+  <p class="privacy-note">
+    Quick heads-up: Your photos stay private — we don't save them anywhere. Everything happens right here on your screen.  
+    If you close this tab or refresh? Poof — your design disappears. So download it before you go!  
+    No tricks, no tracking — just fun. 😊
+  </p>
+
   <div id="photo-list"></div>
 
   <button class="download-btn" onclick="downloadPNG()">Download PNG (High-Res)</button>
 
   <p class="disclaimer">Photos are processed in your browser only — nothing is uploaded or stored.</p>
 
-  <p style="font-size: 0.8em; color: #999; margin-top: 60px;">Version 1.17 – Feb 22, 2026 – Frame on Top in PNG Download</p>
+  <p style="font-size: 0.8em; color: #999; margin-top: 60px;">Version 1.18 – Feb 23, 2026 – Frame on Top + Privacy Note</p>
 
   <script>
     const canvas = document.getElementById('canvas');
@@ -355,16 +371,6 @@
 
       // Draw frame ON TOP
       tempCtx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
-
-      // Draw selection border ON TOP (if active)
-      if (activePhotoIndex >= 0 && photos[activePhotoIndex]) {
-        const { x, y, scale } = photos[activePhotoIndex];
-        const w = photos[activePhotoIndex].img.width * scale;
-        const h = photos[activePhotoIndex].img.height * scale;
-        tempCtx.strokeStyle = 'rgba(74, 144, 226, 0.9)';
-        tempCtx.lineWidth = 8 / scaleFactor;
-        tempCtx.strokeRect(x - 4 / scaleFactor, y - 4 / scaleFactor, w + 8 / scaleFactor, h + 8 / scaleFactor);
-      }
 
       const link = document.createElement('a');
       link.download = 'your-custom-frame-high-res.png';
