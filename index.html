@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Custom Dollhouse Frame – Build My Mini</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
@@ -108,11 +107,11 @@
 
   <div id="photo-list"></div>
 
-  <button class="download-btn" onclick="downloadPDF()">Download PDF (Letter Landscape)</button>
+  <button class="download-btn" onclick="downloadPNG()">Download PNG (High-Res)</button>
 
   <p class="disclaimer">Photos are processed in your browser only — nothing is uploaded or stored.</p>
 
-  <p style="font-size: 0.8em; color: #999; margin-top: 60px;">Version 1.14 – Feb 23, 2026 – PDF Size Reduced v3</p>
+  <p style="font-size: 0.8em; color: #999; margin-top: 60px;">Version 1.15 – Feb 23, 2026 – PNG Download + Size Fix</p>
 
   <script>
     const canvas = document.getElementById('canvas');
@@ -130,7 +129,7 @@
 
     function drawAll() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height); // Frame UNDER photos
+      ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
 
       photos.forEach((photoObj, i) => {
         const { img, x, y, scale } = photoObj;
@@ -138,7 +137,6 @@
         const h = img.height * scale;
         ctx.drawImage(img, x, y, w, h);
 
-        // Selection border ON TOP
         if (i === activePhotoIndex) {
           ctx.strokeStyle = 'rgba(74, 144, 226, 0.9)';
           ctx.lineWidth = 8;
@@ -147,7 +145,6 @@
       });
     }
 
-    // Upload one photo
     document.getElementById('upload').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -164,7 +161,7 @@
 
           const scaleX = holeWidth / tempImg.width;
           const scaleY = holeHeight / tempImg.height;
-          const scale = Math.min(scaleX, scaleY) * 0.7; // Start smaller
+          const scale = Math.min(scaleX, scaleY) * 0.7;
 
           const x = holeLeft + (holeWidth - tempImg.width * scale) / 2;
           const y = holeTop + (holeHeight - tempImg.height * scale) / 2;
@@ -215,7 +212,7 @@
       });
     }
 
-    // Touch support (mobile drag & pinch)
+    // Touch support
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       if (activePhotoIndex < 0) return;
@@ -260,7 +257,6 @@
       isDragging = false;
     });
 
-    // Mouse support
     canvas.addEventListener('mousedown', (e) => {
       if (activePhotoIndex < 0) return;
       isDragging = true;
@@ -295,56 +291,29 @@
       drawAll();
     });
 
-    // Download PDF with aggressive size reduction
-    function downloadPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'pt',
-        format: 'letter'
-      });
+    // Download high-res PNG with resized photos
+    function downloadPNG() {
+      const tempCanvas = document.createElement('canvas');
+      const scaleFactor = 2; // 2x resolution = 1000x1200 for sharp print
+      tempCanvas.width = canvas.width * scaleFactor;
+      tempCanvas.height = canvas.height * scaleFactor;
+      const tempCtx = tempCanvas.getContext('2d');
 
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const scale = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+      tempCtx.scale(scaleFactor, scaleFactor);
 
-      doc.addImage(frameImg.src, 'PNG', 0, 0, canvas.width * scale, canvas.height * scale);
+      tempCtx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
 
       photos.forEach((photoObj) => {
-        const { img, x, y, scale: pScale } = photoObj;
-
-        const maxDim = 800; // Smaller = much lower file size
-        let tempW = img.width;
-        let tempH = img.height;
-        if (tempW > tempH) {
-          if (tempW > maxDim) {
-            tempH *= maxDim / tempW;
-            tempW = maxDim;
-          }
-        } else {
-          if (tempH > maxDim) {
-            tempW *= maxDim / tempH;
-            tempH = maxDim;
-          }
-        }
-
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = tempW;
-        tempCanvas.height = tempH;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.drawImage(img, 0, 0, tempW, tempH);
-
-        const resizedData = tempCanvas.toDataURL('image/jpeg', 0.6); // 60% quality JPEG
-
-        const pdfX = x * scale;
-        const pdfY = y * scale;
-        const pdfW = (tempW / img.width) * (img.width * pScale) * scale;
-        const pdfH = (tempH / img.height) * (img.height * pScale) * scale;
-
-        doc.addImage(resizedData, 'JPEG', pdfX, pdfY, pdfW, pdfH);
+        const { img, x, y, scale } = photoObj;
+        const w = img.width * scale;
+        const h = img.height * scale;
+        tempCtx.drawImage(img, x, y, w, h);
       });
 
-      doc.save('your-custom-frame-letter-landscape.pdf');
+      const link = document.createElement('a');
+      link.download = 'your-custom-frame-high-res.png';
+      link.href = tempCanvas.toDataURL('image/png');
+      link.click();
     }
   </script>
 </body>
