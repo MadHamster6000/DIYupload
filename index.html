@@ -301,23 +301,22 @@
     });
 
     // Download high-res PNG
-    function downloadPNG() {
+function downloadPNG() {
   const tempCanvas = document.createElement('canvas');
-  const scaleFactor = 2; // 2x for sharp print
+  const scaleFactor = 2; // 2x resolution for sharp print
   tempCanvas.width = canvas.width * scaleFactor;
   tempCanvas.height = canvas.height * scaleFactor;
   const tempCtx = tempCanvas.getContext('2d');
 
   tempCtx.scale(scaleFactor, scaleFactor);
 
-  // Draw photos first (under layer)
+  // Draw photos FIRST (under layer)
   photos.forEach((photoObj) => {
     const { img, x, y, scale } = photoObj;
     const w = img.width * scale;
     const h = img.height * scale;
     tempCtx.drawImage(img, x, y, w, h);
   });
-
   // Draw frame ON TOP
   tempCtx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
 
@@ -339,4 +338,5 @@
   </script>
 </body>
 </html>
+
 
