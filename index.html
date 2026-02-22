@@ -111,7 +111,7 @@
 
   <p class="disclaimer">Photos are processed in your browser only — nothing is uploaded or stored.</p>
 
-  <p style="font-size: 0.8em; color: #999; margin-top: 60px;">Version 1.15 – Feb 23, 2026 – PNG Download + Size Fix</p>
+  <p style="font-size: 0.8em; color: #999; margin-top: 60px;">Version 1.16 – Feb 23, 2026 – Photos Under Frame + PNG Download</p>
 
   <script>
     const canvas = document.getElementById('canvas');
@@ -129,22 +129,30 @@
 
     function drawAll() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
 
+      // Draw photos first (under layer)
       photos.forEach((photoObj, i) => {
         const { img, x, y, scale } = photoObj;
         const w = img.width * scale;
         const h = img.height * scale;
         ctx.drawImage(img, x, y, w, h);
-
-        if (i === activePhotoIndex) {
-          ctx.strokeStyle = 'rgba(74, 144, 226, 0.9)';
-          ctx.lineWidth = 8;
-          ctx.strokeRect(x - 4, y - 4, w + 8, h + 8);
-        }
       });
+
+      // Draw frame ON TOP (so borders are always visible over photos)
+      ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+
+      // Draw selection border ON TOP of everything
+      if (activePhotoIndex >= 0 && photos[activePhotoIndex]) {
+        const { x, y, scale } = photos[activePhotoIndex];
+        const w = photos[activePhotoIndex].img.width * scale;
+        const h = photos[activePhotoIndex].img.height * scale;
+        ctx.strokeStyle = 'rgba(74, 144, 226, 0.9)';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(x - 4, y - 4, w + 8, h + 8);
+      }
     }
 
+    // Upload one photo at a time
     document.getElementById('upload').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -212,7 +220,7 @@
       });
     }
 
-    // Touch support
+    // Touch support (mobile)
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       if (activePhotoIndex < 0) return;
@@ -257,6 +265,7 @@
       isDragging = false;
     });
 
+    // Mouse support
     canvas.addEventListener('mousedown', (e) => {
       if (activePhotoIndex < 0) return;
       isDragging = true;
@@ -291,18 +300,20 @@
       drawAll();
     });
 
-    // Download high-res PNG with resized photos
+    // Download high-res PNG
     function downloadPNG() {
       const tempCanvas = document.createElement('canvas');
-      const scaleFactor = 2; // 2x resolution = 1000x1200 for sharp print
+      const scaleFactor = 2; // 2x resolution for sharp print
       tempCanvas.width = canvas.width * scaleFactor;
       tempCanvas.height = canvas.height * scaleFactor;
       const tempCtx = tempCanvas.getContext('2d');
 
       tempCtx.scale(scaleFactor, scaleFactor);
 
+      // Draw frame first
       tempCtx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
 
+      // Draw photos on top
       photos.forEach((photoObj) => {
         const { img, x, y, scale } = photoObj;
         const w = img.width * scale;
