@@ -112,7 +112,7 @@
 
   <p class="disclaimer">Photos are processed in your browser only — nothing is uploaded or stored.</p>
 
-  <p style="font-size: 0.8em; color: #999; margin-top: 60px;">Version 1.8 – Feb 23, 2026 – PDF Size Reduced + Mobile Zoom Fix</p>
+  <p style="font-size: 0.8em; color: #999; margin-top: 60px;">Version 1.10 – Feb 23, 2026 – PDF Size Fix + Mobile Zoom</p>
 
   <script>
     const canvas = document.getElementById('canvas');
@@ -130,7 +130,7 @@
 
     function drawAll() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height); // Frame first (under)
 
       photos.forEach((photoObj, i) => {
         const { img, x, y, scale } = photoObj;
@@ -138,16 +138,16 @@
         const h = img.height * scale;
         ctx.drawImage(img, x, y, w, h);
 
-        // Draw selection border ON TOP
+        // Selection border on top
         if (i === activePhotoIndex) {
-          ctx.strokeStyle = 'rgba(74, 144, 226, 0.8)'; // semi-transparent blue
+          ctx.strokeStyle = 'rgba(74, 144, 226, 0.9)'; // semi-transparent blue
           ctx.lineWidth = 6;
           ctx.strokeRect(x - 3, y - 3, w + 6, h + 6);
         }
       });
     }
 
-    // Upload one photo
+    // Upload one at a time
     document.getElementById('upload').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -164,7 +164,7 @@
 
           const scaleX = holeWidth / tempImg.width;
           const scaleY = holeHeight / tempImg.height;
-          const scale = Math.min(scaleX, scaleY) * 0.7; // start smaller (70%)
+          const scale = Math.min(scaleX, scaleY) * 0.7; // Start smaller
 
           const x = holeLeft + (holeWidth - tempImg.width * scale) / 2;
           const y = holeTop + (holeHeight - tempImg.height * scale) / 2;
@@ -215,7 +215,7 @@
       });
     }
 
-    // Touch support
+    // Touch support (mobile)
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       if (activePhotoIndex < 0) return;
@@ -308,8 +308,10 @@
       const pageHeight = doc.internal.pageSize.getHeight();
       const scale = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
 
+      // Draw frame first (under photos)
       doc.addImage(frameImg.src, 'PNG', 0, 0, canvas.width * scale, canvas.height * scale);
 
+      // Draw photos resized and compressed
       photos.forEach((photoObj) => {
         const { img, x, y, scale: pScale } = photoObj;
 
@@ -335,7 +337,7 @@
         const tempCtx = tempCanvas.getContext('2d');
         tempCtx.drawImage(img, 0, 0, tempW, tempH);
 
-        const resizedData = tempCanvas.toDataURL('image/jpeg', 0.7); // JPEG 70% quality
+        const resizedData = tempCanvas.toDataURL('image/jpeg', 0.7); // 70% quality JPEG
 
         const pdfX = x * scale;
         const pdfY = y * scale;
