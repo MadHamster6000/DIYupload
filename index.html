@@ -230,28 +230,32 @@
     });
 
     canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      if (activePhotoIndex < 0) return;
+  e.preventDefault();
+  if (activePhotoIndex < 0) return;
 
-      if (e.touches.length === 1 && isDragging) {
-        photos[activePhotoIndex].x = e.touches[0].clientX - startX;
-        photos[activePhotoIndex].y = e.touches[0].clientY - startY;
-        drawAll();
-      } else if (e.touches.length === 2) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const newDist = Math.sqrt(dx*dx + dy*dy);
+  if (e.touches.length === 1 && isDragging) {
+    // Single finger drag
+    photos[activePhotoIndex].x = e.touches[0].clientX - startX;
+    photos[activePhotoIndex].y = e.touches[0].clientY - startY;
+    drawAll();
+  } else if (e.touches.length === 2) {
+    // Two-finger pinch zoom
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const newDist = Math.sqrt(dx*dx + dy*dy);
 
-        if (touchDist > 10) {
-          let zoomFactor = newDist / touchDist;
-          zoomFactor = 1 + (zoomFactor - 1) * 0.6; // Smoother zoom
-          photos[activePhotoIndex].scale *= zoomFactor;
-          photos[activePhotoIndex].scale = Math.max(0.3, Math.min(photos[activePhotoIndex].scale, 5));
-        }
-        touchDist = newDist;
-        drawAll();
-      }
-    });
+    if (touchDist > 10) { // ignore tiny movements
+      let zoomFactor = newDist / touchDist;
+      // Smoother pinch: reduce speed for control
+      zoomFactor = 1 + (zoomFactor - 1) * 0.6;
+      photos[activePhotoIndex].scale *= zoomFactor;
+      // New limits: allow smaller (0.15) but not invisible
+      photos[activePhotoIndex].scale = Math.max(0.15, Math.min(photos[activePhotoIndex].scale, 6));
+    }
+    touchDist = newDist;
+    drawAll();
+  }
+});
 
     canvas.addEventListener('touchend', () => {
       isDragging = false;
@@ -319,3 +323,4 @@
   </script>
 </body>
 </html>
+
