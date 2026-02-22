@@ -295,30 +295,63 @@
     });
 
     // Download PDF (Letter Landscape, 300 DPI)
-    function downloadPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'pt',
-        format: 'letter'
-      });
+function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'pt',
+    format: 'letter'
+  });
 
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const scale = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const scale = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
 
-      doc.addImage(frameImg.src, 'PNG', 0, 0, canvas.width * scale, canvas.height * scale);
+  // Draw frame at scaled size
+  doc.addImage(frameImg.src, 'PNG', 0, 0, canvas.width * scale, canvas.height * scale);
 
-      photos.forEach((photoObj) => {
-        const { img, x, y, scale: pScale } = photoObj;
-        const w = img.width * pScale * scale;
-        const h = img.height * pScale * scale;
-        doc.addImage(img.src, 'PNG', x * scale, y * scale, w, h);
-      });
+  // Draw each photo resized & compressed
+  photos.forEach((photoObj) => {
+    const { img, x, y, scale: pScale } = photoObj;
 
-      doc.save('your-custom-frame-letter-landscape.pdf');
+    // Create temporary canvas to resize & compress photo
+    const tempCanvas = document.createElement('canvas');
+    const maxSize = 1500; // max dimension for good print without huge file
+    let tempW = img.width;
+    let tempH = img.height;
+
+    // Resize proportionally
+    if (tempW > tempH) {
+      if (tempW > maxSize) {
+        tempH = tempH * (maxSize / tempW);
+        tempW = maxSize;
+      }
+    } else {
+      if (tempH > maxSize) {
+        tempW = tempW * (maxSize / tempH);
+        tempH = maxSize;
+      }
     }
+
+    tempCanvas.width = tempW;
+    tempCanvas.height = tempH;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(img, 0, 0, tempW, tempH);
+
+    // Add resized & compressed version to PDF
+    const resizedDataUrl = tempCanvas.toDataURL('image/jpeg', 0.75); // JPEG quality 75% — good balance
+    const pdfX = x * scale;
+    const pdfY = y * scale;
+    const pdfW = (tempW / img.width) * (img.width * pScale) * scale;
+    const pdfH = (tempH / img.height) * (img.height * pScale) * scale;
+
+    doc.addImage(resizedDataUrl, 'JPEG', pdfX, pdfY, pdfW, pdfH);
+  });
+
+  doc.save('your-custom-frame-letter-landscape.pdf');
+}
   </script>
 </body>
 </html>
+
 
