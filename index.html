@@ -302,30 +302,41 @@
 
     // Download high-res PNG
     function downloadPNG() {
-      const tempCanvas = document.createElement('canvas');
-      const scaleFactor = 2; // 2x resolution for sharp print
-      tempCanvas.width = canvas.width * scaleFactor;
-      tempCanvas.height = canvas.height * scaleFactor;
-      const tempCtx = tempCanvas.getContext('2d');
+  const tempCanvas = document.createElement('canvas');
+  const scaleFactor = 2; // 2x for sharp print
+  tempCanvas.width = canvas.width * scaleFactor;
+  tempCanvas.height = canvas.height * scaleFactor;
+  const tempCtx = tempCanvas.getContext('2d');
 
-      tempCtx.scale(scaleFactor, scaleFactor);
+  tempCtx.scale(scaleFactor, scaleFactor);
 
-      // Draw frame first
-      tempCtx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+  // Draw photos first (under layer)
+  photos.forEach((photoObj) => {
+    const { img, x, y, scale } = photoObj;
+    const w = img.width * scale;
+    const h = img.height * scale;
+    tempCtx.drawImage(img, x, y, w, h);
+  });
 
-      // Draw photos on top
-      photos.forEach((photoObj) => {
-        const { img, x, y, scale } = photoObj;
-        const w = img.width * scale;
-        const h = img.height * scale;
-        tempCtx.drawImage(img, x, y, w, h);
-      });
+  // Draw frame ON TOP
+  tempCtx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
 
-      const link = document.createElement('a');
-      link.download = 'your-custom-frame-high-res.png';
-      link.href = tempCanvas.toDataURL('image/png');
-      link.click();
-    }
+  // Draw selection border ON TOP (if active)
+  if (activePhotoIndex >= 0 && photos[activePhotoIndex]) {
+    const { x, y, scale } = photos[activePhotoIndex];
+    const w = photos[activePhotoIndex].img.width * scale;
+    const h = photos[activePhotoIndex].img.height * scale;
+    tempCtx.strokeStyle = 'rgba(74, 144, 226, 0.9)';
+    tempCtx.lineWidth = 8 / scaleFactor; // scale line width
+    tempCtx.strokeRect(x - 4 / scaleFactor, y - 4 / scaleFactor, w + 8 / scaleFactor, h + 8 / scaleFactor);
+  }
+
+  const link = document.createElement('a');
+  link.download = 'your-custom-frame-high-res.png';
+  link.href = tempCanvas.toDataURL('image/png');
+  link.click();
+}
   </script>
 </body>
 </html>
+
