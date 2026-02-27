@@ -199,135 +199,136 @@
     <div id="cashoutResult"></div>
   </div>
 
-  <script>
-    function formatNumber(num) {
-      return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+<script>
+  function formatNumber(num) {
+    return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+  function getValueClass(value) {
+    if (value > 0) return 'profit';
+    if (value < 0) return 'risk';
+    return 'neutral';
+  }
+
+  function calculate() {
+    const buy = parseFloat(document.getElementById('buyPrice').value);
+    let initialContracts = parseInt(document.getElementById('numContracts').value);
+    if (!buy || buy <= 0) { alert("Enter valid buy price!"); return; }
+    if (!initialContracts || initialContracts < 1) { alert("Contracts must be at least 1!"); return; }
+    const costPerContract = buy * 100;
+    const totalCost = initialContracts * costPerContract;
+    document.getElementById('costDisplay').innerHTML =
+      `Total Cost: <span class="risk">$${formatNumber(totalCost)}</span>`;
+
+    const tiers = [
+      { gain: 100,  pctOrig: 50 },
+      { gain: 200,  pctOrig: 8 },
+      { gain: 400,  pctOrig: 8 },
+      { gain: 800,  pctOrig: 10 },
+      { gain: 1500, pctOrig: 10 },
+      { gain: 3000, pctOrig: 4 },
+      { gain: 6000, pctOrig: 3 },
+      { gain: 8000, pctOrig: 2 },
+      { gain: 10000, pctOrig: 1.5},
+      { gain: 20000, pctOrig: 1 }
+    ];
+
+    let remaining = initialContracts;
+    let totalProfitLocked = 0;
+    let cumulativeCashOut = 0;
+    const tableBody = document.querySelector('#results tbody');
+    tableBody.innerHTML = '';
+
+    tiers.forEach(tier => {
+      const targetPrice = buy * (1 + tier.gain / 100);
+      const sellFraction = tier.pctOrig / 100;
+      let calcSell = initialContracts * sellFraction;
+      let toSell = Math.floor(calcSell);
+      if (toSell < 1 && remaining > 0) toSell = 1;
+      toSell = Math.min(toSell, remaining);
+
+      const cashThisSell = toSell * targetPrice * 100;
+      const profitThis = cashThisSell - (toSell * costPerContract);
+      totalProfitLocked += profitThis;
+      cumulativeCashOut += cashThisSell;
+
+      const remainingAfter = remaining - toSell;
+      const maxPotentialLossGain = totalProfitLocked - (remainingAfter * costPerContract);
+      remaining = remainingAfter;
+
+      const cumProfitPct = totalCost > 0 ? (totalProfitLocked / totalCost * 100).toFixed(1) : 0;
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>+${tier.gain}%</td>
+        <td>$${targetPrice.toFixed(2)}</td>
+        <td>${tier.pctOrig}% orig</td>
+        <td>${toSell}</td>
+        <td>${remainingAfter}</td>
+        <td class="cash">$${formatNumber(cashThisSell)}</td>
+        <td class="profit">$${formatNumber(profitThis)}</td>
+        <td class="${getValueClass(maxPotentialLossGain)}">$${formatNumber(Math.abs(maxPotentialLossGain))}${maxPotentialLossGain >= 0 ? '' : '-'}</td>
+        <td class="profit">${cumProfitPct}%</td>
+      `;
+      tableBody.appendChild(row);
+    });
+
+    const lastPrice = buy * (1 + 20000 / 100);
+    const unrealizedTop = remaining * (lastPrice - buy) * 100;
+    const maxLoss = totalCost;
+    const securedPct = (totalProfitLocked / totalCost * 100).toFixed(1);
+    const riskLeft = ((maxLoss - totalProfitLocked) / maxLoss * 100).toFixed(0);
+
+    document.getElementById('totalProfit').innerHTML =
+      `Total Profit Locked: <span class="profit">$${formatNumber(totalProfitLocked)}</span> (${securedPct}% of cost)`;
+    document.getElementById('totalCashOut').innerHTML =
+      `Total Cash Out: <span class="cash">$${formatNumber(cumulativeCashOut)}</span>`;
+
+    let rrText = `If remaining expires worthless tomorrow → net position: <span class="${getValueClass(totalProfitLocked - (remaining * costPerContract))}">$${formatNumber(Math.abs(totalProfitLocked - (remaining * costPerContract)))}${totalProfitLocked - (remaining * costPerContract) >= 0 ? '' : '-'}</span><br>`;
+    rrText += `Secured: ${securedPct}% → downside now ~${riskLeft}% of original risk.<br>`;
+    rrText += remaining > 0
+      ? `Trophy contracts left: ${remaining} — could add ~$${formatNumber(unrealizedTop)} at +20,000%`
+      : `All sold — position closed.`;
+    document.getElementById('riskReward').innerHTML = rrText;
+  }
+
+  function calculateQuickCashOut() {
+    // Re-read inputs EVERY time you click—fixes the stale data issue
+    const buy = parseFloat(document.getElementById('buyPrice').value);
+    const contracts = parseInt(document.getElementById('numContracts').value);
+    const live = parseFloat(document.getElementById('livePrice').value);
+    const resultDiv = document.getElementById('cashoutResult');
+
+    resultDiv.innerHTML = '';
+
+    if (isNaN(buy) || isNaN(contracts) || isNaN(live) || buy <= 0 || contracts < 1 || live <= 0) {
+      resultDiv.innerHTML = '<span class="warn">Please fill buy price, contracts, and a valid live price > 0.</span>';
+      return;
     }
-    function getValueClass(value) {
-      if (value > 0) return 'profit';
-      if (value < 0) return 'risk';
-      return 'neutral';
+
+    const totalCost = buy * contracts * 100;
+    if (live <= buy) {
+      resultDiv.innerHTML = '<span class="warn">Live price ≤ buy price — no recovery possible yet.</span>';
+      return;
     }
 
-    function calculate() {
-      const buy = parseFloat(document.getElementById('buyPrice').value);
-      let initialContracts = parseInt(document.getElementById('numContracts').value);
-      if (!buy || buy <= 0) { alert("Enter valid buy price!"); return; }
-      if (!initialContracts || initialContracts < 1) { alert("Contracts must be at least 1!"); return; }
-      const costPerContract = buy * 100;
-      const totalCost = initialContracts * costPerContract;
-      document.getElementById('costDisplay').innerHTML =
-        `Total Cost: <span class="risk">$${formatNumber(totalCost)}</span>`;
+    const gainPerContract = (live - buy) * 100;
+    const exactContracts = totalCost / gainPerContract;
+    const rounded = Math.round(exactContracts * 10) / 10; // 0.1 precision
 
-      const tiers = [
-        { gain: 100,  pctOrig: 50 },
-        { gain: 200,  pctOrig: 8 },
-        { gain: 400,  pctOrig: 8 },
-        { gain: 800,  pctOrig: 10 },
-        { gain: 1500, pctOrig: 10 },
-        { gain: 3000, pctOrig: 4 },
-        { gain: 6000, pctOrig: 3 },
-        { gain: 8000, pctOrig: 2 },
-        { gain: 10000, pctOrig: 1.5},
-        { gain: 20000, pctOrig: 1 }
-      ];
+    let cashBack = Math.round(rounded * gainPerContract);
+    let msg = `Sell <strong>${rounded}</strong> contracts → get ≈ <span class="cash">$${formatNumber(cashBack)}</span> cash<br>`;
+    msg += `(exact: ${exactContracts.toFixed(3)} contracts)<br><br>`;
 
-      let remaining = initialContracts;
-      let totalProfitLocked = 0;
-      let cumulativeCashOut = 0;
-      const tableBody = document.querySelector('#results tbody');
-      tableBody.innerHTML = '';
+    msg += `This recovers ≈ your total cost of $${formatNumber(totalCost)}<br>`;
+    msg += `Leaves <strong>${contracts - Math.floor(rounded)}</strong>–<strong>${contracts - Math.ceil(rounded) + 1}</strong> contracts riding free.`;
 
-      tiers.forEach(tier => {
-        const targetPrice = buy * (1 + tier.gain / 100);
-        const sellFraction = tier.pctOrig / 100;
-        let calcSell = initialContracts * sellFraction;
-        let toSell = Math.floor(calcSell);
-        if (toSell < 1 && remaining > 0) toSell = 1;
-        toSell = Math.min(toSell, remaining);
-
-        const cashThisSell = toSell * targetPrice * 100;
-        const profitThis = cashThisSell - (toSell * costPerContract);
-        totalProfitLocked += profitThis;
-        cumulativeCashOut += cashThisSell;
-
-        const remainingAfter = remaining - toSell;
-        const maxPotentialLossGain = totalProfitLocked - (remainingAfter * costPerContract);
-        remaining = remainingAfter;
-
-        const cumProfitPct = totalCost > 0 ? (totalProfitLocked / totalCost * 100).toFixed(1) : 0;
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>+${tier.gain}%</td>
-          <td>$${targetPrice.toFixed(2)}</td>
-          <td>${tier.pctOrig}% orig</td>
-          <td>${toSell}</td>
-          <td>${remainingAfter}</td>
-          <td class="cash">$${formatNumber(cashThisSell)}</td>
-          <td class="profit">$${formatNumber(profitThis)}</td>
-          <td class="${getValueClass(maxPotentialLossGain)}">$${formatNumber(Math.abs(maxPotentialLossGain))}${maxPotentialLossGain >= 0 ? '' : '-'}</td>
-          <td class="profit">${cumProfitPct}%</td>
-        `;
-        tableBody.appendChild(row);
-      });
-
-      const lastPrice = buy * (1 + 20000 / 100);
-      const unrealizedTop = remaining * (lastPrice - buy) * 100;
-      const maxLoss = totalCost;
-      const securedPct = (totalProfitLocked / totalCost * 100).toFixed(1);
-      const riskLeft = ((maxLoss - totalProfitLocked) / maxLoss * 100).toFixed(0);
-
-      document.getElementById('totalProfit').innerHTML =
-        `Total Profit Locked: <span class="profit">$${formatNumber(totalProfitLocked)}</span> (${securedPct}% of cost)`;
-      document.getElementById('totalCashOut').innerHTML =
-        `Total Cash Out: <span class="cash">$${formatNumber(cumulativeCashOut)}</span>`;
-
-      let rrText = `If remaining expires worthless tomorrow → net position: <span class="${getValueClass(totalProfitLocked - (remaining * costPerContract))}">$${formatNumber(Math.abs(totalProfitLocked - (remaining * costPerContract)))}${totalProfitLocked - (remaining * costPerContract) >= 0 ? '' : '-'}</span><br>`;
-      rrText += `Secured: ${securedPct}% → downside now ~${riskLeft}% of original risk.<br>`;
-      rrText += remaining > 0
-        ? `Trophy contracts left: ${remaining} — could add ~$${formatNumber(unrealizedTop)} at +20,000%`
-        : `All sold — position closed.`;
-      document.getElementById('riskReward').innerHTML = rrText;
+    if (rounded > contracts) {
+      const maxCash = Math.round(contracts * gainPerContract);
+      msg += '<br><br><span class="warn">Not enough contracts — sell all for only $' + formatNumber(maxCash) + ' (partial recovery)</span>';
     }
 
-    function calculateQuickCashOut() {
-      const buy = parseFloat(document.getElementById('buyPrice').value);
-      const contracts = parseInt(document.getElementById('numContracts').value);
-      const live = parseFloat(document.getElementById('livePrice').value);
-      const resultDiv = document.getElementById('cashoutResult');
-
-      resultDiv.innerHTML = '';
-
-      if (isNaN(buy) || isNaN(contracts) || isNaN(live) || buy <= 0 || contracts < 1 || live <= 0) {
-        resultDiv.innerHTML = '<span class="warn">Please fill buy price, contracts, and a valid live price > 0.</span>';
-        return;
-      }
-
-      const totalCost = buy * contracts * 100;
-      if (live <= buy) {
-        resultDiv.innerHTML = '<span class="warn">Live price ≤ buy price — no recovery possible yet.</span>';
-        return;
-      }
-
-      const gainPerContract = (live - buy) * 100;
-      const exactContracts = totalCost / gainPerContract;
-      const rounded = Math.round(exactContracts * 10) / 10; // 0.1 precision
-
-      let cashBack = Math.round(rounded * gainPerContract);
-      let msg = `Sell <strong>${rounded}</strong> contracts → get ≈ <span class="cash">$${formatNumber(cashBack)}</span> cash<br>`;
-      msg += `(exact: ${exactContracts.toFixed(3)} contracts)<br><br>`;
-
-      msg += `This recovers ≈ your total cost of $${formatNumber(totalCost)}<br>`;
-      msg += `Leaves <strong>${contracts - Math.floor(rounded)}</strong>–<strong>${contracts - Math.ceil(rounded) + 1}</strong> contracts riding free.`;
-
-      if (rounded > contracts) {
-        const maxCash = Math.round(contracts * gainPerContract);
-        msg += '<br><br><span class="warn">Not enough contracts — sell all for only $' + formatNumber(maxCash) + ' (partial recovery)</span>';
-      }
-
-      resultDiv.innerHTML = msg;
-    }
-  </script>
+    resultDiv.innerHTML = msg;
+  }
+</script>
 </body>
 </html>
