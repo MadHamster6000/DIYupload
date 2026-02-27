@@ -3,380 +3,332 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Custom Dollhouse Frame – Build My Mini</title>
+  <title>Madhamster + Grok Moonshot Option Ladder v1.0006</title>
   <style>
     body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #f8f9fa;
-      color: #333;
+      font-family: Arial, sans-serif;
       margin: 0;
-      padding: 40px 20px;
-      text-align: center;
+      padding: 15px;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+      box-sizing: border-box;
     }
     h1 {
-      font-size: 2.5em;
-      margin-bottom: 10px;
-      color: #222;
+      text-align: center;
+      color: #58a6ff;
+      text-shadow: 0 0 10px #58a6ff;
+      margin: 20px 0 25px;
+      font-size: clamp(1.6rem, 5vw, 2.2rem);
     }
-    p {
-      font-size: 1.2em;
-      color: #555;
-      margin-bottom: 20px;
-    }
-    input { display: none; }
-    .upload-btn {
-      background: #4a90e2;
-      color: white;
-      padding: 14px 28px;
-      border: none;
-      border-radius: 50px;
-      font-size: 1.1em;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      transition: all 0.3s ease;
-      display: inline-block;
-    }
-    .upload-btn:hover {
-      background: #357abd;
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    }
-    #preview {
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-      margin: 30px auto;
-      max-width: 600px;
-      background: white;
-      overflow: hidden;
-    }
-    canvas {
-      width: 100%;
-      height: auto;
+    label {
       display: block;
-      cursor: move;
+      margin: 12px 0 6px;
+      font-weight: bold;
+      color: #e6edf3;
+      font-size: 1.05rem;
     }
-    .download-btn {
-      background: #27ae60;
-      color: white;
-      padding: 14px 32px;
-      border: none;
-      border-radius: 50px;
-      font-size: 1.2em;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      transition: all 0.3s ease;
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 1.1rem;
+      box-sizing: border-box;
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      margin-bottom: 8px;
     }
-    .download-btn:hover {
-      background: #219653;
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    }
-    .disclaimer {
-      font-size: 0.9em;
-      color: #777;
-      margin-top: 40px;
-    }
-    .instructions {
-      font-size: 1em;
-      color: #666;
-      margin: 10px 0;
-    }
-    #photo-list {
-      margin: 20px auto;
-      max-width: 600px;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
-    }
-    .photo-thumb-container {
-      position: relative;
-      display: inline-block;
-    }
-    .photo-thumb {
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .photo-thumb:hover, .photo-thumb.active {
-      border-color: #4a90e2;
-      transform: scale(1.05);
-    }
-    .delete-btn {
-      position: absolute;
-      top: -10px;
-      right: -10px;
-      background: #ff4d4d;
+    button {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(90deg, #238636, #2ea043);
       color: white;
       border: none;
-      border-radius: 50%;
-      width: 22px;
-      height: 22px;
-      font-size: 12px;
+      font-size: 1.2rem;
       font-weight: bold;
       cursor: pointer;
-      line-height: 22px;
-      text-align: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
-    .privacy-note {
-      font-size: 1em;
-      color: #444;
-      background: #fff9e6;
-      padding: 15px;
+      margin: 20px 0 15px;
       border-radius: 8px;
-      margin: 20px auto;
-      max-width: 600px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 12px rgba(46,160,67,0.4);
+      transition: all 0.2s;
+    }
+    button:hover, button:active {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(46,160,67,0.6);
+    }
+    #costDisplay {
+      margin: 15px 0;
+      font-weight: bold;
+      text-align: center;
+      font-size: 1.15rem;
+    }
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      margin: 15px 0;
+      background: #161b22;
+    }
+    table {
+      width: 100%;
+      min-width: 900px;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid #30363d;
+    }
+    th {
+      background: #21262d;
+      color: #58a6ff;
+      font-weight: bold;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tr:hover {
+      background: #1f2937;
+    }
+    .profit { color: #56d364; font-weight: bold; }
+    .cash { color: #79c0ff; font-weight: bold; }
+    .risk { color: #f85149; font-weight: bold; }
+    .neutral { color: #8b949e; font-weight: bold; }
+    .total {
+      font-size: 1.1rem;
+      font-weight: bold;
+      background: #21262d;
+      padding: 14px;
+      margin: 15px 0;
+      text-align: center;
+      border-radius: 8px;
+      border: 1px solid #30363d;
+    }
+    .riskreward {
+      background: #161b22;
+      padding: 16px;
+      margin-top: 15px;
+      border-radius: 8px;
+      border: 1px solid #30363d;
+      text-align: center;
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+    /* ── Quick Cash-Out Section ── */
+    #quickCashOut {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 40px;
+    }
+    #quickCashOut h2 {
+      margin-top: 0;
+      color: #58a6ff;
+      text-align: center;
+      font-size: 1.4rem;
+    }
+    #quickCashOut p.intro {
+      text-align: center;
+      color: #8b949e;
+      margin: 0 0 20px;
+    }
+    #cashoutResult {
+      margin-top: 20px;
+      padding: 15px;
+      background: #0d1117;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+    #cashoutResult .good { color: #56d364; }
+    #cashoutResult .warn { color: #f85149; }
+    @media (max-width: 768px) {
+      body { padding: 10px; }
+      h1 { margin: 15px 0; }
+      button { padding: 18px; font-size: 1.3rem; }
+      .table-container { margin: 10px -10px; border-radius: 0; }
+      th, td { padding: 8px 10px; font-size: 0.88rem; }
     }
   </style>
 </head>
 <body>
-  <img src="bmm-logo.png" alt="Build My Mini BMM" style="max-width: 180px; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto;">
+  <h1>Madhamster + Grok Moonshot Option Ladder v1.0006</h1>
+ 
+  <label for="buyPrice">Buy Price per contract (e.g. 0.76):</label>
+  <input type="number" id="buyPrice" step="0.01" min="0" placeholder="Entry price" value="0.76">
+  <label for="numContracts">Number of Contracts (min 1):</label>
+  <input type="number" id="numContracts" min="1" placeholder="e.g. 30" value="30">
+  <button onclick="calculate()">Launch Moon Ladder</button>
+  <div id="costDisplay"></div>
+  <div class="table-container">
+    <table id="results">
+      <thead>
+        <tr>
+          <th>Target Gain</th>
+          <th>Option Price</th>
+          <th>% of Original</th>
+          <th>Sold</th>
+          <th>Rem.</th>
+          <th>Cash Out</th>
+          <th>Profit</th>
+          <th>Max Loss/Gain</th>
+          <th>Cum. %</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div id="totalProfit" class="total"></div>
+  <div id="totalCashOut" class="total" style="background:#21262d; margin-top:10px;"></div>
+  <div id="riskReward" class="riskreward"></div>
 
-  <h1>Make Your Own Mini Frame</h1>
-  <p>Upload photos one by one, drag & zoom each, delete if needed, then download!</p>
-  <p class="instructions">Click thumbnail to select • Drag/zoom selected • Click red X to delete</p>
+  <!-- New Quick Cash-Out Section at the bottom -->
+  <div id="quickCashOut">
+    <h2>Quick: Get Your Total Cost Back</h2>
+    <p class="intro">Enter current live option price → see how many contracts to sell to recover ≈ your original total cost.</p>
+    
+    <label for="livePrice">Current Live Option Price:</label>
+    <input type="number" id="livePrice" step="0.01" min="0" placeholder="e.g. 2.45">
 
-  <label for="upload" class="upload-btn">Add Photo</label>
-  <input type="file" id="upload" accept="image/*">
+    <button onclick="calculateQuickCashOut()">Calculate Sell Qty</button>
 
-  <div id="preview">
-    <canvas id="canvas" width="500" height="600"></canvas>
+    <div id="cashoutResult"></div>
   </div>
 
-  <p class="privacy-note">
-    Quick heads-up: Your photos stay private — we don't save them anywhere. Everything happens right here on your screen.  
-    If you close this tab or refresh? Poof — your design disappears. So download it before you go!  
-    No tricks, no tracking — just fun. 😊
-  </p>
+<script>
+  function formatNumber(num) {
+    return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+  function getValueClass(value) {
+    if (value > 0) return 'profit';
+    if (value < 0) return 'risk';
+    return 'neutral';
+  }
 
-  <div id="photo-list"></div>
+  function calculate() {
+    const buy = parseFloat(document.getElementById('buyPrice').value);
+    let initialContracts = parseInt(document.getElementById('numContracts').value);
+    if (!buy || buy <= 0) { alert("Enter valid buy price!"); return; }
+    if (!initialContracts || initialContracts < 1) { alert("Contracts must be at least 1!"); return; }
+    const costPerContract = buy * 100;
+    const totalCost = initialContracts * costPerContract;
+    document.getElementById('costDisplay').innerHTML =
+      `Total Cost: <span class="risk">$${formatNumber(totalCost)}</span>`;
 
-  <button class="download-btn" onclick="downloadPNG()">Download PNG (High-Res)</button>
+    const tiers = [
+      { gain: 100,  pctOrig: 50 },
+      { gain: 200,  pctOrig: 8 },
+      { gain: 400,  pctOrig: 8 },
+      { gain: 800,  pctOrig: 10 },
+      { gain: 1500, pctOrig: 10 },
+      { gain: 3000, pctOrig: 4 },
+      { gain: 6000, pctOrig: 3 },
+      { gain: 8000, pctOrig: 2 },
+      { gain: 10000, pctOrig: 1.5},
+      { gain: 20000, pctOrig: 1 }
+    ];
 
-  <p class="disclaimer">Photos are processed in your browser only — nothing is uploaded or stored.</p>
+    let remaining = initialContracts;
+    let totalProfitLocked = 0;
+    let cumulativeCashOut = 0;
+    const tableBody = document.querySelector('#results tbody');
+    tableBody.innerHTML = '';
 
-  <p style="font-size: 0.8em; color: #999; margin-top: 60px;">Version 1.18 – Feb 23, 2026 – Frame on Top + Privacy Note</p>
+    tiers.forEach(tier => {
+      const targetPrice = buy * (1 + tier.gain / 100);
+      const sellFraction = tier.pctOrig / 100;
+      let calcSell = initialContracts * sellFraction;
+      let toSell = Math.floor(calcSell);
+      if (toSell < 1 && remaining > 0) toSell = 1;
+      toSell = Math.min(toSell, remaining);
 
-  <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const frameImg = new Image();
-    frameImg.src = 'frame.png';
+      const cashThisSell = toSell * targetPrice * 100;
+      const profitThis = cashThisSell - (toSell * costPerContract);
+      totalProfitLocked += profitThis;
+      cumulativeCashOut += cashThisSell;
 
-    let photos = [];
-    let activePhotoIndex = -1;
-    let isDragging = false;
-    let startX, startY;
-    let touchDist = 0;
+      const remainingAfter = remaining - toSell;
+      const maxPotentialLossGain = totalProfitLocked - (remainingAfter * costPerContract);
+      remaining = remainingAfter;
 
-    frameImg.onload = drawAll;
+      const cumProfitPct = totalCost > 0 ? (totalProfitLocked / totalCost * 100).toFixed(1) : 0;
 
-    function drawAll() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>+${tier.gain}%</td>
+        <td>$${targetPrice.toFixed(2)}</td>
+        <td>${tier.pctOrig}% orig</td>
+        <td>${toSell}</td>
+        <td>${remainingAfter}</td>
+        <td class="cash">$${formatNumber(cashThisSell)}</td>
+        <td class="profit">$${formatNumber(profitThis)}</td>
+        <td class="${getValueClass(maxPotentialLossGain)}">$${formatNumber(Math.abs(maxPotentialLossGain))}${maxPotentialLossGain >= 0 ? '' : '-'}</td>
+        <td class="profit">${cumProfitPct}%</td>
+      `;
+      tableBody.appendChild(row);
+    });
 
-      // Draw photos first (under layer)
-      photos.forEach((photoObj, i) => {
-        const { img, x, y, scale } = photoObj;
-        const w = img.width * scale;
-        const h = img.height * scale;
-        ctx.drawImage(img, x, y, w, h);
-      });
+    const lastPrice = buy * (1 + 20000 / 100);
+    const unrealizedTop = remaining * (lastPrice - buy) * 100;
+    const maxLoss = totalCost;
+    const securedPct = (totalProfitLocked / totalCost * 100).toFixed(1);
+    const riskLeft = ((maxLoss - totalProfitLocked) / maxLoss * 100).toFixed(0);
 
-      // Draw frame ON TOP
-      ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+    document.getElementById('totalProfit').innerHTML =
+      `Total Profit Locked: <span class="profit">$${formatNumber(totalProfitLocked)}</span> (${securedPct}% of cost)`;
+    document.getElementById('totalCashOut').innerHTML =
+      `Total Cash Out: <span class="cash">$${formatNumber(cumulativeCashOut)}</span>`;
 
-      // Draw selection border ON TOP
-      if (activePhotoIndex >= 0 && photos[activePhotoIndex]) {
-        const { x, y, scale } = photos[activePhotoIndex];
-        const w = photos[activePhotoIndex].img.width * scale;
-        const h = photos[activePhotoIndex].img.height * scale;
-        ctx.strokeStyle = 'rgba(74, 144, 226, 0.9)';
-        ctx.lineWidth = 8;
-        ctx.strokeRect(x - 4, y - 4, w + 8, h + 8);
-      }
+    let rrText = `If remaining expires worthless tomorrow → net position: <span class="${getValueClass(totalProfitLocked - (remaining * costPerContract))}">$${formatNumber(Math.abs(totalProfitLocked - (remaining * costPerContract)))}${totalProfitLocked - (remaining * costPerContract) >= 0 ? '' : '-'}</span><br>`;
+    rrText += `Secured: ${securedPct}% → downside now ~${riskLeft}% of original risk.<br>`;
+    rrText += remaining > 0
+      ? `Trophy contracts left: ${remaining} — could add ~$${formatNumber(unrealizedTop)} at +20,000%`
+      : `All sold — position closed.`;
+    document.getElementById('riskReward').innerHTML = rrText;
+  }
+
+  function calculateQuickCashOut() {
+    // Re-read inputs EVERY time you click—fixes the stale data issue
+    const buy = parseFloat(document.getElementById('buyPrice').value);
+    const contracts = parseInt(document.getElementById('numContracts').value);
+    const live = parseFloat(document.getElementById('livePrice').value);
+    const resultDiv = document.getElementById('cashoutResult');
+
+    resultDiv.innerHTML = '';
+
+    if (isNaN(buy) || isNaN(contracts) || isNaN(live) || buy <= 0 || contracts < 1 || live <= 0) {
+      resultDiv.innerHTML = '<span class="warn">Please fill buy price, contracts, and a valid live price > 0.</span>';
+      return;
     }
 
-    // Upload one photo at a time
-    document.getElementById('upload').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const tempImg = new Image();
-        tempImg.src = event.target.result;
-        tempImg.onload = () => {
-          const holeLeft = 80;
-          const holeTop = 100;
-          const holeWidth = 340;
-          const holeHeight = 340;
-
-          const scaleX = holeWidth / tempImg.width;
-          const scaleY = holeHeight / tempImg.height;
-          const scale = Math.min(scaleX, scaleY) * 0.7;
-
-          const x = holeLeft + (holeWidth - tempImg.width * scale) / 2;
-          const y = holeTop + (holeHeight - tempImg.height * scale) / 2;
-
-          photos.push({ img: tempImg, x, y, scale });
-          updatePhotoList();
-          activePhotoIndex = photos.length - 1;
-          drawAll();
-        };
-      };
-      reader.readAsDataURL(file);
-    });
-
-    function updatePhotoList() {
-      const list = document.getElementById('photo-list');
-      list.innerHTML = '';
-
-      photos.forEach((photoObj, i) => {
-        const container = document.createElement('div');
-        container.className = 'photo-thumb-container';
-
-        const thumb = document.createElement('img');
-        thumb.src = photoObj.img.src;
-        thumb.className = 'photo-thumb' + (i === activePhotoIndex ? ' active' : '');
-        thumb.onclick = () => {
-          activePhotoIndex = i;
-          updatePhotoList();
-          drawAll();
-        };
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.textContent = 'X';
-        deleteBtn.onclick = (event) => {
-          event.stopPropagation();
-          if (confirm('Delete this photo?')) {
-            photos.splice(i, 1);
-            if (activePhotoIndex === i) activePhotoIndex = -1;
-            if (activePhotoIndex >= photos.length) activePhotoIndex = photos.length - 1;
-            updatePhotoList();
-            drawAll();
-          }
-        };
-
-        container.appendChild(thumb);
-        container.appendChild(deleteBtn);
-        list.appendChild(container);
-      });
+    const totalCost = buy * contracts * 100;
+    if (live <= buy) {
+      resultDiv.innerHTML = '<span class="warn">Live price ≤ buy price — no recovery possible yet.</span>';
+      return;
     }
 
-    // Touch support (mobile)
-    canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      if (activePhotoIndex < 0) return;
+    const gainPerContract = (live - buy) * 100;
+    const exactContracts = totalCost / gainPerContract;
+    const rounded = Math.round(exactContracts * 10) / 10; // 0.1 precision
 
-      if (e.touches.length === 1) {
-        isDragging = true;
-        startX = e.touches[0].clientX - photos[activePhotoIndex].x;
-        startY = e.touches[0].clientY - photos[activePhotoIndex].y;
-      } else if (e.touches.length === 2) {
-        isDragging = false;
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        touchDist = Math.hypot(dx, dy);
-      }
-    });
+    let cashBack = Math.round(rounded * gainPerContract);
+    let msg = `Sell <strong>${rounded}</strong> contracts → get ≈ <span class="cash">$${formatNumber(cashBack)}</span> cash<br>`;
+    msg += `(exact: ${exactContracts.toFixed(3)} contracts)<br><br>`;
 
-    canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      if (activePhotoIndex < 0) return;
+    msg += `This recovers ≈ your total cost of $${formatNumber(totalCost)}<br>`;
+    msg += `Leaves <strong>${contracts - Math.floor(rounded)}</strong>–<strong>${contracts - Math.ceil(rounded) + 1}</strong> contracts riding free.`;
 
-      if (e.touches.length === 1 && isDragging) {
-        photos[activePhotoIndex].x = e.touches[0].clientX - startX;
-        photos[activePhotoIndex].y = e.touches[0].clientY - startY;
-        drawAll();
-      } else if (e.touches.length === 2) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const newDist = Math.hypot(dx, dy);
-
-        if (touchDist > 5) {
-          let zoomFactor = newDist / touchDist;
-          zoomFactor = 1 + (zoomFactor - 1) * 0.45;
-          photos[activePhotoIndex].scale *= zoomFactor;
-          photos[activePhotoIndex].scale = Math.max(0.1, Math.min(photos[activePhotoIndex].scale, 8));
-        }
-        touchDist = newDist;
-        drawAll();
-      }
-    });
-
-    canvas.addEventListener('touchend', () => {
-      isDragging = false;
-    });
-
-    // Mouse support
-    canvas.addEventListener('mousedown', (e) => {
-      if (activePhotoIndex < 0) return;
-      isDragging = true;
-      startX = e.offsetX - photos[activePhotoIndex].x;
-      startY = e.offsetY - photos[activePhotoIndex].y;
-      canvas.style.cursor = 'grabbing';
-    });
-
-    canvas.addEventListener('mousemove', (e) => {
-      if (!isDragging || activePhotoIndex < 0) return;
-      photos[activePhotoIndex].x = e.offsetX - startX;
-      photos[activePhotoIndex].y = e.offsetY - startY;
-      drawAll();
-    });
-
-    canvas.addEventListener('mouseup', () => {
-      isDragging = false;
-      canvas.style.cursor = 'move';
-    });
-
-    canvas.addEventListener('mouseleave', () => {
-      isDragging = false;
-      canvas.style.cursor = 'move';
-    });
-
-    canvas.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      if (activePhotoIndex < 0) return;
-      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-      photos[activePhotoIndex].scale *= zoomFactor;
-      photos[activePhotoIndex].scale = Math.max(0.1, Math.min(photos[activePhotoIndex].scale, 8));
-      drawAll();
-    });
-
-    // Download high-res PNG with frame on top
-    function downloadPNG() {
-      const tempCanvas = document.createElement('canvas');
-      const scaleFactor = 2; // 2x resolution for sharp print
-      tempCanvas.width = canvas.width * scaleFactor;
-      tempCanvas.height = canvas.height * scaleFactor;
-      const tempCtx = tempCanvas.getContext('2d');
-
-      tempCtx.scale(scaleFactor, scaleFactor);
-
-      // Draw photos first (under layer)
-      photos.forEach((photoObj) => {
-        const { img, x, y, scale } = photoObj;
-        const w = img.width * scale;
-        const h = img.height * scale;
-        tempCtx.drawImage(img, x, y, w, h);
-      });
-
-      // Draw frame ON TOP
-      tempCtx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
-
-      const link = document.createElement('a');
-      link.download = 'your-custom-frame-high-res.png';
-      link.href = tempCanvas.toDataURL('image/png');
-      link.click();
+    if (rounded > contracts) {
+      const maxCash = Math.round(contracts * gainPerContract);
+      msg += '<br><br><span class="warn">Not enough contracts — sell all for only $' + formatNumber(maxCash) + ' (partial recovery)</span>';
     }
-  </script>
+
+    resultDiv.innerHTML = msg;
+  }
+</script>
 </body>
 </html>
