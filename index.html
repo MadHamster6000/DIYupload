@@ -6,6 +6,7 @@
   <title>Madhamster + Grok Moonshot Option Ladder</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    html { scroll-behavior: smooth; }
     body {
       font-family: Arial, sans-serif;
       margin: 0;
@@ -15,19 +16,11 @@
       min-height: 100vh;
       box-sizing: border-box;
     }
-    h1, h2 {
-      text-align: center;
-      color: #58a6ff;
-    }
-    .hidden {
-      display: none !important;
-    }
-    .page {
-      padding: 10px;
-    }
+    h1, h2 { text-align: center; color: #58a6ff; margin-top: 40px; }
+    section { margin-bottom: 60px; }
     .nav-bar {
       text-align: center;
-      margin-bottom: 25px;
+      margin-bottom: 30px;
       padding: 10px;
       background: #161b22;
       border-radius: 8px;
@@ -36,7 +29,7 @@
       top: 0;
       z-index: 100;
     }
-    button.nav-btn {
+    .nav-btn {
       padding: 10px 24px;
       margin: 0 10px;
       font-size: 1rem;
@@ -45,19 +38,16 @@
       border: none;
       border-radius: 6px;
       cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
       transition: all 0.2s;
     }
-    button.nav-btn:hover {
+    .nav-btn:hover {
       background: linear-gradient(90deg, #1e3a8a, #2563eb);
       transform: translateY(-1px);
     }
-    label {
-      display: block;
-      margin: 12px 0 6px;
-      font-weight: bold;
-      color: #e6edf3;
-    }
-    input {
+    label { display: block; margin: 12px 0 6px; font-weight: bold; color: #e6edf3; }
+    input, select {
       width: 100%;
       padding: 12px;
       font-size: 1.1rem;
@@ -84,12 +74,6 @@
     button.main-btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 20px rgba(46,160,67,0.6);
-    }
-    #costDisplay {
-      margin: 15px 0;
-      font-weight: bold;
-      text-align: center;
-      font-size: 1.15rem;
     }
     .table-container {
       overflow-x: auto;
@@ -131,38 +115,6 @@
       border-radius: 8px;
       border: 1px solid #30363d;
     }
-    .riskreward {
-      background: #161b22;
-      padding: 16px;
-      margin-top: 15px;
-      border-radius: 8px;
-      border: 1px solid #30363d;
-      text-align: center;
-      font-size: 1.05rem;
-      line-height: 1.5;
-    }
-    #quickCashOut {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 20px;
-      margin-top: 40px;
-    }
-    #quickCashOut h2 {
-      margin-top: 0;
-      color: #58a6ff;
-      text-align: center;
-    }
-    #cashoutResult {
-      margin-top: 20px;
-      padding: 15px;
-      background: #0d1117;
-      border-radius: 6px;
-      border: 1px solid #30363d;
-      font-size: 1.1rem;
-      line-height: 1.6;
-    }
-    .warn { color: #f85149; }
     .chart-wrapper {
       width: 100%;
       max-width: 1000px;
@@ -177,6 +129,9 @@
       border: 1px solid #30363d;
       border-radius: 8px;
     }
+    .sim-table { min-width: 600px; }
+    .sim-row.win { background: rgba(86, 212, 100, 0.1); }
+    .sim-row.loss { background: rgba(248, 81, 73, 0.1); }
     .reference-table th, .reference-table td {
       text-align: right;
       padding: 8px 12px;
@@ -189,20 +144,9 @@
       top: 0;
       z-index: 10;
     }
-    .reference-table tr:nth-child(even) {
-      background: #1a1f2b;
-    }
-    .reference-table tr:hover {
-      background: #1f2937;
-    }
-    .reference-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.9rem;
-    }
-    .editable-cell {
-      cursor: pointer;
-    }
+    .reference-table tr:nth-child(even) { background: #1a1f2b; }
+    .reference-table tr:hover { background: #1f2937; }
+    .editable-cell { cursor: pointer; }
     .editable-cell input {
       width: 100%;
       padding: 4px;
@@ -212,7 +156,6 @@
       border-radius: 4px;
       text-align: right;
     }
-    /* Color ranges for cash cells */
     .cash-1 { color: #79c0ff; } /* 1 - 999 */
     .cash-2 { color: #56d364; } /* 1,000 - 9,999 */
     .cash-3 { color: #ff9f1c; } /* 10,000 - 99,999 */
@@ -222,15 +165,15 @@
 </head>
 <body>
 
-  <!-- Navigation Bar -->
+  <!-- Navigation Bar (smooth scroll anchors) -->
   <div class="nav-bar">
-    <button class="nav-btn" onclick="showCalculator()">Calculator</button>
-    <button class="nav-btn" onclick="showTestPage()">Reference Table Page</button>
+    <a href="#moonshot" class="nav-btn">Moonshot Ladder</a>
+    <a href="#reference" class="nav-btn">Reference Table</a>
+    <a href="#million-ladder" class="nav-btn">Win & Reinvest Ladder</a>
   </div>
 
-  <!-- Calculator Page -->
-  <div id="calculator-page" class="page">
-
+  <!-- Section 1: Moonshot Ladder -->
+  <section id="moonshot">
     <h1>Madhamster + Grok Moonshot Option Ladder</h1>
 
     <label for="buyPrice">Buy Price per contract (e.g. 0.76):</label>
@@ -262,7 +205,6 @@
       </table>
     </div>
 
-    <!-- Interactive Chart -->
     <h2 style="text-align:center; margin-top:30px;">Cumulative Profit Curve</h2>
     <div class="chart-wrapper">
       <canvas id="profitChart"></canvas>
@@ -283,12 +225,10 @@
       <button class="main-btn" onclick="calculateQuickCashOut()">Calculate Sell Qty</button>
       <div id="cashoutResult"></div>
     </div>
+  </section>
 
-  </div>
-
-  <!-- Reference Table Page (Page 2) - Inline editable table with colors -->
-  <div id="test-page" class="page hidden">
-
+  <!-- Section 2: Reference Table -->
+  <section id="reference">
     <h1>Cash Received Reference Table (No Commission)</h1>
     <p style="text-align:center; font-size:1.1rem; margin-bottom:20px;">
       Click any cell to edit (Contracts or Option Prices) → press Enter to recalculate.<br>
@@ -300,36 +240,67 @@
         <thead>
           <tr id="referenceHeader">
             <th contenteditable="true" data-type="header" class="editable-cell">Contracts</th>
-            <!-- Headers added dynamically -->
           </tr>
         </thead>
-        <tbody id="referenceBody">
-          <!-- Rows added dynamically -->
-        </tbody>
+        <tbody id="referenceBody"></tbody>
       </table>
     </div>
+  </section>
 
-    <button class="main-btn" onclick="showCalculator()">← Back to Calculator</button>
-
-    <p style="text-align:center; color:#8b949e; margin-top:40px; font-size:0.9rem;">
-      v1.0016 • Local only • Grok-powered
+  <!-- Section 3: $1 Million 10% Bet Ladder Simulator -->
+  <section id="million-ladder">
+    <h1>$1 Million 10% Bet Ladder Simulator</h1>
+    <p style="text-align:center; color:#8b949e; margin-bottom:20px;">
+      Start cash → bet % → win % → 10% profit to TSLA → see compounding path to $1M+
     </p>
 
-  </div>
+    <div style="max-width:800px; margin:0 auto;">
+      <label for="startCash">Start Cash ($):</label>
+      <input type="number" id="startCash" value="10000" min="1000">
+
+      <label for="betPercent">Max Bet %:</label>
+      <select id="betPercent">
+        <option value="0.05">5% (Safer)</option>
+        <option value="0.10" selected>10% (Faster)</option>
+      </select>
+
+      <label for="winPercent">Win % (100 = 2x, 1000 = 11x):</label>
+      <input type="number" id="winPercent" value="1000" min="0">
+
+      <label for="winChance">Win Chance % (realistic: 40–70):</label>
+      <input type="number" id="winChance" value="60" min="0" max="100">
+
+      <label for="steps">Steps to Simulate:</label>
+      <input type="number" id="steps" value="10" min="1" max="20">
+
+      <button class="main-btn" onclick="runSingleSim()">Run Single Ladder</button>
+      <button class="main-btn" style="background:linear-gradient(90deg,#6b7280,#9ca3af);" onclick="runMonteCarlo()">Run 100 Random Sims</button>
+
+      <div id="simResult" class="table-container" style="margin-top:20px;">
+        <table id="simTable" class="sim-table">
+          <thead>
+            <tr>
+              <th>Step</th>
+              <th>Cash Before</th>
+              <th>Bet</th>
+              <th>Outcome</th>
+              <th>Profit</th>
+              <th>To TSLA</th>
+              <th>Cash After</th>
+              <th>TSLA Stash</th>
+              <th>Total Wealth</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="monteResult" style="margin-top:20px; text-align:center; font-size:1.1rem;"></div>
+    </div>
+  </section>
 
 <script>
-// Page Switching
-function showCalculator() {
-  document.getElementById('calculator-page').classList.remove('hidden');
-  document.getElementById('test-page').classList.add('hidden');
-}
-
-function showTestPage() {
-  document.getElementById('calculator-page').classList.add('hidden');
-  document.getElementById('test-page').classList.remove('hidden');
-}
-
-// LocalStorage Save & Load (for calculator)
+// LocalStorage for calculator inputs
 function saveSetup() {
   const data = {
     buyPrice: document.getElementById('buyPrice').value || '0.76',
@@ -352,11 +323,10 @@ function loadSetup() {
 // Load on start
 window.addEventListener('load', () => {
   loadSetup();
-  showCalculator();
   buildReferenceTable();
 });
 
-// Calculation Functions
+// Calculation Functions (your ladder)
 function formatNumber(num) {
   if (isNaN(num)) return '0';
   if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
@@ -465,7 +435,7 @@ function drawInteractiveChart(labels, data) {
   if (chartInstance) chartInstance.destroy();
 
   const maxProfit = Math.max(...data);
-  const yMax = Math.max(maxProfit * 1.1, 100000); // 10% buffer, min $100k
+  const yMax = Math.max(maxProfit * 1.25, 100000);
 
   chartInstance = new Chart(ctx, {
     type: 'line',
@@ -573,12 +543,11 @@ function calculateQuickCashOut() {
   resultDiv.innerHTML = msg;
 }
 
-// Inline Editable Reference Table on Page 2
+// Inline Editable Reference Table
 function buildReferenceTable() {
   const headerRow = document.getElementById('referenceHeader');
   headerRow.innerHTML = '<th contenteditable="true" data-type="header" class="editable-cell">Contracts</th>';
 
-  // Default prices (no commission)
   const defaultPrices = [0.10, 0.20, 0.40, 0.60, 0.80, 1.00, 2.00, 4.00, 6.00, 8.00, 10.00, 20.00, 40.00, 60.00, 80.00, 90.00, 100.00, 150.00, 200.00];
   defaultPrices.forEach(price => {
     const th = document.createElement('th');
@@ -592,13 +561,9 @@ function buildReferenceTable() {
   const body = document.getElementById('referenceBody');
   body.innerHTML = '';
 
-  // Default contracts
   const defaultContracts = [1, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 4000, 8000, 16000];
-  defaultContracts.forEach(contracts => {
-    addRow(contracts);
-  });
+  defaultContracts.forEach(contracts => addRow(contracts));
 
-  // Add event listeners for editing
   document.querySelectorAll('.editable-cell').forEach(cell => {
     cell.addEventListener('keydown', handleCellEdit);
     cell.addEventListener('blur', handleCellBlur);
@@ -621,7 +586,6 @@ function addRow(contracts) {
     const cash = contracts * price * 100;
     const td = document.createElement('td');
     td.textContent = '$' + formatNumber(cash);
-    // Apply color class based on cash value
     if (cash < 1000) td.className = 'cash-1';
     else if (cash < 10000) td.className = 'cash-2';
     else if (cash < 100000) td.className = 'cash-3';
@@ -644,17 +608,6 @@ function getCurrentPrices() {
   return prices;
 }
 
-function getCurrentContracts() {
-  const body = document.getElementById('referenceBody');
-  const contracts = [];
-  body.querySelectorAll('tr').forEach(row => {
-    const td = row.querySelector('td:first-child');
-    const value = parseInt(td.textContent.trim());
-    if (!isNaN(value)) contracts.push(value);
-  });
-  return contracts;
-}
-
 function recalculateTable() {
   const contractsList = getCurrentContracts();
   const pricesList = getCurrentPrices();
@@ -662,11 +615,8 @@ function recalculateTable() {
   const body = document.getElementById('referenceBody');
   body.innerHTML = '';
 
-  contractsList.forEach(contracts => {
-    addRow(contracts);
-  });
+  contractsList.forEach(contracts => addRow(contracts));
 
-  // Re-attach edit listeners
   document.querySelectorAll('.editable-cell').forEach(cell => {
     cell.addEventListener('keydown', handleCellEdit);
     cell.addEventListener('blur', handleCellBlur);
@@ -676,14 +626,14 @@ function recalculateTable() {
 function handleCellEdit(e) {
   if (e.key === 'Enter') {
     e.preventDefault();
-    e.target.blur(); // Trigger blur to save
+    e.target.blur();
   }
 }
 
 function handleCellBlur(e) {
   const cell = e.target;
   const type = cell.dataset.type;
-  let value = cell.textContent.trim().replace(/[^0-9.]/g, ''); // Clean input
+  let value = cell.textContent.trim().replace(/[^0-9.]/g, '');
 
   if (value === '') value = '0';
 
@@ -696,12 +646,105 @@ function handleCellBlur(e) {
   recalculateTable();
 }
 
-// Initial build on load
-window.addEventListener('load', () => {
-  loadSetup();
-  showCalculator();
-  buildReferenceTable();
-});
+// $1 Million 10% Bet Ladder Simulator
+function runSingleSim() {
+  const start = parseFloat(document.getElementById('startCash').value);
+  const betPct = parseFloat(document.getElementById('betPercent').value);
+  const winPct = parseFloat(document.getElementById('winPercent').value);
+  const winChance = parseFloat(document.getElementById('winChance').value) / 100;
+  const steps = parseInt(document.getElementById('steps').value);
+
+  let cash = start;
+  let tsla = 0;
+  const tableBody = document.querySelector('#simTable tbody');
+  tableBody.innerHTML = '';
+
+  for (let i = 1; i <= steps; i++) {
+    const bet = cash * betPct;
+    const isWin = Math.random() < winChance;
+    let profit = 0;
+
+    if (isWin) {
+      profit = bet * (winPct / 100);
+      const toTsla = profit * 0.1;
+      tsla += toTsla;
+      cash += (profit - toTsla);
+    } else {
+      cash -= bet;
+    }
+
+    const row = document.createElement('tr');
+    row.className = isWin ? 'sim-row win' : 'sim-row loss';
+    row.innerHTML = `
+      <td>${i}</td>
+      <td>$${formatNumber(cash + bet)}</td>
+      <td>$${formatNumber(bet)}</td>
+      <td>${isWin ? 'WIN' : 'LOSS'}</td>
+      <td>${isWin ? '$' + formatNumber(profit) : '-'}</td>
+      <td>${isWin ? '$' + formatNumber(profit * 0.1) : '-'}</td>
+      <td>$${formatNumber(cash)}</td>
+      <td>$${formatNumber(tsla)}</td>
+      <td><strong>$${formatNumber(cash + tsla)}</strong></td>
+    `;
+    tableBody.appendChild(row);
+
+    if (cash <= 0) {
+      const bustRow = document.createElement('tr');
+      bustRow.innerHTML = `<td colspan="9" class="risk">BUSTED! Cash = $0 after ${i} steps.</td>`;
+      tableBody.appendChild(bustRow);
+      break;
+    }
+  }
+}
+
+function runMonteCarlo() {
+  const runs = 100;
+  let totalFinalCash = 0;
+  let totalFinalTsla = 0;
+  let busts = 0;
+
+  for (let r = 0; r < runs; r++) {
+    let cash = parseFloat(document.getElementById('startCash').value);
+    let tsla = 0;
+    const betPct = parseFloat(document.getElementById('betPercent').value);
+    const winPct = parseFloat(document.getElementById('winPercent').value);
+    const winChance = parseFloat(document.getElementById('winChance').value) / 100;
+
+    for (let s = 1; s <= 20; s++) {
+      if (cash <= 0) { busts++; break; }
+      const bet = cash * betPct;
+      if (Math.random() < winChance) {
+        const profit = bet * (winPct / 100);
+        tsla += profit * 0.1;
+        cash += profit * 0.9;
+      } else {
+        cash -= bet;
+      }
+    }
+    totalFinalCash += cash;
+    totalFinalTsla += tsla;
+  }
+
+  const avgCash = totalFinalCash / runs;
+  const avgTsla = totalFinalTsla / runs;
+  const avgTotal = avgCash + avgTsla;
+  const bustRate = (busts / runs * 100).toFixed(1);
+
+  document.getElementById('monteResult').innerHTML = `
+    <span class="profit">After 100 random runs:</span><br>
+    Avg Cash: $${formatNumber(avgCash)}<br>
+    Avg TSLA: $${formatNumber(avgTsla)}<br>
+    Avg Total: <strong>$${formatNumber(avgTotal)}</strong><br>
+    Bust Rate: <span class="risk">${bustRate}%</span> (went to $0)
+  `;
+}
+
+function formatNumber(num) {
+  if (isNaN(num) || num <= 0) return '0';
+  if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+  if (num >= 1e3) return (num / 1e3).toFixed(0) + 'k';
+  return num.toFixed(0);
+}
 </script>
 
 </body>
