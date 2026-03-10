@@ -3,43 +3,74 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Madhamster + Grok Moonshot Option Ladder v1.0006</title>
+  <title>Madhamster + Grok Moonshot Option Ladder</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    html { scroll-behavior: smooth; }
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 15px;
       background: #0d1117;
-      color: #c9d1d9;
+      color: #e6edf3;
       min-height: 100vh;
       box-sizing: border-box;
     }
-    h1 {
+    h1, h2 {
       text-align: center;
       color: #58a6ff;
-      text-shadow: 0 0 10px #58a6ff;
-      margin: 20px 0 25px;
-      font-size: clamp(1.6rem, 5vw, 2.2rem);
+      margin-top: 40px;
+      margin-bottom: 20px;
+    }
+    section { margin-bottom: 80px; }
+    .nav-bar {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 10px;
+      background: #161b22;
+      border-radius: 8px;
+      border: 1px solid #30363d;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .nav-btn {
+      padding: 10px 24px;
+      font-size: 1rem;
+      background: linear-gradient(90deg, #1e40af, #3b82f6);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .nav-btn:hover {
+      background: linear-gradient(90deg, #1e3a8a, #2563eb);
+      transform: translateY(-2px);
     }
     label {
       display: block;
-      margin: 12px 0 6px;
+      margin: 15px 0 8px;
       font-weight: bold;
       color: #e6edf3;
-      font-size: 1.05rem;
     }
-    input {
+    input, select {
       width: 100%;
       padding: 12px;
       font-size: 1.1rem;
-      box-sizing: border-box;
       background: #21262d;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
+      color: #e6edf3;
+      border: 1px solid #444c56;
       border-radius: 6px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
-    button {
+    button.main-btn {
       width: 100%;
       padding: 16px;
       background: linear-gradient(90deg, #238636, #2ea043);
@@ -48,24 +79,18 @@
       font-size: 1.2rem;
       font-weight: bold;
       cursor: pointer;
-      margin: 20px 0 15px;
       border-radius: 8px;
+      margin: 20px 0 15px;
       box-shadow: 0 4px 12px rgba(46,160,67,0.4);
       transition: all 0.2s;
     }
-    button:hover, button:active {
+    button.main-btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 20px rgba(46,160,67,0.6);
     }
-    #costDisplay {
-      margin: 15px 0;
-      font-weight: bold;
-      text-align: center;
-      font-size: 1.15rem;
-    }
     .table-container {
       overflow-x: auto;
-      border: 1px solid #30363d;
+      border: 1px solid #444c56;
       border-radius: 8px;
       margin: 15px 0;
       background: #161b22;
@@ -79,15 +104,12 @@
     th, td {
       padding: 10px 12px;
       text-align: left;
-      border-bottom: 1px solid #30363d;
+      border-bottom: 1px solid #444c56;
     }
     th {
       background: #21262d;
       color: #58a6ff;
       font-weight: bold;
-      position: sticky;
-      top: 0;
-      z-index: 1;
     }
     tr:hover {
       background: #1f2937;
@@ -104,231 +126,810 @@
       margin: 15px 0;
       text-align: center;
       border-radius: 8px;
-      border: 1px solid #30363d;
+      border: 1px solid #444c56;
     }
-    .riskreward {
+    .chart-wrapper {
+      width: 100%;
+      max-width: 1000px;
+      margin: 20px auto;
+      height: 420px;
+      position: relative;
+    }
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
       background: #161b22;
-      padding: 16px;
-      margin-top: 15px;
+      border: 1px solid #444c56;
       border-radius: 8px;
-      border: 1px solid #30363d;
-      text-align: center;
-      font-size: 1.05rem;
-      line-height: 1.5;
     }
-    /* ── Quick Cash-Out Section ── */
-    #quickCashOut {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 20px;
-      margin-top: 40px;
+    .sim-table { min-width: 600px; }
+    .sim-row.win { background: rgba(86, 212, 100, 0.1); }
+    .sim-row.loss { background: rgba(248, 81, 73, 0.1); }
+    .warning { color: #ff9f1c; font-weight: bold; text-align: center; margin: 10px 0; }
+    .reference-table th, .reference-table td {
+      text-align: right;
+      padding: 8px 12px;
+      border: 1px solid #444c56;
     }
-    #quickCashOut h2 {
-      margin-top: 0;
+    .reference-table th {
+      background: #21262d;
       color: #58a6ff;
-      text-align: center;
-      font-size: 1.4rem;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
-    #quickCashOut p.intro {
-      text-align: center;
-      color: #8b949e;
-      margin: 0 0 20px;
+    .reference-table tr:nth-child(even) { background: #1a1f2b; }
+    .reference-table tr:hover { background: #1f2937; }
+    .editable-cell { cursor: pointer; }
+    .editable-cell input {
+      width: 100%;
+      padding: 4px;
+      background: #2a2f3a;
+      color: #e6edf3;
+      border: 1px solid #58a6ff;
+      border-radius: 4px;
+      text-align: right;
     }
-    #cashoutResult {
-      margin-top: 20px;
-      padding: 15px;
-      background: #0d1117;
-      border-radius: 6px;
-      border: 1px solid #30363d;
-      font-size: 1.1rem;
+    .cash-1 { color: #79c0ff; }
+    .cash-2 { color: #56d364; }
+    .cash-3 { color: #ff9f1c; }
+    .cash-4 { color: #a78bfa; }
+    .cash-5 { color: #ffd700; }
+    .conviction-result {
+      margin-top: 30px;
+      padding: 20px;
+      background: #21262d;
+      border-radius: 8px;
+      border: 1px solid #444c56;
       line-height: 1.6;
+      font-size: 1.1rem;
     }
-    #cashoutResult .good { color: #56d364; }
-    #cashoutResult .warn { color: #f85149; }
-    @media (max-width: 768px) {
-      body { padding: 10px; }
-      h1 { margin: 15px 0; }
-      button { padding: 18px; font-size: 1.3rem; }
-      .table-container { margin: 10px -10px; border-radius: 0; }
-      th, td { padding: 8px 10px; font-size: 0.88rem; }
+    .highlight { color: #56d364; font-weight: bold; }
+    .warning { color: #ff9f1c; font-weight: bold; margin-top: 10px; }
+    .sizing-table th, .sizing-table td {
+      padding: 12px;
+      text-align: center;
+      border: 1px solid #444c56;
     }
+    .sizing-table th {
+      background: #21262d;
+      color: #58a6ff;
+    }
+    .sizing-safe { background: #1e3a2b; color: #e6edf3; } /* dark green */
+    .sizing-medium { background: #2f2a1e; color: #e6edf3; } /* dark yellow */
+    .sizing-high { background: #2f1e1e; color: #e6edf3; } /* dark red */
   </style>
 </head>
 <body>
-  <h1>Madhamster + Grok Moonshot Option Ladder v1.0006</h1>
- 
-  <label for="buyPrice">Buy Price per contract (e.g. 0.76):</label>
-  <input type="number" id="buyPrice" step="0.01" min="0" placeholder="Entry price" value="0.76">
-  <label for="numContracts">Number of Contracts (min 1):</label>
-  <input type="number" id="numContracts" min="1" placeholder="e.g. 30" value="30">
-  <button onclick="calculate()">Launch Moon Ladder</button>
-  <div id="costDisplay"></div>
-  <div class="table-container">
-    <table id="results">
-      <thead>
-        <tr>
-          <th>Target Gain</th>
-          <th>Option Price</th>
-          <th>% of Original</th>
-          <th>Sold</th>
-          <th>Rem.</th>
-          <th>Cash Out</th>
-          <th>Profit</th>
-          <th>Max Loss/Gain</th>
-          <th>Cum. %</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+
+  <!-- Navigation Bar (smooth scroll anchors) -->
+  <div class="nav-bar">
+    <a href="#moonshot" class="nav-btn">Moonshot Ladder</a>
+    <a href="#reference" class="nav-btn">Reference Table</a>
+    <a href="#million-ladder" class="nav-btn">Win & Reinvest Ladder</a>
+    <a href="#sizing-tool" class="nav-btn">Position Sizing</a>
   </div>
-  <div id="totalProfit" class="total"></div>
-  <div id="totalCashOut" class="total" style="background:#21262d; margin-top:10px;"></div>
-  <div id="riskReward" class="riskreward"></div>
 
-  <!-- New Quick Cash-Out Section at the bottom -->
-  <div id="quickCashOut">
-    <h2>Quick: Get Your Total Cost Back</h2>
-    <p class="intro">Enter current live option price → see how many contracts to sell to recover ≈ your original total cost.</p>
-    
-    <label for="livePrice">Current Live Option Price:</label>
-    <input type="number" id="livePrice" step="0.01" min="0" placeholder="e.g. 2.45">
+  <!-- Section 1: Moonshot Ladder -->
+  <section id="moonshot">
+    <h1>Madhamster + Grok Moonshot Option Ladder</h1>
 
-    <button onclick="calculateQuickCashOut()">Calculate Sell Qty</button>
+    <label for="buyPrice">Buy Price per contract (e.g. 0.76):</label>
+    <input type="number" id="buyPrice" step="0.01" min="0" placeholder="Entry price" value="0.76">
 
-    <div id="cashoutResult"></div>
-  </div>
+    <label for="numContracts">Number of Contracts (min 1):</label>
+    <input type="number" id="numContracts" min="1" placeholder="e.g. 30" value="30">
+
+    <button class="main-btn" onclick="calculate()">Launch Moon Ladder</button>
+
+    <div id="costDisplay"></div>
+
+    <div class="table-container">
+      <table id="results">
+        <thead>
+          <tr>
+            <th>Target Gain</th>
+            <th>Option Price</th>
+            <th>% of Original</th>
+            <th>Sold</th>
+            <th>Rem.</th>
+            <th>Cash Out</th>
+            <th>Profit</th>
+            <th>Max Loss/Gain</th>
+            <th>Cum. %</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h2 style="text-align:center; margin-top:30px;">Cumulative Profit Curve</h2>
+    <div class="chart-wrapper">
+      <canvas id="profitChart"></canvas>
+    </div>
+
+    <div id="totalProfit" class="total"></div>
+    <div id="totalCashOut" class="total" style="background:#21262d; margin-top:10px;"></div>
+    <div id="riskReward" class="riskreward"></div>
+
+    <div id="quickCashOut">
+      <h2>Quick: Get Your Total Cost Back</h2>
+      <p style="text-align:center; color:#8b949e; margin-bottom:15px;">
+        Enter current live option price
+      </p>
+      <label for="livePrice">Current Live Option Price:</label>
+      <input type="number" id="livePrice" step="0.01" min="0" placeholder="e.g. 2.45">
+      <button class="main-btn" onclick="calculateQuickCashOut()">Calculate Sell Qty</button>
+      <div id="cashoutResult"></div>
+    </div>
+  </section>
+
+  <!-- Section 2: Reference Table -->
+  <section id="reference">
+    <h1>Cash Received Reference Table (No Commission)</h1>
+    <p style="text-align:center; font-size:1.1rem; margin-bottom:20px;">
+      Click any cell to edit (Contracts or Option Prices) → press Enter to recalculate.<br>
+      Gross cash = Contracts × Option Price × 100
+    </p>
+
+    <div class="table-container">
+      <table id="referenceTable" class="reference-table">
+        <thead>
+          <tr id="referenceHeader">
+            <th contenteditable="true" data-type="header" class="editable-cell">Contracts</th>
+          </tr>
+        </thead>
+        <tbody id="referenceBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 3: Win & Reinvest Ladder Simulator -->
+  <section id="million-ladder">
+    <h1>Win & Reinvest Ladder Simulator</h1>
+    <p style="text-align:center; color:#8b949e; margin-bottom:20px;">
+      Start cash → bet 10% of total → win → 10% profit to TSLA, 10% to safe cash, 80% back to active → repeat
+    </p>
+
+    <div style="max-width:800px; margin:0 auto;">
+      <label for="startCash">Start Cash ($):</label>
+      <input type="number" id="startCash" value="10000" min="1000">
+
+      <label for="betPercent">Bet % of Total Portfolio:</label>
+      <select id="betPercent">
+        <option value="0.05">5% (Safer)</option>
+        <option value="0.10" selected>10% (Faster)</option>
+      </select>
+
+      <label for="winPercent">Win % (100 = 2x, 1000 = 11x):</label>
+      <input type="number" id="winPercent" value="400" min="0">
+
+      <label for="winChance">Win Chance % (realistic: 40–70):</label>
+      <input type="number" id="winChance" value="60" min="0" max="100">
+
+      <label for="steps">Steps to Simulate:</label>
+      <input type="number" id="steps" value="100" min="1" max="200">
+
+      <button class="main-btn" onclick="runSingleSim()">Run Single Ladder</button>
+      <button class="main-btn" style="background:linear-gradient(90deg,#6b7280,#9ca3af);" onclick="runMonteCarlo()">Run 100 Random Sims</button>
+
+      <div id="capWarning" class="warning hidden"></div>
+
+      <div id="simResult" class="table-container" style="margin-top:20px;">
+        <table id="simTable" class="sim-table">
+          <thead>
+            <tr>
+              <th>Step</th>
+              <th>Total Before</th>
+              <th>Bet</th>
+              <th>Outcome</th>
+              <th>Profit</th>
+              <th>To TSLA</th>
+              <th>To Safe Cash</th>
+              <th>Active Cash After</th>
+              <th>TSLA</th>
+              <th>Safe Cash</th>
+              <th>Total Wealth</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="monteResult" style="margin-top:20px; text-align:center; font-size:1.1rem;"></div>
+    </div>
+  </section>
+
+  <!-- Section 4: Conviction Bet Sizer -->
+  <section id="conviction-sizer">
+    <h1>Conviction Bet Sizer</h1>
+    <p style="text-align:center; color:#8b949e; margin-bottom:20px;">
+      Input current portfolio → pick conviction level → get bet size (5–10% cap)
+    </p>
+
+    <div style="max-width:500px; margin:0 auto; background:#161b22; padding:30px; border-radius:12px; border:1px solid #30363d;">
+      <label for="portfolio">Current Portfolio ($):</label>
+      <input type="number" id="portfolio" value="10000" min="1000" step="100">
+
+      <label for="conviction">Conviction Level (5–10):</label>
+      <select id="conviction">
+        <option value="5">5% — Low / Safe</option>
+        <option value="6">6%</option>
+        <option value="7">7% — Medium</option>
+        <option value="8">8%</option>
+        <option value="9">9% — High</option>
+        <option value="10" selected>10% — Very High / Moonshot</option>
+      </select>
+
+      <button class="main-btn" onclick="calculateBet()">Calculate Bet Size</button>
+
+      <div id="result" class="conviction-result"></div>
+    </div>
+  </section>
+
+  <!-- Section 5: Position Sizing Cheat Sheet -->
+  <section id="sizing-tool">
+    <h1>Position Sizing Cheat Sheet</h1>
+    <p style="text-align:center; color:#8b949e; margin-bottom:20px;">
+      Enter your total portfolio → see recommended bet sizes for different expiries
+    </p>
+
+    <div style="max-width:600px; margin:0 auto;">
+      <label for="portfolio-sizing">Total Portfolio ($):</label>
+      <input type="number" id="portfolio-sizing" value="10000" min="1000" step="100" oninput="updateSizing()">
+
+      <table class="sizing-table" style="margin-top:20px; width:100%;">
+        <thead>
+          <tr>
+            <th>Expiry</th>
+            <th>Risk %</th>
+            <th>$ Amount</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="sizing-safe">
+            <td>0–2 days (pure lotto)</td>
+            <td>0.5–1%</td>
+            <td id="sizing-short">$50 – $100</td>
+            <td>High theta, fast death — max 1%</td>
+          </tr>
+          <tr class="sizing-medium">
+            <td>7 days (medium speed)</td>
+            <td>1–2%</td>
+            <td id="sizing-medium">$100 – $200</td>
+            <td>Theta hurts, but room for 200–500%</td>
+          </tr>
+          <tr class="sizing-high">
+            <td>30–60 days (main lotto)</td>
+            <td>5–10%</td>
+            <td id="sizing-long">$500 – $1,000</td>
+            <td>Time + gamma = big wins. TP half at 100%</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top:20px; font-size:0.9em; text-align:center;">
+        Always TP half at 100% gain — then it's free ride.<br>
+        No more than 1% on anything under 7 days.
+      </p>
+    </div>
+  </section>
 
 <script>
-  function formatNumber(num) {
-    return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+// LocalStorage for calculator inputs
+function saveSetup() {
+  const data = {
+    buyPrice: document.getElementById('buyPrice').value || '0.76',
+    numContracts: document.getElementById('numContracts').value || '30',
+    livePrice: document.getElementById('livePrice').value || ''
+  };
+  localStorage.setItem('madHamsterSetup', JSON.stringify(data));
+}
+
+function loadSetup() {
+  const saved = localStorage.getItem('madHamsterSetup');
+  if (saved) {
+    const data = JSON.parse(saved);
+    document.getElementById('buyPrice').value = data.buyPrice || '0.76';
+    document.getElementById('numContracts').value = data.numContracts || '30';
+    document.getElementById('livePrice').value = data.livePrice || '';
   }
-  function getValueClass(value) {
-    if (value > 0) return 'profit';
-    if (value < 0) return 'risk';
-    return 'neutral';
-  }
+}
 
-  function calculate() {
-    const buy = parseFloat(document.getElementById('buyPrice').value);
-    let initialContracts = parseInt(document.getElementById('numContracts').value);
-    if (!buy || buy <= 0) { alert("Enter valid buy price!"); return; }
-    if (!initialContracts || initialContracts < 1) { alert("Contracts must be at least 1!"); return; }
-    const costPerContract = buy * 100;
-    const totalCost = initialContracts * costPerContract;
-    document.getElementById('costDisplay').innerHTML =
-      `Total Cost: <span class="risk">$${formatNumber(totalCost)}</span>`;
+// Load on start
+window.addEventListener('load', () => {
+  loadSetup();
+  buildReferenceTable();
+  updateSizing(); // init sizing table
+});
 
-    const tiers = [
-      { gain: 100,  pctOrig: 50 },
-      { gain: 200,  pctOrig: 8 },
-      { gain: 400,  pctOrig: 8 },
-      { gain: 800,  pctOrig: 10 },
-      { gain: 1500, pctOrig: 10 },
-      { gain: 3000, pctOrig: 4 },
-      { gain: 6000, pctOrig: 3 },
-      { gain: 8000, pctOrig: 2 },
-      { gain: 10000, pctOrig: 1.5},
-      { gain: 20000, pctOrig: 1 }
-    ];
+// Calculation Functions (your ladder)
+function formatNumber(num) {
+  if (isNaN(num)) return '0';
+  if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+  if (num >= 1e3) return (num / 1e3).toFixed(0) + 'k';
+  return num.toFixed(0);
+}
 
-    let remaining = initialContracts;
-    let totalProfitLocked = 0;
-    let cumulativeCashOut = 0;
-    const tableBody = document.querySelector('#results tbody');
-    tableBody.innerHTML = '';
+function getValueClass(value) {
+  if (value > 0) return 'profit';
+  if (value < 0) return 'risk';
+  return 'neutral';
+}
 
-    tiers.forEach(tier => {
-      const targetPrice = buy * (1 + tier.gain / 100);
-      const sellFraction = tier.pctOrig / 100;
-      let calcSell = initialContracts * sellFraction;
-      let toSell = Math.floor(calcSell);
-      if (toSell < 1 && remaining > 0) toSell = 1;
-      toSell = Math.min(toSell, remaining);
+let chartInstance = null;
 
-      const cashThisSell = toSell * targetPrice * 100;
-      const profitThis = cashThisSell - (toSell * costPerContract);
-      totalProfitLocked += profitThis;
-      cumulativeCashOut += cashThisSell;
+function calculate() {
+  const buy = parseFloat(document.getElementById('buyPrice').value);
+  const contracts = parseInt(document.getElementById('numContracts').value);
 
-      const remainingAfter = remaining - toSell;
-      const maxPotentialLossGain = totalProfitLocked - (remainingAfter * costPerContract);
-      remaining = remainingAfter;
-
-      const cumProfitPct = totalCost > 0 ? (totalProfitLocked / totalCost * 100).toFixed(1) : 0;
-
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>+${tier.gain}%</td>
-        <td>$${targetPrice.toFixed(2)}</td>
-        <td>${tier.pctOrig}% orig</td>
-        <td>${toSell}</td>
-        <td>${remainingAfter}</td>
-        <td class="cash">$${formatNumber(cashThisSell)}</td>
-        <td class="profit">$${formatNumber(profitThis)}</td>
-        <td class="${getValueClass(maxPotentialLossGain)}">$${formatNumber(Math.abs(maxPotentialLossGain))}${maxPotentialLossGain >= 0 ? '' : '-'}</td>
-        <td class="profit">${cumProfitPct}%</td>
-      `;
-      tableBody.appendChild(row);
-    });
-
-    const lastPrice = buy * (1 + 20000 / 100);
-    const unrealizedTop = remaining * (lastPrice - buy) * 100;
-    const maxLoss = totalCost;
-    const securedPct = (totalProfitLocked / totalCost * 100).toFixed(1);
-    const riskLeft = ((maxLoss - totalProfitLocked) / maxLoss * 100).toFixed(0);
-
-    document.getElementById('totalProfit').innerHTML =
-      `Total Profit Locked: <span class="profit">$${formatNumber(totalProfitLocked)}</span> (${securedPct}% of cost)`;
-    document.getElementById('totalCashOut').innerHTML =
-      `Total Cash Out: <span class="cash">$${formatNumber(cumulativeCashOut)}</span>`;
-
-    let rrText = `If remaining expires worthless tomorrow → net position: <span class="${getValueClass(totalProfitLocked - (remaining * costPerContract))}">$${formatNumber(Math.abs(totalProfitLocked - (remaining * costPerContract)))}${totalProfitLocked - (remaining * costPerContract) >= 0 ? '' : '-'}</span><br>`;
-    rrText += `Secured: ${securedPct}% → downside now ~${riskLeft}% of original risk.<br>`;
-    rrText += remaining > 0
-      ? `Trophy contracts left: ${remaining} — could add ~$${formatNumber(unrealizedTop)} at +20,000%`
-      : `All sold — position closed.`;
-    document.getElementById('riskReward').innerHTML = rrText;
+  if (isNaN(buy) || buy <= 0 || isNaN(contracts) || contracts < 1) {
+    alert("Please enter valid buy price and number of contracts.");
+    return;
   }
 
-  function calculateQuickCashOut() {
-    // Re-read inputs EVERY time you click—fixes the stale data issue
-    const buy = parseFloat(document.getElementById('buyPrice').value);
-    const contracts = parseInt(document.getElementById('numContracts').value);
-    const live = parseFloat(document.getElementById('livePrice').value);
-    const resultDiv = document.getElementById('cashoutResult');
+  saveSetup();
 
-    resultDiv.innerHTML = '';
+  const costPerContract = buy * 100;
+  const totalCost = contracts * costPerContract;
+  document.getElementById('costDisplay').innerHTML =
+    `Total Cost: <span class="risk">$${formatNumber(totalCost)}</span>`;
 
-    if (isNaN(buy) || isNaN(contracts) || isNaN(live) || buy <= 0 || contracts < 1 || live <= 0) {
-      resultDiv.innerHTML = '<span class="warn">Please fill buy price, contracts, and a valid live price > 0.</span>';
-      return;
+  const tiers = [
+    { gain: 100, pctOrig: 50 },
+    { gain: 200, pctOrig: 8 },
+    { gain: 400, pctOrig: 8 },
+    { gain: 800, pctOrig: 10 },
+    { gain: 1500, pctOrig: 10 },
+    { gain: 3000, pctOrig: 4 },
+    { gain: 6000, pctOrig: 3 },
+    { gain: 8000, pctOrig: 2 },
+    { gain: 10000, pctOrig: 1.5 },
+    { gain: 20000, pctOrig: 1 }
+  ];
+
+  let remaining = contracts;
+  let totalProfitLocked = 0;
+  let cumulativeCashOut = 0;
+  const tableBody = document.querySelector('#results tbody');
+  tableBody.innerHTML = '';
+
+  const cumProfits = [0];
+  const gainLabels = ['0%'];
+
+  tiers.forEach(tier => {
+    const targetPrice = buy * (1 + tier.gain / 100);
+    const sellFraction = tier.pctOrig / 100;
+    let calcSell = contracts * sellFraction;
+    let toSell = Math.floor(calcSell);
+    if (toSell < 1 && remaining > 0) toSell = 1;
+    toSell = Math.min(toSell, remaining);
+
+    const cashThisSell = toSell * targetPrice * 100;
+    const profitThis = cashThisSell - (toSell * costPerContract);
+    totalProfitLocked += profitThis;
+    cumulativeCashOut += cashThisSell;
+
+    const remainingAfter = remaining - toSell;
+    const maxPotentialLossGain = totalProfitLocked - (remainingAfter * costPerContract);
+    remaining = remainingAfter;
+
+    const cumProfitPct = totalCost > 0 ? (totalProfitLocked / totalCost * 100).toFixed(1) : 0;
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>+${tier.gain}%</td>
+      <td>$${targetPrice.toFixed(2)}</td>
+      <td>${tier.pctOrig}% orig</td>
+      <td>${toSell}</td>
+      <td>${remainingAfter}</td>
+      <td class="cash">$${formatNumber(cashThisSell)}</td>
+      <td class="profit">$${formatNumber(profitThis)}</td>
+      <td class="${getValueClass(maxPotentialLossGain)}">$${formatNumber(Math.abs(maxPotentialLossGain))}${maxPotentialLossGain >= 0 ? '' : '-'}</td>
+      <td class="profit">${cumProfitPct}%</td>
+    `;
+    tableBody.appendChild(row);
+
+    cumProfits.push(totalProfitLocked);
+    gainLabels.push(`+${tier.gain}%`);
+  });
+
+  document.getElementById('totalProfit').innerHTML = 
+    `Total Profit Locked: <span class="profit">$${formatNumber(totalProfitLocked)}</span> (${(totalProfitLocked / totalCost * 100).toFixed(1)}% of cost)`;
+
+  document.getElementById('totalCashOut').innerHTML = 
+    `Total Cash Out: <span class="cash">$${formatNumber(cumulativeCashOut)}</span>`;
+
+  document.getElementById('riskReward').innerHTML = 
+    `Trophy contracts left: ${remaining} — could add ~$${formatNumber(remaining * (buy * 201 - buy) * 100)} at +20,000%`;
+
+  drawInteractiveChart(gainLabels, cumProfits);
+}
+
+function drawInteractiveChart(labels, data) {
+  const ctx = document.getElementById('profitChart').getContext('2d');
+
+  if (chartInstance) chartInstance.destroy();
+
+  const maxProfit = Math.max(...data);
+  const yMax = Math.max(maxProfit * 1.25, 100000);
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Cumulative Profit ($)',
+        data: data,
+        borderColor: '#56d364',
+        backgroundColor: 'rgba(86, 212, 100, 0.2)',
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: '#56d364',
+        pointRadius: 5,
+        pointHoverRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      plugins: {
+        tooltip: {
+          backgroundColor: '#21262d',
+          titleColor: '#58a6ff',
+          bodyColor: '#c9d1d9',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          callbacks: {
+            label: function(context) {
+              return `$${formatNumber(context.raw)} at ${context.label}`;
+            }
+          }
+        },
+        legend: {
+          labels: { color: '#c9d1d9' }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: '#30363d' },
+          ticks: {
+            color: '#8b949e',
+            maxRotation: 45,
+            minRotation: 45,
+            autoSkip: true,
+            maxTicksLimit: 10
+          }
+        },
+        y: {
+          grid: { color: '#30363d' },
+          ticks: {
+            color: '#8b949e',
+            maxTicksLimit: 7,
+            callback: function(value) { return '$' + formatNumber(value); }
+          },
+          min: 0,
+          suggestedMin: 0,
+          suggestedMax: yMax,
+          grace: '15%',
+          padding: { left: 80 }
+        }
+      }
+    }
+  });
+}
+
+function calculateQuickCashOut() {
+  const buy = parseFloat(document.getElementById('buyPrice').value);
+  const contracts = parseInt(document.getElementById('numContracts').value);
+  const live = parseFloat(document.getElementById('livePrice').value);
+  const resultDiv = document.getElementById('cashoutResult');
+
+  resultDiv.innerHTML = '';
+
+  if (isNaN(buy) || isNaN(contracts) || isNaN(live) || buy <= 0 || contracts < 1 || live <= 0) {
+    resultDiv.innerHTML = '<span class="warn">Please fill buy price, contracts, and a valid live price > 0.</span>';
+    return;
+  }
+
+  const totalCost = buy * contracts * 100;
+  if (live <= buy) {
+    resultDiv.innerHTML = '<span class="warn">Live price ≤ buy price — no recovery possible yet.</span>';
+    return;
+  }
+
+  const gainPerContract = (live - buy) * 100;
+  const exactContracts = totalCost / gainPerContract;
+  const rounded = Math.round(exactContracts * 10) / 10;
+
+  let cashBack = Math.round(rounded * gainPerContract);
+  let msg = `Sell <strong>${rounded}</strong> contracts → get ≈ <span class="cash">$${formatNumber(cashBack)}</span> cash<br>`;
+  msg += `(exact: ${exactContracts.toFixed(3)} contracts)<br><br>`;
+  msg += `Recovers ≈ your total cost of $${formatNumber(totalCost)}<br>`;
+  msg += `Leaves <strong>${contracts - Math.floor(rounded)}</strong>–<strong>${contracts - Math.ceil(rounded) + 1}</strong> contracts riding free.`;
+
+  if (rounded > contracts) {
+    const maxCash = Math.round(contracts * gainPerContract);
+    msg += '<br><br><span class="warn">Not enough contracts — sell all for only $' + formatNumber(maxCash) + ' (partial recovery)</span>';
+  }
+
+  resultDiv.innerHTML = msg;
+}
+
+// Inline Editable Reference Table
+function buildReferenceTable() {
+  const headerRow = document.getElementById('referenceHeader');
+  headerRow.innerHTML = '<th contenteditable="true" data-type="header" class="editable-cell">Contracts</th>';
+
+  const defaultPrices = [0.10, 0.20, 0.40, 0.60, 0.80, 1.00, 2.00, 4.00, 6.00, 8.00, 10.00, 20.00, 40.00, 60.00, 80.00, 90.00, 100.00, 150.00, 200.00];
+  defaultPrices.forEach(price => {
+    const th = document.createElement('th');
+    th.contentEditable = true;
+    th.className = 'editable-cell';
+    th.dataset.type = 'price';
+    th.textContent = '$' + price.toFixed(2);
+    headerRow.appendChild(th);
+  });
+
+  const body = document.getElementById('referenceBody');
+  body.innerHTML = '';
+
+  const defaultContracts = [1, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 4000, 8000, 16000];
+  defaultContracts.forEach(contracts => addRow(contracts));
+
+  document.querySelectorAll('.editable-cell').forEach(cell => {
+    cell.addEventListener('keydown', handleCellEdit);
+    cell.addEventListener('blur', handleCellBlur);
+  });
+}
+
+function addRow(contracts) {
+  const body = document.getElementById('referenceBody');
+  const row = document.createElement('tr');
+
+  const tdContracts = document.createElement('td');
+  tdContracts.contentEditable = true;
+  tdContracts.className = 'editable-cell';
+  tdContracts.dataset.type = 'contract';
+  tdContracts.textContent = contracts;
+  row.appendChild(tdContracts);
+
+  const prices = getCurrentPrices();
+  prices.forEach(price => {
+    const cash = contracts * price * 100;
+    const td = document.createElement('td');
+    td.textContent = '$' + formatNumber(cash);
+    if (cash < 1000) td.className = 'cash-1';
+    else if (cash < 10000) td.className = 'cash-2';
+    else if (cash < 100000) td.className = 'cash-3';
+    else if (cash < 1000000) td.className = 'cash-4';
+    else td.className = 'cash-5';
+    row.appendChild(td);
+  });
+
+  body.appendChild(row);
+}
+
+function getCurrentPrices() {
+  const headerRow = document.getElementById('referenceHeader');
+  const prices = [];
+  headerRow.querySelectorAll('th:not(:first-child)').forEach(th => {
+    const text = th.textContent.replace('$', '').trim();
+    const price = parseFloat(text);
+    if (!isNaN(price)) prices.push(price);
+  });
+  return prices;
+}
+
+function recalculateTable() {
+  const contractsList = getCurrentContracts();
+  const pricesList = getCurrentPrices();
+
+  const body = document.getElementById('referenceBody');
+  body.innerHTML = '';
+
+  contractsList.forEach(contracts => addRow(contracts));
+
+  document.querySelectorAll('.editable-cell').forEach(cell => {
+    cell.addEventListener('keydown', handleCellEdit);
+    cell.addEventListener('blur', handleCellBlur);
+  });
+}
+
+function handleCellEdit(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    e.target.blur();
+  }
+}
+
+function handleCellBlur(e) {
+  const cell = e.target;
+  const type = cell.dataset.type;
+  let value = cell.textContent.trim().replace(/[^0-9.]/g, '');
+
+  if (value === '') value = '0';
+
+  if (type === 'contract') {
+    cell.textContent = parseInt(value);
+  } else if (type === 'price') {
+    cell.textContent = '$' + parseFloat(value).toFixed(2);
+  }
+
+  recalculateTable();
+}
+
+// $1 Million 10% Bet Ladder Simulator
+function runSingleSim() {
+  const start = parseFloat(document.getElementById('startCash').value);
+  const betPct = parseFloat(document.getElementById('betPercent').value);
+  const winPct = parseFloat(document.getElementById('winPercent').value);
+  const winChance = parseFloat(document.getElementById('winChance').value) / 100;
+  const steps = parseInt(document.getElementById('steps').value);
+
+  let activeCash = start;
+  let tsla = 0;
+  let safeCash = 0;
+  const tableBody = document.querySelector('#simTable tbody');
+  tableBody.innerHTML = '';
+  document.getElementById('capWarning').classList.add('hidden');
+
+  for (let i = 1; i <= steps; i++) {
+    const totalPortfolio = activeCash + tsla + safeCash;
+    let bet = totalPortfolio * betPct;
+    const maxActiveBet = activeCash * 0.20;
+
+    if (bet > maxActiveBet) {
+      bet = maxActiveBet;
+      document.getElementById('capWarning').classList.remove('hidden');
+      document.getElementById('capWarning').textContent = `Bet capped at $${formatNumber(bet)} (20% of active cash) — safe mode on`;
     }
 
-    const totalCost = buy * contracts * 100;
-    if (live <= buy) {
-      resultDiv.innerHTML = '<span class="warn">Live price ≤ buy price — no recovery possible yet.</span>';
-      return;
+    const isWin = Math.random() < winChance;
+    let profit = 0;
+
+    if (isWin) {
+      profit = bet * (winPct / 100);
+      const toTsla = profit * 0.1;
+      const toSafe = profit * 0.1;
+      tsla += toTsla;
+      safeCash += toSafe;
+      activeCash += (profit - toTsla - toSafe);
+    } else {
+      activeCash -= bet;
     }
 
-    const gainPerContract = (live - buy) * 100;
-    const exactContracts = totalCost / gainPerContract;
-    const rounded = Math.round(exactContracts * 10) / 10; // 0.1 precision
+    const row = document.createElement('tr');
+    row.className = isWin ? 'sim-row win' : 'sim-row loss';
+    row.innerHTML = `
+      <td>${i}</td>
+      <td>$${formatNumber(totalPortfolio)}</td>
+      <td>$${formatNumber(bet)}</td>
+      <td>${isWin ? 'WIN' : 'LOSS'}</td>
+      <td>${isWin ? '$' + formatNumber(profit) : '-'}</td>
+      <td>${isWin ? '$' + formatNumber(profit * 0.1) : '-'}</td>
+      <td>${isWin ? '$' + formatNumber(profit * 0.1) : '-'}</td>
+      <td>$${formatNumber(activeCash)}</td>
+      <td>$${formatNumber(tsla)}</td>
+      <td>$${formatNumber(safeCash)}</td>
+      <td><strong>$${formatNumber(activeCash + tsla + safeCash)}</strong></td>
+    `;
+    tableBody.appendChild(row);
 
-    let cashBack = Math.round(rounded * gainPerContract);
-    let msg = `Sell <strong>${rounded}</strong> contracts → get ≈ <span class="cash">$${formatNumber(cashBack)}</span> cash<br>`;
-    msg += `(exact: ${exactContracts.toFixed(3)} contracts)<br><br>`;
-
-    msg += `This recovers ≈ your total cost of $${formatNumber(totalCost)}<br>`;
-    msg += `Leaves <strong>${contracts - Math.floor(rounded)}</strong>–<strong>${contracts - Math.ceil(rounded) + 1}</strong> contracts riding free.`;
-
-    if (rounded > contracts) {
-      const maxCash = Math.round(contracts * gainPerContract);
-      msg += '<br><br><span class="warn">Not enough contracts — sell all for only $' + formatNumber(maxCash) + ' (partial recovery)</span>';
+    if (activeCash <= 0) {
+      const bustRow = document.createElement('tr');
+      bustRow.innerHTML = `<td colspan="11" class="risk">BUSTED! Active cash = $0 after ${i} steps. Parked: $${formatNumber(tsla + safeCash)}</td>`;
+      tableBody.appendChild(bustRow);
+      break;
     }
-
-    resultDiv.innerHTML = msg;
   }
+}
+
+function runMonteCarlo() {
+  const runs = 100;
+  let totalFinalActive = 0;
+  let totalFinalTsla = 0;
+  let totalFinalSafe = 0;
+  let busts = 0;
+
+  for (let r = 0; r < runs; r++) {
+    let activeCash = parseFloat(document.getElementById('startCash').value);
+    let tsla = 0;
+    let safeCash = 0;
+    const betPct = parseFloat(document.getElementById('betPercent').value);
+    const winPct = parseFloat(document.getElementById('winPercent').value);
+    const winChance = parseFloat(document.getElementById('winChance').value) / 100;
+
+    for (let s = 1; s <= 20; s++) {
+      if (activeCash <= 0) { busts++; break; }
+      const totalPortfolio = activeCash + tsla + safeCash;
+      let bet = totalPortfolio * betPct;
+      const maxActiveBet = activeCash * 0.20;
+      if (bet > maxActiveBet) bet = maxActiveBet;
+
+      if (Math.random() < winChance) {
+        const profit = bet * (winPct / 100);
+        tsla += profit * 0.1;
+        safeCash += profit * 0.1;
+        activeCash += profit * 0.8;
+      } else {
+        activeCash -= bet;
+      }
+    }
+    totalFinalActive += activeCash;
+    totalFinalTsla += tsla;
+    totalFinalSafe += safeCash;
+  }
+
+  const avgActive = totalFinalActive / runs;
+  const avgTsla = totalFinalTsla / runs;
+  const avgSafe = totalFinalSafe / runs;
+  const avgTotal = avgActive + avgTsla + avgSafe;
+  const bustRate = (busts / runs * 100).toFixed(1);
+
+  document.getElementById('monteResult').innerHTML = `
+    <span class="profit">After 100 random runs:</span><br>
+    Avg Active Cash: $${formatNumber(avgActive)}<br>
+    Avg TSLA: $${formatNumber(avgTsla)}<br>
+    Avg Safe Cash: $${formatNumber(avgSafe)}<br>
+    Avg Total: <strong>$${formatNumber(avgTotal)}</strong><br>
+    Bust Rate: <span class="risk">${bustRate}%</span> (active cash = $0)
+  `;
+}
+
+function formatNumber(num) {
+  if (isNaN(num) || num <= 0) return '0';
+  if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+  if (num >= 1e3) return (num / 1e3).toFixed(0) + 'k';
+  return num.toFixed(0);
+}
+
+// Conviction Bet Sizer
+function calculateBet() {
+  const portfolio = parseFloat(document.getElementById('portfolio').value);
+  const conviction = parseInt(document.getElementById('conviction').value);
+
+  if (isNaN(portfolio) || portfolio <= 0) {
+    document.getElementById('result').innerHTML = '<span style="color:#f85149;">Please enter a valid portfolio amount.</span>';
+    return;
+  }
+
+  const betPercent = conviction / 100;
+  const betAmount = portfolio * betPercent;
+
+  // Hard cap at 10%
+  const cappedBet = Math.min(betAmount, portfolio * 0.10);
+
+  const message = `
+    <strong>Portfolio:</strong> $${portfolio.toLocaleString()}<br>
+    <strong>Conviction:</strong> ${conviction}/10 → ${betPercent * 100}%<br>
+    <strong>Suggested Bet:</strong> <span class="highlight">$${betAmount.toLocaleString(undefined, {minimumFractionDigits: 0})}</span><br>
+    <strong>Capped at 10% rule:</strong> <span class="highlight">$${cappedBet.toLocaleString(undefined, {minimumFractionDigits: 0})}</span><br><br>
+    <strong>Max loss if wrong:</strong> $${cappedBet.toLocaleString(undefined, {minimumFractionDigits: 0})} (${(cappedBet / portfolio * 100).toFixed(1)}%)<br>
+    <strong>If 400% win:</strong> +$${ (cappedBet * 4).toLocaleString(undefined, {minimumFractionDigits: 0}) } profit → new total ~$${ (portfolio + cappedBet * 4).toLocaleString() }
+  `;
+
+  if (betAmount > cappedBet) {
+    message += '<div class="warning">Bet capped at 10% — stay disciplined.</div>';
+  }
+
+  document.getElementById('result').innerHTML = message;
+}
+
+// Position Sizing Cheat Sheet (live update)
+function updateSizing() {
+  const total = parseFloat(document.getElementById('portfolio-sizing').value) || 10000;
+
+  document.getElementById('sizing-short').textContent = '$' + (total * 0.005).toFixed(0) + ' – $' + (total * 0.01).toFixed(0);
+  document.getElementById('sizing-medium').textContent = '$' + (total * 0.01).toFixed(0) + ' – $' + (total * 0.02).toFixed(0);
+  document.getElementById('sizing-long').textContent = '$' + (total * 0.05).toFixed(0) + ' – $' + (total * 0.10).toFixed(0);
+}
 </script>
+
 </body>
 </html>
