@@ -12,12 +12,17 @@
       margin: 0;
       padding: 15px;
       background: #0d1117;
-      color: #c9d1d9;
+      color: #e6edf3;
       min-height: 100vh;
       box-sizing: border-box;
     }
-    h1, h2 { text-align: center; color: #58a6ff; margin-top: 40px; }
-    section { margin-bottom: 60px; }
+    h1, h2 {
+      text-align: center;
+      color: #58a6ff;
+      margin-top: 40px;
+      margin-bottom: 20px;
+    }
+    section { margin-bottom: 80px; }
     .nav-bar {
       text-align: center;
       margin-bottom: 30px;
@@ -28,10 +33,13 @@
       position: sticky;
       top: 0;
       z-index: 100;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
     }
     .nav-btn {
       padding: 10px 24px;
-      margin: 0 10px;
       font-size: 1rem;
       background: linear-gradient(90deg, #1e40af, #3b82f6);
       color: white;
@@ -39,23 +47,28 @@
       border-radius: 6px;
       cursor: pointer;
       text-decoration: none;
-      display: inline-block;
       transition: all 0.2s;
+      white-space: nowrap;
     }
     .nav-btn:hover {
       background: linear-gradient(90deg, #1e3a8a, #2563eb);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
     }
-    label { display: block; margin: 12px 0 6px; font-weight: bold; color: #e6edf3; }
+    label {
+      display: block;
+      margin: 15px 0 8px;
+      font-weight: bold;
+      color: #e6edf3;
+    }
     input, select {
       width: 100%;
       padding: 12px;
       font-size: 1.1rem;
       background: #21262d;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
+      color: #e6edf3;
+      border: 1px solid #444c56;
       border-radius: 6px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
     button.main-btn {
       width: 100%;
@@ -77,7 +90,7 @@
     }
     .table-container {
       overflow-x: auto;
-      border: 1px solid #30363d;
+      border: 1px solid #444c56;
       border-radius: 8px;
       margin: 15px 0;
       background: #161b22;
@@ -91,7 +104,7 @@
     th, td {
       padding: 10px 12px;
       text-align: left;
-      border-bottom: 1px solid #30363d;
+      border-bottom: 1px solid #444c56;
     }
     th {
       background: #21262d;
@@ -113,7 +126,7 @@
       margin: 15px 0;
       text-align: center;
       border-radius: 8px;
-      border: 1px solid #30363d;
+      border: 1px solid #444c56;
     }
     .chart-wrapper {
       width: 100%;
@@ -126,16 +139,17 @@
       width: 100% !important;
       height: 100% !important;
       background: #161b22;
-      border: 1px solid #30363d;
+      border: 1px solid #444c56;
       border-radius: 8px;
     }
     .sim-table { min-width: 600px; }
     .sim-row.win { background: rgba(86, 212, 100, 0.1); }
     .sim-row.loss { background: rgba(248, 81, 73, 0.1); }
+    .warning { color: #ff9f1c; font-weight: bold; text-align: center; margin: 10px 0; }
     .reference-table th, .reference-table td {
       text-align: right;
       padding: 8px 12px;
-      border: 1px solid #30363d;
+      border: 1px solid #444c56;
     }
     .reference-table th {
       background: #21262d;
@@ -151,16 +165,39 @@
       width: 100%;
       padding: 4px;
       background: #2a2f3a;
-      color: #fff;
+      color: #e6edf3;
       border: 1px solid #58a6ff;
       border-radius: 4px;
       text-align: right;
     }
-    .cash-1 { color: #79c0ff; } /* 1 - 999 */
-    .cash-2 { color: #56d364; } /* 1,000 - 9,999 */
-    .cash-3 { color: #ff9f1c; } /* 10,000 - 99,999 */
-    .cash-4 { color: #a78bfa; } /* 100,000 - 999,999 */
-    .cash-5 { color: #ffd700; } /* 1,000,000+ */
+    .cash-1 { color: #79c0ff; }
+    .cash-2 { color: #56d364; }
+    .cash-3 { color: #ff9f1c; }
+    .cash-4 { color: #a78bfa; }
+    .cash-5 { color: #ffd700; }
+    .conviction-result {
+      margin-top: 30px;
+      padding: 20px;
+      background: #21262d;
+      border-radius: 8px;
+      border: 1px solid #444c56;
+      line-height: 1.6;
+      font-size: 1.1rem;
+    }
+    .highlight { color: #56d364; font-weight: bold; }
+    .warning { color: #ff9f1c; font-weight: bold; margin-top: 10px; }
+    .sizing-table th, .sizing-table td {
+      padding: 12px;
+      text-align: center;
+      border: 1px solid #444c56;
+    }
+    .sizing-table th {
+      background: #21262d;
+      color: #58a6ff;
+    }
+    .sizing-safe { background: #1e3a2b; color: #e6edf3; } /* dark green */
+    .sizing-medium { background: #2f2a1e; color: #e6edf3; } /* dark yellow */
+    .sizing-high { background: #2f1e1e; color: #e6edf3; } /* dark red */
   </style>
 </head>
 <body>
@@ -170,6 +207,7 @@
     <a href="#moonshot" class="nav-btn">Moonshot Ladder</a>
     <a href="#reference" class="nav-btn">Reference Table</a>
     <a href="#million-ladder" class="nav-btn">Win & Reinvest Ladder</a>
+    <a href="#sizing-tool" class="nav-btn">Position Sizing</a>
   </div>
 
   <!-- Section 1: Moonshot Ladder -->
@@ -214,7 +252,6 @@
     <div id="totalCashOut" class="total" style="background:#21262d; margin-top:10px;"></div>
     <div id="riskReward" class="riskreward"></div>
 
-    <!-- Quick Cash-Out -->
     <div id="quickCashOut">
       <h2>Quick: Get Your Total Cost Back</h2>
       <p style="text-align:center; color:#8b949e; margin-bottom:15px;">
@@ -247,47 +284,51 @@
     </div>
   </section>
 
-  <!-- Section 3: $1 Million 10% Bet Ladder Simulator -->
+  <!-- Section 3: Win & Reinvest Ladder Simulator -->
   <section id="million-ladder">
-    <h1>$1 Million 10% Bet Ladder Simulator</h1>
+    <h1>Win & Reinvest Ladder Simulator</h1>
     <p style="text-align:center; color:#8b949e; margin-bottom:20px;">
-      Start cash → bet % → win % → 10% profit to TSLA → see compounding path to $1M+
+      Start cash → bet 10% of total → win → 10% profit to TSLA, 10% to safe cash, 80% back to active → repeat
     </p>
 
     <div style="max-width:800px; margin:0 auto;">
       <label for="startCash">Start Cash ($):</label>
       <input type="number" id="startCash" value="10000" min="1000">
 
-      <label for="betPercent">Max Bet %:</label>
+      <label for="betPercent">Bet % of Total Portfolio:</label>
       <select id="betPercent">
         <option value="0.05">5% (Safer)</option>
         <option value="0.10" selected>10% (Faster)</option>
       </select>
 
       <label for="winPercent">Win % (100 = 2x, 1000 = 11x):</label>
-      <input type="number" id="winPercent" value="1000" min="0">
+      <input type="number" id="winPercent" value="400" min="0">
 
       <label for="winChance">Win Chance % (realistic: 40–70):</label>
       <input type="number" id="winChance" value="60" min="0" max="100">
 
       <label for="steps">Steps to Simulate:</label>
-      <input type="number" id="steps" value="10" min="1" max="20">
+      <input type="number" id="steps" value="100" min="1" max="200">
 
       <button class="main-btn" onclick="runSingleSim()">Run Single Ladder</button>
       <button class="main-btn" style="background:linear-gradient(90deg,#6b7280,#9ca3af);" onclick="runMonteCarlo()">Run 100 Random Sims</button>
+
+      <div id="capWarning" class="warning hidden"></div>
 
       <div id="simResult" class="table-container" style="margin-top:20px;">
         <table id="simTable" class="sim-table">
           <thead>
             <tr>
               <th>Step</th>
-              <th>Cash Before</th>
+              <th>Total Before</th>
               <th>Bet</th>
               <th>Outcome</th>
               <th>Profit</th>
               <th>To TSLA</th>
-              <th>Cash After</th>
-              <th>TSLA Stash</th>
+              <th>To Safe Cash</th>
+              <th>Active Cash After</th>
+              <th>TSLA</th>
+              <th>Safe Cash</th>
               <th>Total Wealth</th>
             </tr>
           </thead>
@@ -296,6 +337,82 @@
       </div>
 
       <div id="monteResult" style="margin-top:20px; text-align:center; font-size:1.1rem;"></div>
+    </div>
+  </section>
+
+  <!-- Section 4: Conviction Bet Sizer -->
+  <section id="conviction-sizer">
+    <h1>Conviction Bet Sizer</h1>
+    <p style="text-align:center; color:#8b949e; margin-bottom:20px;">
+      Input current portfolio → pick conviction level → get bet size (5–10% cap)
+    </p>
+
+    <div style="max-width:500px; margin:0 auto; background:#161b22; padding:30px; border-radius:12px; border:1px solid #30363d;">
+      <label for="portfolio">Current Portfolio ($):</label>
+      <input type="number" id="portfolio" value="10000" min="1000" step="100">
+
+      <label for="conviction">Conviction Level (5–10):</label>
+      <select id="conviction">
+        <option value="5">5% — Low / Safe</option>
+        <option value="6">6%</option>
+        <option value="7">7% — Medium</option>
+        <option value="8">8%</option>
+        <option value="9">9% — High</option>
+        <option value="10" selected>10% — Very High / Moonshot</option>
+      </select>
+
+      <button class="main-btn" onclick="calculateBet()">Calculate Bet Size</button>
+
+      <div id="result" class="conviction-result"></div>
+    </div>
+  </section>
+
+  <!-- Section 5: Position Sizing Cheat Sheet -->
+  <section id="sizing-tool">
+    <h1>Position Sizing Cheat Sheet</h1>
+    <p style="text-align:center; color:#8b949e; margin-bottom:20px;">
+      Enter your total portfolio → see recommended bet sizes for different expiries
+    </p>
+
+    <div style="max-width:600px; margin:0 auto;">
+      <label for="portfolio-sizing">Total Portfolio ($):</label>
+      <input type="number" id="portfolio-sizing" value="10000" min="1000" step="100" oninput="updateSizing()">
+
+      <table class="sizing-table" style="margin-top:20px; width:100%;">
+        <thead>
+          <tr>
+            <th>Expiry</th>
+            <th>Risk %</th>
+            <th>$ Amount</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="sizing-safe">
+            <td>0–2 days (pure lotto)</td>
+            <td>0.5–1%</td>
+            <td id="sizing-short">$50 – $100</td>
+            <td>High theta, fast death — max 1%</td>
+          </tr>
+          <tr class="sizing-medium">
+            <td>7 days (medium speed)</td>
+            <td>1–2%</td>
+            <td id="sizing-medium">$100 – $200</td>
+            <td>Theta hurts, but room for 200–500%</td>
+          </tr>
+          <tr class="sizing-high">
+            <td>30–60 days (main lotto)</td>
+            <td>5–10%</td>
+            <td id="sizing-long">$500 – $1,000</td>
+            <td>Time + gamma = big wins. TP half at 100%</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top:20px; font-size:0.9em; text-align:center;">
+        Always TP half at 100% gain — then it's free ride.<br>
+        No more than 1% on anything under 7 days.
+      </p>
     </div>
   </section>
 
@@ -324,6 +441,7 @@ function loadSetup() {
 window.addEventListener('load', () => {
   loadSetup();
   buildReferenceTable();
+  updateSizing(); // init sizing table
 });
 
 // Calculation Functions (your ladder)
@@ -654,43 +772,58 @@ function runSingleSim() {
   const winChance = parseFloat(document.getElementById('winChance').value) / 100;
   const steps = parseInt(document.getElementById('steps').value);
 
-  let cash = start;
+  let activeCash = start;
   let tsla = 0;
+  let safeCash = 0;
   const tableBody = document.querySelector('#simTable tbody');
   tableBody.innerHTML = '';
+  document.getElementById('capWarning').classList.add('hidden');
 
   for (let i = 1; i <= steps; i++) {
-    const bet = cash * betPct;
+    const totalPortfolio = activeCash + tsla + safeCash;
+    let bet = totalPortfolio * betPct;
+    const maxActiveBet = activeCash * 0.20;
+
+    if (bet > maxActiveBet) {
+      bet = maxActiveBet;
+      document.getElementById('capWarning').classList.remove('hidden');
+      document.getElementById('capWarning').textContent = `Bet capped at $${formatNumber(bet)} (20% of active cash) — safe mode on`;
+    }
+
     const isWin = Math.random() < winChance;
     let profit = 0;
 
     if (isWin) {
       profit = bet * (winPct / 100);
       const toTsla = profit * 0.1;
+      const toSafe = profit * 0.1;
       tsla += toTsla;
-      cash += (profit - toTsla);
+      safeCash += toSafe;
+      activeCash += (profit - toTsla - toSafe);
     } else {
-      cash -= bet;
+      activeCash -= bet;
     }
 
     const row = document.createElement('tr');
     row.className = isWin ? 'sim-row win' : 'sim-row loss';
     row.innerHTML = `
       <td>${i}</td>
-      <td>$${formatNumber(cash + bet)}</td>
+      <td>$${formatNumber(totalPortfolio)}</td>
       <td>$${formatNumber(bet)}</td>
       <td>${isWin ? 'WIN' : 'LOSS'}</td>
       <td>${isWin ? '$' + formatNumber(profit) : '-'}</td>
       <td>${isWin ? '$' + formatNumber(profit * 0.1) : '-'}</td>
-      <td>$${formatNumber(cash)}</td>
+      <td>${isWin ? '$' + formatNumber(profit * 0.1) : '-'}</td>
+      <td>$${formatNumber(activeCash)}</td>
       <td>$${formatNumber(tsla)}</td>
-      <td><strong>$${formatNumber(cash + tsla)}</strong></td>
+      <td>$${formatNumber(safeCash)}</td>
+      <td><strong>$${formatNumber(activeCash + tsla + safeCash)}</strong></td>
     `;
     tableBody.appendChild(row);
 
-    if (cash <= 0) {
+    if (activeCash <= 0) {
       const bustRow = document.createElement('tr');
-      bustRow.innerHTML = `<td colspan="9" class="risk">BUSTED! Cash = $0 after ${i} steps.</td>`;
+      bustRow.innerHTML = `<td colspan="11" class="risk">BUSTED! Active cash = $0 after ${i} steps. Parked: $${formatNumber(tsla + safeCash)}</td>`;
       tableBody.appendChild(bustRow);
       break;
     }
@@ -699,43 +832,53 @@ function runSingleSim() {
 
 function runMonteCarlo() {
   const runs = 100;
-  let totalFinalCash = 0;
+  let totalFinalActive = 0;
   let totalFinalTsla = 0;
+  let totalFinalSafe = 0;
   let busts = 0;
 
   for (let r = 0; r < runs; r++) {
-    let cash = parseFloat(document.getElementById('startCash').value);
+    let activeCash = parseFloat(document.getElementById('startCash').value);
     let tsla = 0;
+    let safeCash = 0;
     const betPct = parseFloat(document.getElementById('betPercent').value);
     const winPct = parseFloat(document.getElementById('winPercent').value);
     const winChance = parseFloat(document.getElementById('winChance').value) / 100;
 
     for (let s = 1; s <= 20; s++) {
-      if (cash <= 0) { busts++; break; }
-      const bet = cash * betPct;
+      if (activeCash <= 0) { busts++; break; }
+      const totalPortfolio = activeCash + tsla + safeCash;
+      let bet = totalPortfolio * betPct;
+      const maxActiveBet = activeCash * 0.20;
+      if (bet > maxActiveBet) bet = maxActiveBet;
+
       if (Math.random() < winChance) {
         const profit = bet * (winPct / 100);
         tsla += profit * 0.1;
-        cash += profit * 0.9;
+        safeCash += profit * 0.1;
+        activeCash += profit * 0.8;
       } else {
-        cash -= bet;
+        activeCash -= bet;
       }
     }
-    totalFinalCash += cash;
+    totalFinalActive += activeCash;
     totalFinalTsla += tsla;
+    totalFinalSafe += safeCash;
   }
 
-  const avgCash = totalFinalCash / runs;
+  const avgActive = totalFinalActive / runs;
   const avgTsla = totalFinalTsla / runs;
-  const avgTotal = avgCash + avgTsla;
+  const avgSafe = totalFinalSafe / runs;
+  const avgTotal = avgActive + avgTsla + avgSafe;
   const bustRate = (busts / runs * 100).toFixed(1);
 
   document.getElementById('monteResult').innerHTML = `
     <span class="profit">After 100 random runs:</span><br>
-    Avg Cash: $${formatNumber(avgCash)}<br>
+    Avg Active Cash: $${formatNumber(avgActive)}<br>
     Avg TSLA: $${formatNumber(avgTsla)}<br>
+    Avg Safe Cash: $${formatNumber(avgSafe)}<br>
     Avg Total: <strong>$${formatNumber(avgTotal)}</strong><br>
-    Bust Rate: <span class="risk">${bustRate}%</span> (went to $0)
+    Bust Rate: <span class="risk">${bustRate}%</span> (active cash = $0)
   `;
 }
 
@@ -744,6 +887,47 @@ function formatNumber(num) {
   if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
   if (num >= 1e3) return (num / 1e3).toFixed(0) + 'k';
   return num.toFixed(0);
+}
+
+// Conviction Bet Sizer
+function calculateBet() {
+  const portfolio = parseFloat(document.getElementById('portfolio').value);
+  const conviction = parseInt(document.getElementById('conviction').value);
+
+  if (isNaN(portfolio) || portfolio <= 0) {
+    document.getElementById('result').innerHTML = '<span style="color:#f85149;">Please enter a valid portfolio amount.</span>';
+    return;
+  }
+
+  const betPercent = conviction / 100;
+  const betAmount = portfolio * betPercent;
+
+  // Hard cap at 10%
+  const cappedBet = Math.min(betAmount, portfolio * 0.10);
+
+  const message = `
+    <strong>Portfolio:</strong> $${portfolio.toLocaleString()}<br>
+    <strong>Conviction:</strong> ${conviction}/10 → ${betPercent * 100}%<br>
+    <strong>Suggested Bet:</strong> <span class="highlight">$${betAmount.toLocaleString(undefined, {minimumFractionDigits: 0})}</span><br>
+    <strong>Capped at 10% rule:</strong> <span class="highlight">$${cappedBet.toLocaleString(undefined, {minimumFractionDigits: 0})}</span><br><br>
+    <strong>Max loss if wrong:</strong> $${cappedBet.toLocaleString(undefined, {minimumFractionDigits: 0})} (${(cappedBet / portfolio * 100).toFixed(1)}%)<br>
+    <strong>If 400% win:</strong> +$${ (cappedBet * 4).toLocaleString(undefined, {minimumFractionDigits: 0}) } profit → new total ~$${ (portfolio + cappedBet * 4).toLocaleString() }
+  `;
+
+  if (betAmount > cappedBet) {
+    message += '<div class="warning">Bet capped at 10% — stay disciplined.</div>';
+  }
+
+  document.getElementById('result').innerHTML = message;
+}
+
+// Position Sizing Cheat Sheet (live update)
+function updateSizing() {
+  const total = parseFloat(document.getElementById('portfolio-sizing').value) || 10000;
+
+  document.getElementById('sizing-short').textContent = '$' + (total * 0.005).toFixed(0) + ' – $' + (total * 0.01).toFixed(0);
+  document.getElementById('sizing-medium').textContent = '$' + (total * 0.01).toFixed(0) + ' – $' + (total * 0.02).toFixed(0);
+  document.getElementById('sizing-long').textContent = '$' + (total * 0.05).toFixed(0) + ' – $' + (total * 0.10).toFixed(0);
 }
 </script>
 
