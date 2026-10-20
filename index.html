@@ -47,13 +47,17 @@ td input,th input{width:90px;padding:5px 7px;font-size:.88rem;text-align:right}
 .note{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);color:#f4d08a;padding:10px 12px;border-radius:8px;font-size:.88rem;margin-top:12px}
 .result{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px}
 .tier-safe td{background:rgba(34,197,94,.07)}.tier-med td{background:rgba(245,158,11,.07)}.tier-high td{background:rgba(239,68,68,.07)}
-.win td:nth-child(4){color:var(--green);font-weight:600}.loss td:nth-child(4){color:var(--red);font-weight:600}
 footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
 .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.pgrid h3{margin-top:0}
 .pcard{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:.86rem}
 .pcard .ph{display:flex;justify-content:space-between;align-items:center;gap:10px}.pcard h4{margin:0;font-size:1rem}
 .pcard p{margin:4px 0}.pcard b{color:var(--muted);font-weight:600}.pd{width:120px;height:60px;flex:none;background:#0b0f17;border-radius:6px}
 @media(max-width:760px){.pgrid{grid-template-columns:1fr}}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
+.tip{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.tip h4{margin:0 0 6px;font-size:1.02rem}.tip p{margin:4px 0;font-size:.88rem}.tip .rot{color:var(--amber);font-size:.82rem}
+.tsvg{width:100%;height:auto;max-height:150px;background:#0b0f17;border-radius:8px;border:1px solid var(--line)}
+@media(max-width:420px){.tgrid{grid-template-columns:1fr}}
 .hidden{display:none}
 @media(max-width:760px){.two{grid-template-columns:1fr}section.card{padding:16px}h1{font-size:1.3rem}.chart{height:280px}}
 </style>
@@ -64,9 +68,9 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
   <nav id="nav">
     <a href="#moonshot">Moonshot Ladder</a>
     <a href="#reference">Cash Table</a>
-    <a href="#million-ladder">Win &amp; Reinvest Sim</a>
     <a href="#conviction-sizer">Conviction Sizer</a>
     <a href="#sizing-tool">Position Sizing</a>
+    <a href="#odte-tips">0DTE Tips</a>
     <a href="#pattern-recap">Pattern Recap</a>
   </nav>
 </div></header>
@@ -113,43 +117,6 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
   <div class="tbl"><table id="referenceTable"><thead></thead><tbody></tbody></table></div>
 </section>
 
-<!-- 3. Simulator -->
-<section class="card" id="million-ladder">
-  <h1>Win &amp; Reinvest Ladder Simulator</h1>
-  <p class="sub">Each step: bet a % of total wealth from active cash. On a win, profit splits into TSLA / safe cash / back to active. On a loss the bet is gone.</p>
-  <div class="grid">
-    <div><label for="startCash">Start cash ($)</label><input type="number" id="startCash" value="10000" min="1"></div>
-    <div><label for="betPercent">Bet % of total</label><input type="number" id="betPercent" value="10" min="0.1" max="100" step="0.5"></div>
-    <div><label for="winPercent">Win % gain (400 = 5×)</label><input type="number" id="winPercent" value="400" min="0"></div>
-    <div><label for="lossPercent">Loss % of bet on a loss</label><input type="number" id="lossPercent" value="100" min="0" max="100"></div>
-    <div><label for="winChance">Win chance %</label><input type="number" id="winChance" value="60" min="0" max="100"></div>
-    <div><label for="steps">Steps</label><input type="number" id="steps" value="100" min="1" max="1000"></div>
-    <div><label for="tslaPct">% of profit → TSLA</label><input type="number" id="tslaPct" value="10" min="0" max="100"></div>
-    <div><label for="safePct">% of profit → safe cash</label><input type="number" id="safePct" value="10" min="0" max="100"></div>
-    <div><label for="capPct">Max bet % of active cash</label><input type="number" id="capPct" value="20" min="1" max="100"></div>
-    <div><label for="runs">Monte Carlo runs</label><input type="number" id="runs" value="100" min="10" max="5000"></div>
-  </div>
-  <div class="btns">
-    <button class="primary" onclick="runSingleSim()">Run single ladder</button>
-    <button class="primary" onclick="runMonteCarlo()">Run Monte Carlo</button>
-    <button onclick="exportTable('simTable','sim-run.csv')">Export run CSV</button>
-  </div>
-  <div id="evNote" class="note"></div>
-  <div class="stats" id="singleStats"></div>
-  <div class="chart"><canvas id="simChart"></canvas></div>
-  <h3>Monte Carlo results</h3>
-  <div class="stats" id="mcStats"></div>
-  <div class="two">
-    <div class="chart"><canvas id="mcChart"></canvas></div>
-    <div class="chart"><canvas id="histChart"></canvas></div>
-  </div>
-  <h3>Single run detail</h3>
-  <div class="tbl"><table id="simTable">
-    <thead><tr><th>Step</th><th>Total before</th><th>Bet</th><th>Outcome</th><th>P/L</th><th>To TSLA</th><th>To safe</th><th>Active after</th><th>TSLA</th><th>Safe cash</th><th>Total wealth</th></tr></thead>
-    <tbody></tbody>
-  </table></div>
-</section>
-
 <!-- 4. Conviction -->
 <section class="card" id="conviction-sizer">
   <h1>Conviction Bet Sizer</h1>
@@ -179,7 +146,13 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
   </table></div>
   <p class="sub" style="margin-top:12px">Always take profit on half at +100% — then it's a free ride. No more than 1% on anything under 7 days.</p>
 </section>
-<!-- 6. Pattern Recap -->
+<!-- 6. 0DTE tips -->
+<section class="card" id="odte-tips">
+  <h1>Top 5 0DTE OTM Option Tips</h1>
+  <p class="sub">Same-day-expiry out-of-the-money options are very high risk. Numbers below are general rules of thumb, not statistics or guarantees. Diagrams are illustrative only.</p>
+  <div class="tgrid"><div class="tip"><svg viewBox="0 0 200 110" class="tsvg" role="img"><circle cx="55" cy="55" r="40" fill="#1e293b" stroke="#8a96ad"/><path d="M55 55 L55 15 A40 40 0 0 1 60.0 15.3 Z" fill="#f59e0b"/><text x="110" y="40" font-size="10" fill="#f59e0b" text-anchor="start">■ ~1% = 0DTE ticket</text><text x="110" y="58" font-size="10" fill="#8a96ad" text-anchor="start">■ rest stays safe</text><text x="110" y="80" font-size="9" fill="#ef4444" text-anchor="start">Assume it can → $0</text></svg><div><h4>1. Size it like a lottery ticket</h4><p>0DTE OTM options can go to $0 in minutes. Keep each trade tiny — a common rule of thumb is ≤1% of the account — so a full loss is routine, not damaging.</p><p class="rot">📏 Rule of thumb: risk ≈ 0.5–1% per 0DTE trade; never add to a loser.</p></div></div><div class="tip"><svg viewBox="0 0 200 110" class="tsvg" role="img"><rect x="20" y="10" width="28" height="90" fill="#22c55e" opacity=".12"/><rect x="148" y="10" width="32" height="90" fill="#22c55e" opacity=".12"/><rect x="70" y="10" width="60" height="90" fill="#ef4444" opacity=".08"/><polyline points="20,20 28,22 36,24 44,26 52,28 60,31 68,33 76,36 84,38 92,41 100,43 108,46 116,49 124,53 132,56 140,60 148,64 156,69 164,75 172,82 180,100" fill="none" stroke="#4f8cff" stroke-width="2.5"/><text x="22" y="20" font-size="9" fill="#22c55e" text-anchor="start">open</text><text x="150" y="20" font-size="9" fill="#22c55e" text-anchor="start">last hr</text><text x="80" y="20" font-size="9" fill="#ef4444" text-anchor="start">midday chop</text><text x="20" y="108" font-size="8" fill="#8a96ad" text-anchor="start">9:30</text><text x="180" y="108" font-size="8" fill="#8a96ad" text-anchor="end">4:00</text><text x="100" y="108" font-size="8" fill="#8a96ad" text-anchor="middle">time value (illustrative)</text></svg><div><h4>2. Respect theta — timing is everything</h4><p>With no days left, the option is almost all time value, and it bleeds fast. The first hour after the open and the last hour usually have the strongest moves; midday chop tends to drain premium.</p><p class="rot">📏 Rule of thumb: don't sit in a flat 0DTE position through midday chop.</p></div></div><div class="tip"><svg viewBox="0 0 200 110" class="tsvg" role="img"><rect x="20" y="8" width="150" height="12" fill="#8a96ad" opacity=".7"/><text x="4" y="17" font-size="8" fill="#8a96ad" text-anchor="start">ATM</text><text x="176" y="17" font-size="8" fill="#8a96ad" text-anchor="start">Δ0.50</text><rect x="20" y="24" width="105" height="12" fill="#8a96ad" opacity=".7"/><text x="4" y="33" font-size="8" fill="#8a96ad" text-anchor="start">+1</text><text x="176" y="33" font-size="8" fill="#8a96ad" text-anchor="start">Δ0.35</text><rect x="20" y="40" width="75" height="12" fill="#22c55e" opacity=".7"/><text x="4" y="49" font-size="8" fill="#8a96ad" text-anchor="start">+2</text><text x="176" y="49" font-size="8" fill="#22c55e" text-anchor="start">Δ0.25</text><rect x="20" y="56" width="54" height="12" fill="#22c55e" opacity=".7"/><text x="4" y="65" font-size="8" fill="#8a96ad" text-anchor="start">+3</text><text x="176" y="65" font-size="8" fill="#22c55e" text-anchor="start">Δ0.18</text><rect x="20" y="72" width="24" height="12" fill="#ef4444" opacity=".7"/><text x="4" y="81" font-size="8" fill="#8a96ad" text-anchor="start">+5</text><text x="176" y="81" font-size="8" fill="#ef4444" text-anchor="start">Δ0.08</text><rect x="20" y="88" width="9" height="12" fill="#ef4444" opacity=".7"/><text x="4" y="97" font-size="8" fill="#8a96ad" text-anchor="start">+8</text><text x="176" y="97" font-size="8" fill="#ef4444" text-anchor="start">Δ0.03</text></svg><div><h4>3. Pick near-the-money, liquid strikes</h4><p>Far-OTM strikes are cheap because they rarely pay. Strikes a little OTM (delta roughly 0.15–0.30) need a smaller move to work. Stick to liquid underlyings (SPY, QQQ, SPX) with tight bid/ask spreads and use limit orders.</p><p class="rot">📏 Rule of thumb: delta ~0.15–0.30; skip if the spread is a big % of the price.</p></div></div><div class="tip"><svg viewBox="0 0 200 110" class="tsvg" role="img"><rect x="20" y="15" width="32" height="80" fill="#22c55e" opacity=".8"/><text x="36" y="10.0" font-size="9" fill="#22c55e" text-anchor="middle">50%</text><text x="36" y="107" font-size="8" fill="#8a96ad" text-anchor="middle">+100%</text><rect x="65" y="55" width="32" height="40" fill="#22c55e" opacity=".8"/><text x="81" y="50.0" font-size="9" fill="#22c55e" text-anchor="middle">25%</text><text x="81" y="107" font-size="8" fill="#8a96ad" text-anchor="middle">+200%</text><rect x="110" y="71" width="32" height="24" fill="#22c55e" opacity=".8"/><text x="126" y="66.0" font-size="9" fill="#22c55e" text-anchor="middle">15%</text><text x="126" y="107" font-size="8" fill="#8a96ad" text-anchor="middle">+300%</text><rect x="155" y="79" width="32" height="16" fill="#4f8cff" opacity=".8"/><text x="171" y="74.0" font-size="9" fill="#4f8cff" text-anchor="middle">10%</text><text x="171" y="107" font-size="8" fill="#8a96ad" text-anchor="middle">runner</text><line x1="10" y1="30" x2="195" y2="30" stroke="#ef4444" stroke-dasharray="3 2"/><text x="195" y="25" font-size="8" fill="#ef4444" text-anchor="end">time / premium stop</text></svg><div><h4>4. Take profits fast with a ladder</h4><p>Gains on 0DTE options vanish as fast as they appear. Sell into strength with a plan (for example, half at +100%, then scale out), and set a hard time stop or premium stop (such as −50%) before you enter.</p><p class="rot">📏 Rule of thumb: sell half at +100%; exit if the thesis hasn't worked within your time window.</p></div></div><div class="tip"><svg viewBox="0 0 200 110" class="tsvg" role="img"><line x1="10" y1="75" x2="195" y2="75" stroke="#f59e0b" stroke-dasharray="4 3"/><text x="12" y="72" font-size="8" fill="#f59e0b" text-anchor="start">key level (prior low)</text><polyline points="10,40 40,70 60,55 85,74 105,92 118,70 140,50 165,35 190,20" fill="none" stroke="#4f8cff" stroke-width="2.5"/><circle cx="105" cy="92" r="4" fill="#ef4444"/><circle cx="125" cy="64" r="4" fill="#22c55e"/><text x="84" y="100" font-size="8" fill="#ef4444" text-anchor="end">sweep</text><text x="132" y="74" font-size="8" fill="#22c55e" text-anchor="start">reclaim = entry</text><line x1="95" y1="98" x2="125" y2="98" stroke="#ef4444"/><text x="14" y="106" font-size="8" fill="#ef4444" text-anchor="start">stop = below sweep low</text></svg><div><h4>5. Trade a level or catalyst, not hope</h4><p>Enter only when there's a reason: a key level reclaim after a liquidity sweep, a break-and-retest, or a scheduled catalyst (CPI, FOMC). Define the stop on the underlying's chart — if price loses the level, you're out.</p><p class="rot">📏 Rule of thumb: no setup, no trade; your stop is the level, not a feeling.</p></div></div></div>
+</section>
+<!-- 7. Pattern Recap -->
 <section class="card" id="pattern-recap">
   <h1>Pattern Recap</h1>
   <p class="sub">Quick-reference reminder: top 5 order-flow and top 5 ICT concepts. Confirm with context — no pattern works alone.</p>
@@ -219,8 +192,10 @@ function exportTable(id, file){
 }
 
 // persist simple inputs
-const PERSIST=['buyPrice','numContracts','livePrice','startCash','betPercent','winPercent','lossPercent','winChance','steps','tslaPct','safePct','capPct','runs','portfolio','conviction','convWin','portfolio-sizing'];
+const PERSIST=['buyPrice','numContracts','livePrice','portfolio','conviction','convWin','portfolio-sizing'];
 function loadInputs(){ const s=store.get('inputs',{}); PERSIST.forEach(id=>{ if(s[id]!==undefined&&s[id]!=='') $(id).value=s[id]; }); }
+const OLD_SIM_KEYS=['startCash','betPercent','winPercent','lossPercent','winChance','steps','tslaPct','safePct','capPct','runs'];
+function cleanOldKeys(){ const s=store.get('inputs',null); if(s&&OLD_SIM_KEYS.some(k=>k in s)){ OLD_SIM_KEYS.forEach(k=>delete s[k]); store.set('inputs',s); } localStorage.removeItem('madHamsterSetup'); }
 function saveInputs(){ const s={}; PERSIST.forEach(id=>s[id]=$(id).value); store.set('inputs',s); }
 
 // ---------- 1. Moonshot ladder ----------
@@ -313,60 +288,6 @@ function refDelRow(i){ ref.contracts.splice(i,1); renderRef(); }
 function refDelCol(j){ ref.prices.splice(j,1); renderRef(); }
 function refReset(){ ref=JSON.parse(JSON.stringify(REF_DEFAULT)); renderRef(); }
 
-// ---------- 3. Simulator ----------
-function simParams(){ saveInputs(); return { start:num('startCash',10000), bet:num('betPercent',10)/100, win:num('winPercent',400)/100, loss:Math.min(num('lossPercent',100),100)/100,
-  p:Math.min(Math.max(num('winChance',50),0),100)/100, steps:Math.max(1,Math.min(1000,Math.floor(num('steps',100)))), tsla:num('tslaPct',10)/100, safe:num('safePct',10)/100, cap:num('capPct',20)/100, runs:Math.max(10,Math.min(5000,Math.floor(num('runs',100)))) }; }
-function simulate(P, log){
-  let active=P.start, tsla=0, safe=0, peak=P.start, mdd=0, bustStep=null; const path=[P.start];
-  for(let i=1;i<=P.steps;i++){
-    const total=active+tsla+safe; let bet=Math.min(total*P.bet, active*P.cap);
-    if(active<1){ bustStep=bustStep??i; path.push(total); continue; }
-    const w=Math.random()<P.p; let pl,tT=0,tS=0;
-    if(w){ pl=bet*P.win; tT=pl*P.tsla; tS=pl*P.safe; tsla+=tT; safe+=tS; active+=pl-tT-tS; }
-    else { pl=-bet*P.loss; active+=pl; }
-    const now=active+tsla+safe; path.push(now); peak=Math.max(peak,now); mdd=Math.max(mdd,(peak-now)/peak);
-    if(log) log.push([i,total,bet,w,pl,tT,tS,active,tsla,safe,now]);
-  }
-  return {path,final:path.at(-1),active,tsla,safe,mdd,busted:active<1};
-}
-function evNote(P){
-  const ev=P.p*P.win-(1-P.p)*P.loss; const g=P.p*Math.log(1+P.bet*P.win)+(1-P.p)*Math.log(Math.max(1e-9,1-P.bet*P.loss));
-  $('evNote').innerHTML=`Edge per $1 bet: <b class="${cls(ev)}">${ev>=0?'+':''}${ev.toFixed(2)}</b> · approx. growth per step: <b class="${cls(g)}">${pct(g*100,2)}</b>. Real win rates on far-OTM lotto options are often well under 30% — try lowering win chance to stress-test.`;
-}
-function runSingleSim(){
-  const P=simParams(); evNote(P); const log=[]; const r=simulate(P,log);
-  $('simTable').tBodies[0].innerHTML=log.map(l=>`<tr class="${l[3]?'win':'loss'}"><td>${l[0]}</td><td>${money(l[1],0)}</td><td>${money(l[2],0)}</td><td>${l[3]?'WIN':'LOSS'}</td><td class="${cls(l[4])}">${money(l[4],0)}</td><td>${l[3]?money(l[5],0):'—'}</td><td>${l[3]?money(l[6],0):'—'}</td><td>${money(l[7],0)}</td><td>${money(l[8],0)}</td><td>${money(l[9],0)}</td><td><b>${money(l[10],0)}</b></td></tr>`).join('');
-  const wins=log.filter(l=>l[3]).length;
-  $('singleStats').innerHTML=stat('Final wealth',compact(r.final),cls(r.final-P.start))+stat('Return',pct((r.final/P.start-1)*100),cls(r.final-P.start))+stat('Wins / losses',`${wins} / ${log.length-wins}`)+stat('Max drawdown',pct(r.mdd*100),'neg')+stat('TSLA + safe parked',compact(r.tsla+r.safe),'cash');
-  chart('simChart',{type:'line',data:{labels:r.path.map((_,i)=>i),datasets:[{label:'Single run — total wealth',data:r.path,borderColor:'#4f8cff',backgroundColor:'rgba(79,140,255,.12)',fill:true,pointRadius:0,tension:.15}]},
-    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{tooltip:{callbacks:{title:c=>'Step '+c[0].label,label:c=>money(c.raw,0)}}},scales:{y:{type:logScale(r.path)?'logarithmic':'linear',...moneyAxis},x:{title:{display:true,text:'Step'}}}}});
-}
-const logScale=a=>Math.max(...a)/Math.max(1,Math.min(...a.filter(v=>v>0)))>1000;
-const q=(s,p)=>{ const i=(s.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i); return s[lo]+(s[hi]-s[lo])*(i-lo); };
-function runMonteCarlo(){
-  const P=simParams(); evNote(P); const res=[]; for(let r=0;r<P.runs;r++) res.push(simulate(P));
-  const finals=res.map(r=>r.final).sort((a,b)=>a-b), mdds=res.map(r=>r.mdd).sort((a,b)=>a-b);
-  const busts=res.filter(r=>r.busted).length, losers=res.filter(r=>r.final<P.start).length;
-  const mean=finals.reduce((a,b)=>a+b,0)/finals.length;
-  $('mcStats').innerHTML=stat('Median final',compact(q(finals,.5)),cls(q(finals,.5)-P.start))+stat('10th pct (bad luck)',compact(q(finals,.1)),cls(q(finals,.1)-P.start))+stat('90th pct (good luck)',compact(q(finals,.9)),cls(q(finals,.9)-P.start))+stat('Mean final',compact(mean))+stat('Runs ending below start',pct(losers/P.runs*100),losers?'neg':'pos')+stat('Bust rate (active < $1)',pct(busts/P.runs*100),busts?'neg':'pos')+stat('Median max drawdown',pct(q(mdds,.5)*100),'neg')+stat('Worst max drawdown',pct(mdds.at(-1)*100),'neg');
-  const bands=[.1,.25,.5,.75,.9].map(p=>[]);
-  for(let s=0;s<=P.steps;s++){ const col=res.map(r=>r.path[s]).sort((a,b)=>a-b); [.1,.25,.5,.75,.9].forEach((p,k)=>bands[k].push(q(col,p))); }
-  const L=bands[0].map((_,i)=>i);
-  chart('mcChart',{type:'line',data:{labels:L,datasets:[
-    {label:'90th pct',data:bands[4],borderColor:'rgba(34,197,94,.6)',pointRadius:0,fill:false},
-    {label:'75th pct',data:bands[3],borderColor:'rgba(34,197,94,.35)',backgroundColor:'rgba(79,140,255,.12)',pointRadius:0,fill:'+2'},
-    {label:'Median',data:bands[2],borderColor:'#4f8cff',borderWidth:2.5,pointRadius:0},
-    {label:'25th pct',data:bands[1],borderColor:'rgba(239,68,68,.35)',pointRadius:0},
-    {label:'10th pct',data:bands[0],borderColor:'rgba(239,68,68,.6)',pointRadius:0}]},
-    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{title:{display:true,text:`Wealth percentiles over ${P.runs} runs`},tooltip:{callbacks:{label:c=>c.dataset.label+': '+compact(c.raw)}}},scales:{y:{type:logScale(bands[4].concat(bands[0]))?'logarithmic':'linear',...moneyAxis},x:{title:{display:true,text:'Step'}}}}});
-  // histogram on log buckets
-  const lo=Math.max(1,finals[0]), hi=Math.max(lo*1.01,finals.at(-1)), B=16, edges=[];
-  for(let i=0;i<=B;i++) edges.push(lo*Math.pow(hi/lo,i/B));
-  const counts=new Array(B).fill(0); finals.forEach(f=>{ let k=Math.min(B-1,Math.max(0,Math.floor(Math.log(Math.max(f,lo)/lo)/Math.log(hi/lo)*B))); counts[k]++; });
-  chart('histChart',{type:'bar',data:{labels:counts.map((_,i)=>compact(edges[i])),datasets:[{label:'Runs',data:counts,backgroundColor:counts.map((_,i)=>edges[i+1]<=P.start?'rgba(239,68,68,.7)':edges[i]>=P.start?'rgba(34,197,94,.7)':'rgba(245,158,11,.7)')}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'Distribution of final wealth (red = below start)'},tooltip:{callbacks:{title:c=>`${compact(edges[c[0].dataIndex])} – ${compact(edges[c[0].dataIndex+1])}`}}},scales:{x:{ticks:{maxRotation:45,minRotation:45}}}}});
-}
-
 // ---------- 4. Conviction ----------
 function calculateBet(){
   saveInputs(); const pf=num('portfolio'), conv=parseInt($('conviction').value), w=num('convWin',400);
@@ -381,12 +302,11 @@ function updateSizing(){ saveInputs(); const t=num('portfolio-sizing',10000); co
 
 // ---------- wiring ----------
 window.addEventListener('DOMContentLoaded',()=>{
-  loadInputs(); renderTierInputs(); calculate(); renderRef(); runSingleSim(); runMonteCarlo(); calculateBet(); updateSizing();
+  cleanOldKeys(); loadInputs(); renderTierInputs(); calculate(); renderRef(); calculateBet(); updateSizing();
   ['buyPrice','numContracts'].forEach(id=>$(id).addEventListener('input',calculate));
   $('livePrice').addEventListener('input',quickCashOut);
   ['portfolio','conviction','convWin'].forEach(id=>$(id).addEventListener('input',calculateBet));
   $('portfolio-sizing').addEventListener('input',updateSizing);
-  ['startCash','betPercent','winPercent','lossPercent','winChance','steps','tslaPct','safePct','capPct','runs'].forEach(id=>$(id).addEventListener('change',()=>{runSingleSim();runMonteCarlo();}));
   const links=[...document.querySelectorAll('#nav a')];
   const obs=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id)); }),{rootMargin:'-40% 0px -55% 0px'});
   document.querySelectorAll('section.card').forEach(s=>obs.observe(s));
