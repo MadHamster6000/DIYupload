@@ -1,935 +1,381 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Madhamster + Grok Moonshot Option Ladder</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 15px;
-      background: #0d1117;
-      color: #e6edf3;
-      min-height: 100vh;
-      box-sizing: border-box;
-    }
-    h1, h2 {
-      text-align: center;
-      color: #58a6ff;
-      margin-top: 40px;
-      margin-bottom: 20px;
-    }
-    section { margin-bottom: 80px; }
-    .nav-bar {
-      text-align: center;
-      margin-bottom: 30px;
-      padding: 10px;
-      background: #161b22;
-      border-radius: 8px;
-      border: 1px solid #30363d;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .nav-btn {
-      padding: 10px 24px;
-      font-size: 1rem;
-      background: linear-gradient(90deg, #1e40af, #3b82f6);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .nav-btn:hover {
-      background: linear-gradient(90deg, #1e3a8a, #2563eb);
-      transform: translateY(-2px);
-    }
-    label {
-      display: block;
-      margin: 15px 0 8px;
-      font-weight: bold;
-      color: #e6edf3;
-    }
-    input, select {
-      width: 100%;
-      padding: 12px;
-      font-size: 1.1rem;
-      background: #21262d;
-      color: #e6edf3;
-      border: 1px solid #444c56;
-      border-radius: 6px;
-      margin-bottom: 10px;
-    }
-    button.main-btn {
-      width: 100%;
-      padding: 16px;
-      background: linear-gradient(90deg, #238636, #2ea043);
-      color: white;
-      border: none;
-      font-size: 1.2rem;
-      font-weight: bold;
-      cursor: pointer;
-      border-radius: 8px;
-      margin: 20px 0 15px;
-      box-shadow: 0 4px 12px rgba(46,160,67,0.4);
-      transition: all 0.2s;
-    }
-    button.main-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(46,160,67,0.6);
-    }
-    .table-container {
-      overflow-x: auto;
-      border: 1px solid #444c56;
-      border-radius: 8px;
-      margin: 15px 0;
-      background: #161b22;
-    }
-    table {
-      width: 100%;
-      min-width: 900px;
-      border-collapse: collapse;
-      font-size: 0.92rem;
-    }
-    th, td {
-      padding: 10px 12px;
-      text-align: left;
-      border-bottom: 1px solid #444c56;
-    }
-    th {
-      background: #21262d;
-      color: #58a6ff;
-      font-weight: bold;
-    }
-    tr:hover {
-      background: #1f2937;
-    }
-    .profit { color: #56d364; font-weight: bold; }
-    .cash { color: #79c0ff; font-weight: bold; }
-    .risk { color: #f85149; font-weight: bold; }
-    .neutral { color: #8b949e; font-weight: bold; }
-    .total {
-      font-size: 1.1rem;
-      font-weight: bold;
-      background: #21262d;
-      padding: 14px;
-      margin: 15px 0;
-      text-align: center;
-      border-radius: 8px;
-      border: 1px solid #444c56;
-    }
-    .chart-wrapper {
-      width: 100%;
-      max-width: 1000px;
-      margin: 20px auto;
-      height: 420px;
-      position: relative;
-    }
-    canvas {
-      width: 100% !important;
-      height: 100% !important;
-      background: #161b22;
-      border: 1px solid #444c56;
-      border-radius: 8px;
-    }
-    .sim-table { min-width: 600px; }
-    .sim-row.win { background: rgba(86, 212, 100, 0.1); }
-    .sim-row.loss { background: rgba(248, 81, 73, 0.1); }
-    .warning { color: #ff9f1c; font-weight: bold; text-align: center; margin: 10px 0; }
-    .reference-table th, .reference-table td {
-      text-align: right;
-      padding: 8px 12px;
-      border: 1px solid #444c56;
-    }
-    .reference-table th {
-      background: #21262d;
-      color: #58a6ff;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    .reference-table tr:nth-child(even) { background: #1a1f2b; }
-    .reference-table tr:hover { background: #1f2937; }
-    .editable-cell { cursor: pointer; }
-    .editable-cell input {
-      width: 100%;
-      padding: 4px;
-      background: #2a2f3a;
-      color: #e6edf3;
-      border: 1px solid #58a6ff;
-      border-radius: 4px;
-      text-align: right;
-    }
-    .cash-1 { color: #79c0ff; }
-    .cash-2 { color: #56d364; }
-    .cash-3 { color: #ff9f1c; }
-    .cash-4 { color: #a78bfa; }
-    .cash-5 { color: #ffd700; }
-    .conviction-result {
-      margin-top: 30px;
-      padding: 20px;
-      background: #21262d;
-      border-radius: 8px;
-      border: 1px solid #444c56;
-      line-height: 1.6;
-      font-size: 1.1rem;
-    }
-    .highlight { color: #56d364; font-weight: bold; }
-    .warning { color: #ff9f1c; font-weight: bold; margin-top: 10px; }
-    .sizing-table th, .sizing-table td {
-      padding: 12px;
-      text-align: center;
-      border: 1px solid #444c56;
-    }
-    .sizing-table th {
-      background: #21262d;
-      color: #58a6ff;
-    }
-    .sizing-safe { background: #1e3a2b; color: #e6edf3; } /* dark green */
-    .sizing-medium { background: #2f2a1e; color: #e6edf3; } /* dark yellow */
-    .sizing-high { background: #2f1e1e; color: #e6edf3; } /* dark red */
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MadHamster Options Toolkit</title>
+<meta name="description" content="Free options toolkit: moonshot profit ladder, cash reference table, win & reinvest simulator, position sizing.">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0b0f17;--panel:#121826;--panel2:#182032;--line:#263048;--text:#e6ebf5;--muted:#8a96ad;--accent:#4f8cff;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;--purple:#a78bfa}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+header.top{position:sticky;top:0;z-index:50;background:rgba(11,15,23,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:10px 16px;overflow-x:auto}
+.brand{font-weight:800;white-space:nowrap;letter-spacing:.3px}.brand span{color:var(--accent)}
+nav{display:flex;gap:6px}
+nav a{color:var(--muted);text-decoration:none;padding:7px 12px;border-radius:8px;white-space:nowrap;font-size:.92rem}
+nav a:hover,nav a.active{color:var(--text);background:var(--panel2)}
+main{max-width:1200px;margin:0 auto;padding:20px 16px 60px}
+section.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:28px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.3rem;margin:0 0 4px}h3{font-size:1rem;margin:18px 0 8px;color:var(--muted);font-weight:600}
+.sub{color:var(--muted);margin:0 0 18px;font-size:.93rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+input,select{width:100%;padding:10px 12px;font-size:1rem;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;font-variant-numeric:tabular-nums}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+button{padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer;font-size:.9rem}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:14px 0}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px}
+.stat .k{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.stat .v{font-size:1.25rem;font-weight:700;font-variant-numeric:tabular-nums}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;max-height:520px}
+table{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{background:var(--panel2);color:var(--muted);font-weight:600;position:sticky;top:0;z-index:1}
+th:first-child,td:first-child{text-align:left}
+tr:hover td{background:rgba(79,140,255,.06)}
+td input,th input{width:90px;padding:5px 7px;font-size:.88rem;text-align:right}
+.pos{color:var(--green)}.neg{color:var(--red)}.cash{color:#7cb7ff}.muted{color:var(--muted)}.warn{color:var(--amber)}
+.x{background:none;border:none;color:var(--muted);padding:2px 6px;font-size:1rem}.x:hover{color:var(--red)}
+.chart{position:relative;height:340px;margin-top:14px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.note{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);color:#f4d08a;padding:10px 12px;border-radius:8px;font-size:.88rem;margin-top:12px}
+.result{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px}
+.tier-safe td{background:rgba(34,197,94,.07)}.tier-med td{background:rgba(245,158,11,.07)}.tier-high td{background:rgba(239,68,68,.07)}
+.win td:nth-child(4){color:var(--green);font-weight:600}.loss td:nth-child(4){color:var(--red);font-weight:600}
+footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
+.hidden{display:none}
+@media(max-width:760px){.two{grid-template-columns:1fr}section.card{padding:16px}h1{font-size:1.3rem}.chart{height:280px}}
+</style>
 </head>
 <body>
+<header class="top"><div class="top-inner">
+  <div class="brand">🐹 MadHamster <span>Options Toolkit</span></div>
+  <nav id="nav">
+    <a href="#moonshot">Moonshot Ladder</a>
+    <a href="#reference">Cash Table</a>
+    <a href="#million-ladder">Win &amp; Reinvest Sim</a>
+    <a href="#conviction-sizer">Conviction Sizer</a>
+    <a href="#sizing-tool">Position Sizing</a>
+  </nav>
+</div></header>
 
-  <!-- Navigation Bar (smooth scroll anchors) -->
-  <div class="nav-bar">
-    <a href="#moonshot" class="nav-btn">Moonshot Ladder</a>
-    <a href="#reference" class="nav-btn">Reference Table</a>
-    <a href="#million-ladder" class="nav-btn">Win & Reinvest Ladder</a>
-    <a href="#sizing-tool" class="nav-btn">Position Sizing</a>
+<main>
+<!-- 1. Moonshot ladder -->
+<section class="card" id="moonshot">
+  <h1>Moonshot Option Ladder</h1>
+  <p class="sub">Plan profit-taking: sell a slice of your original contracts at each gain target. Edit any target or sell % — everything recalculates live.</p>
+  <div class="grid">
+    <div><label for="buyPrice">Buy price / contract</label><input type="number" id="buyPrice" step="0.01" min="0" value="0.76"></div>
+    <div><label for="numContracts">Contracts</label><input type="number" id="numContracts" min="1" step="1" value="30"></div>
   </div>
+  <div class="stats" id="ladderStats"></div>
+  <div class="tbl"><table id="results">
+    <thead><tr><th>Target gain %</th><th>Sell % of orig.</th><th>Option price</th><th>Sold</th><th>Remaining</th><th>Cash out</th><th>Profit (this sale)</th><th>Locked P/L if rest → $0</th><th>Cum. return</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+  <div class="btns">
+    <button onclick="addTier()">+ Add target</button>
+    <button onclick="resetTiers()">Reset defaults</button>
+    <button onclick="exportTable('results','moonshot-ladder.csv')">Export CSV</button>
+  </div>
+  <div id="tierWarn" class="warn"></div>
+  <div class="chart"><canvas id="profitChart"></canvas></div>
 
-  <!-- Section 1: Moonshot Ladder -->
-  <section id="moonshot">
-    <h1>Madhamster + Grok Moonshot Option Ladder</h1>
+  <h3>Quick: get your total cost back</h3>
+  <div class="grid">
+    <div><label for="livePrice">Current live option price</label><input type="number" id="livePrice" step="0.01" min="0" placeholder="e.g. 2.45"></div>
+  </div>
+  <div id="cashoutResult" class="result muted">Enter the live price to see how many contracts to sell to recover your cost.</div>
+</section>
 
-    <label for="buyPrice">Buy Price per contract (e.g. 0.76):</label>
-    <input type="number" id="buyPrice" step="0.01" min="0" placeholder="Entry price" value="0.76">
+<!-- 2. Reference table -->
+<section class="card" id="reference">
+  <h1>Cash Received Reference Table</h1>
+  <p class="sub">Gross cash = contracts × option price × 100 (no commission). Edit the contract counts (left column) or prices (header row); add or remove rows and columns.</p>
+  <div class="btns">
+    <button onclick="refAddRow()">+ Row</button>
+    <button onclick="refAddCol()">+ Price column</button>
+    <button onclick="refReset()">Reset defaults</button>
+    <button onclick="exportTable('referenceTable','cash-reference.csv')">Export CSV</button>
+  </div>
+  <div class="tbl"><table id="referenceTable"><thead></thead><tbody></tbody></table></div>
+</section>
 
-    <label for="numContracts">Number of Contracts (min 1):</label>
-    <input type="number" id="numContracts" min="1" placeholder="e.g. 30" value="30">
+<!-- 3. Simulator -->
+<section class="card" id="million-ladder">
+  <h1>Win &amp; Reinvest Ladder Simulator</h1>
+  <p class="sub">Each step: bet a % of total wealth from active cash. On a win, profit splits into TSLA / safe cash / back to active. On a loss the bet is gone.</p>
+  <div class="grid">
+    <div><label for="startCash">Start cash ($)</label><input type="number" id="startCash" value="10000" min="1"></div>
+    <div><label for="betPercent">Bet % of total</label><input type="number" id="betPercent" value="10" min="0.1" max="100" step="0.5"></div>
+    <div><label for="winPercent">Win % gain (400 = 5×)</label><input type="number" id="winPercent" value="400" min="0"></div>
+    <div><label for="lossPercent">Loss % of bet on a loss</label><input type="number" id="lossPercent" value="100" min="0" max="100"></div>
+    <div><label for="winChance">Win chance %</label><input type="number" id="winChance" value="60" min="0" max="100"></div>
+    <div><label for="steps">Steps</label><input type="number" id="steps" value="100" min="1" max="1000"></div>
+    <div><label for="tslaPct">% of profit → TSLA</label><input type="number" id="tslaPct" value="10" min="0" max="100"></div>
+    <div><label for="safePct">% of profit → safe cash</label><input type="number" id="safePct" value="10" min="0" max="100"></div>
+    <div><label for="capPct">Max bet % of active cash</label><input type="number" id="capPct" value="20" min="1" max="100"></div>
+    <div><label for="runs">Monte Carlo runs</label><input type="number" id="runs" value="100" min="10" max="5000"></div>
+  </div>
+  <div class="btns">
+    <button class="primary" onclick="runSingleSim()">Run single ladder</button>
+    <button class="primary" onclick="runMonteCarlo()">Run Monte Carlo</button>
+    <button onclick="exportTable('simTable','sim-run.csv')">Export run CSV</button>
+  </div>
+  <div id="evNote" class="note"></div>
+  <div class="stats" id="singleStats"></div>
+  <div class="chart"><canvas id="simChart"></canvas></div>
+  <h3>Monte Carlo results</h3>
+  <div class="stats" id="mcStats"></div>
+  <div class="two">
+    <div class="chart"><canvas id="mcChart"></canvas></div>
+    <div class="chart"><canvas id="histChart"></canvas></div>
+  </div>
+  <h3>Single run detail</h3>
+  <div class="tbl"><table id="simTable">
+    <thead><tr><th>Step</th><th>Total before</th><th>Bet</th><th>Outcome</th><th>P/L</th><th>To TSLA</th><th>To safe</th><th>Active after</th><th>TSLA</th><th>Safe cash</th><th>Total wealth</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+</section>
 
-    <button class="main-btn" onclick="calculate()">Launch Moon Ladder</button>
+<!-- 4. Conviction -->
+<section class="card" id="conviction-sizer">
+  <h1>Conviction Bet Sizer</h1>
+  <p class="sub">Pick conviction → bet size, hard-capped at 10% of portfolio.</p>
+  <div class="grid">
+    <div><label for="portfolio">Portfolio ($)</label><input type="number" id="portfolio" value="10000" min="1" step="100"></div>
+    <div><label for="conviction">Conviction</label><select id="conviction">
+      <option value="5">5% — Low / safe</option><option value="6">6%</option><option value="7">7% — Medium</option>
+      <option value="8">8%</option><option value="9">9% — High</option><option value="10" selected>10% — Very high / moonshot</option></select></div>
+    <div><label for="convWin">If win, gain %</label><input type="number" id="convWin" value="400" min="0"></div>
+  </div>
+  <div id="result" class="stats"></div>
+</section>
 
-    <div id="costDisplay"></div>
-
-    <div class="table-container">
-      <table id="results">
-        <thead>
-          <tr>
-            <th>Target Gain</th>
-            <th>Option Price</th>
-            <th>% of Original</th>
-            <th>Sold</th>
-            <th>Rem.</th>
-            <th>Cash Out</th>
-            <th>Profit</th>
-            <th>Max Loss/Gain</th>
-            <th>Cum. %</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <h2 style="text-align:center; margin-top:30px;">Cumulative Profit Curve</h2>
-    <div class="chart-wrapper">
-      <canvas id="profitChart"></canvas>
-    </div>
-
-    <div id="totalProfit" class="total"></div>
-    <div id="totalCashOut" class="total" style="background:#21262d; margin-top:10px;"></div>
-    <div id="riskReward" class="riskreward"></div>
-
-    <div id="quickCashOut">
-      <h2>Quick: Get Your Total Cost Back</h2>
-      <p style="text-align:center; color:#8b949e; margin-bottom:15px;">
-        Enter current live option price
-      </p>
-      <label for="livePrice">Current Live Option Price:</label>
-      <input type="number" id="livePrice" step="0.01" min="0" placeholder="e.g. 2.45">
-      <button class="main-btn" onclick="calculateQuickCashOut()">Calculate Sell Qty</button>
-      <div id="cashoutResult"></div>
-    </div>
-  </section>
-
-  <!-- Section 2: Reference Table -->
-  <section id="reference">
-    <h1>Cash Received Reference Table (No Commission)</h1>
-    <p style="text-align:center; font-size:1.1rem; margin-bottom:20px;">
-      Click any cell to edit (Contracts or Option Prices) → press Enter to recalculate.<br>
-      Gross cash = Contracts × Option Price × 100
-    </p>
-
-    <div class="table-container">
-      <table id="referenceTable" class="reference-table">
-        <thead>
-          <tr id="referenceHeader">
-            <th contenteditable="true" data-type="header" class="editable-cell">Contracts</th>
-          </tr>
-        </thead>
-        <tbody id="referenceBody"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- Section 3: Win & Reinvest Ladder Simulator -->
-  <section id="million-ladder">
-    <h1>Win & Reinvest Ladder Simulator</h1>
-    <p style="text-align:center; color:#8b949e; margin-bottom:20px;">
-      Start cash → bet 10% of total → win → 10% profit to TSLA, 10% to safe cash, 80% back to active → repeat
-    </p>
-
-    <div style="max-width:800px; margin:0 auto;">
-      <label for="startCash">Start Cash ($):</label>
-      <input type="number" id="startCash" value="10000" min="1000">
-
-      <label for="betPercent">Bet % of Total Portfolio:</label>
-      <select id="betPercent">
-        <option value="0.05">5% (Safer)</option>
-        <option value="0.10" selected>10% (Faster)</option>
-      </select>
-
-      <label for="winPercent">Win % (100 = 2x, 1000 = 11x):</label>
-      <input type="number" id="winPercent" value="400" min="0">
-
-      <label for="winChance">Win Chance % (realistic: 40–70):</label>
-      <input type="number" id="winChance" value="60" min="0" max="100">
-
-      <label for="steps">Steps to Simulate:</label>
-      <input type="number" id="steps" value="100" min="1" max="200">
-
-      <button class="main-btn" onclick="runSingleSim()">Run Single Ladder</button>
-      <button class="main-btn" style="background:linear-gradient(90deg,#6b7280,#9ca3af);" onclick="runMonteCarlo()">Run 100 Random Sims</button>
-
-      <div id="capWarning" class="warning hidden"></div>
-
-      <div id="simResult" class="table-container" style="margin-top:20px;">
-        <table id="simTable" class="sim-table">
-          <thead>
-            <tr>
-              <th>Step</th>
-              <th>Total Before</th>
-              <th>Bet</th>
-              <th>Outcome</th>
-              <th>Profit</th>
-              <th>To TSLA</th>
-              <th>To Safe Cash</th>
-              <th>Active Cash After</th>
-              <th>TSLA</th>
-              <th>Safe Cash</th>
-              <th>Total Wealth</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <div id="monteResult" style="margin-top:20px; text-align:center; font-size:1.1rem;"></div>
-    </div>
-  </section>
-
-  <!-- Section 4: Conviction Bet Sizer -->
-  <section id="conviction-sizer">
-    <h1>Conviction Bet Sizer</h1>
-    <p style="text-align:center; color:#8b949e; margin-bottom:20px;">
-      Input current portfolio → pick conviction level → get bet size (5–10% cap)
-    </p>
-
-    <div style="max-width:500px; margin:0 auto; background:#161b22; padding:30px; border-radius:12px; border:1px solid #30363d;">
-      <label for="portfolio">Current Portfolio ($):</label>
-      <input type="number" id="portfolio" value="10000" min="1000" step="100">
-
-      <label for="conviction">Conviction Level (5–10):</label>
-      <select id="conviction">
-        <option value="5">5% — Low / Safe</option>
-        <option value="6">6%</option>
-        <option value="7">7% — Medium</option>
-        <option value="8">8%</option>
-        <option value="9">9% — High</option>
-        <option value="10" selected>10% — Very High / Moonshot</option>
-      </select>
-
-      <button class="main-btn" onclick="calculateBet()">Calculate Bet Size</button>
-
-      <div id="result" class="conviction-result"></div>
-    </div>
-  </section>
-
-  <!-- Section 5: Position Sizing Cheat Sheet -->
-  <section id="sizing-tool">
-    <h1>Position Sizing Cheat Sheet</h1>
-    <p style="text-align:center; color:#8b949e; margin-bottom:20px;">
-      Enter your total portfolio → see recommended bet sizes for different expiries
-    </p>
-
-    <div style="max-width:600px; margin:0 auto;">
-      <label for="portfolio-sizing">Total Portfolio ($):</label>
-      <input type="number" id="portfolio-sizing" value="10000" min="1000" step="100" oninput="updateSizing()">
-
-      <table class="sizing-table" style="margin-top:20px; width:100%;">
-        <thead>
-          <tr>
-            <th>Expiry</th>
-            <th>Risk %</th>
-            <th>$ Amount</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="sizing-safe">
-            <td>0–2 days (pure lotto)</td>
-            <td>0.5–1%</td>
-            <td id="sizing-short">$50 – $100</td>
-            <td>High theta, fast death — max 1%</td>
-          </tr>
-          <tr class="sizing-medium">
-            <td>7 days (medium speed)</td>
-            <td>1–2%</td>
-            <td id="sizing-medium">$100 – $200</td>
-            <td>Theta hurts, but room for 200–500%</td>
-          </tr>
-          <tr class="sizing-high">
-            <td>30–60 days (main lotto)</td>
-            <td>5–10%</td>
-            <td id="sizing-long">$500 – $1,000</td>
-            <td>Time + gamma = big wins. TP half at 100%</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <p style="margin-top:20px; font-size:0.9em; text-align:center;">
-        Always TP half at 100% gain — then it's free ride.<br>
-        No more than 1% on anything under 7 days.
-      </p>
-    </div>
-  </section>
+<!-- 5. Sizing -->
+<section class="card" id="sizing-tool">
+  <h1>Position Sizing Cheat Sheet</h1>
+  <p class="sub">Recommended risk per trade by expiry.</p>
+  <div class="grid"><div><label for="portfolio-sizing">Total portfolio ($)</label><input type="number" id="portfolio-sizing" value="10000" min="1" step="100"></div></div>
+  <div class="tbl" style="margin-top:14px"><table>
+    <thead><tr><th>Expiry</th><th>Risk %</th><th>$ amount</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr class="tier-high"><td>0–2 days (pure lotto)</td><td>0.5–1%</td><td id="sizing-short"></td><td style="text-align:left">High theta, fast death — max 1%</td></tr>
+      <tr class="tier-med"><td>7 days (medium speed)</td><td>1–2%</td><td id="sizing-medium"></td><td style="text-align:left">Theta hurts, but room for 200–500%</td></tr>
+      <tr class="tier-safe"><td>30–60 days (main lotto)</td><td>5–10%</td><td id="sizing-long"></td><td style="text-align:left">Time + gamma = big wins. TP half at 100%</td></tr>
+    </tbody>
+  </table></div>
+  <p class="sub" style="margin-top:12px">Always take profit on half at +100% — then it's a free ride. No more than 1% on anything under 7 days.</p>
+</section>
+<div class="note">⚠️ Educational tool only — not financial advice. Options can expire worthless; simulations are random and not predictions. All data stays in your browser (localStorage).</div>
+</main>
+<footer>MadHamster + Grok · free &amp; open on GitHub Pages</footer>
 
 <script>
-// LocalStorage for calculator inputs
-function saveSetup() {
-  const data = {
-    buyPrice: document.getElementById('buyPrice').value || '0.76',
-    numContracts: document.getElementById('numContracts').value || '30',
-    livePrice: document.getElementById('livePrice').value || ''
-  };
-  localStorage.setItem('madHamsterSetup', JSON.stringify(data));
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const num = (id, d=0) => { const v = parseFloat($(id).value); return isFinite(v) ? v : d; };
+function money(n, dec){ if(!isFinite(n)) return '—'; const a=Math.abs(n), s=n<0?'-':'';
+  if(dec===undefined) dec = a<100 ? 2 : 0;
+  return s+'$'+a.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+function compact(n){ if(!isFinite(n)) return '—'; const a=Math.abs(n), s=n<0?'-':'';
+  if(a>=1e9) return s+'$'+(a/1e9).toFixed(2)+'B'; if(a>=1e6) return s+'$'+(a/1e6).toFixed(2)+'M'; if(a>=1e4) return s+'$'+(a/1e3).toFixed(1)+'k'; return money(n,0); }
+const pct = (n,d=1) => isFinite(n) ? n.toFixed(d)+'%' : '—';
+const cls = n => n>0?'pos':n<0?'neg':'muted';
+const stat = (k,v,c='') => `<div class="stat"><div class="k">${k}</div><div class="v ${c}">${v}</div></div>`;
+const store = { get(k,d){ try{ const v=JSON.parse(localStorage.getItem('mh_'+k)); return v??d; }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem('mh_'+k, JSON.stringify(v)); }catch(e){} } };
+Chart.defaults.color = '#8a96ad'; Chart.defaults.borderColor = '#263048'; Chart.defaults.font.family = 'Inter,system-ui,sans-serif';
+const charts = {};
+function chart(id, cfg){ if(charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
+const moneyAxis = { ticks:{ callback:v=>compact(v) } };
+
+function exportTable(id, file){
+  const rows=[...$(id).querySelectorAll('tr')].map(tr=>[...tr.children].map(c=>{
+    const inp=c.querySelector('input'); let t=inp?inp.value:c.textContent; t=t.replace(/×/g,'').trim();
+    return '"'+t.replace(/"/g,'""')+'"'; }).filter(x=>x!=='""'||true).join(','));
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'}); const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=file; a.click(); URL.revokeObjectURL(a.href);
 }
 
-function loadSetup() {
-  const saved = localStorage.getItem('madHamsterSetup');
-  if (saved) {
-    const data = JSON.parse(saved);
-    document.getElementById('buyPrice').value = data.buyPrice || '0.76';
-    document.getElementById('numContracts').value = data.numContracts || '30';
-    document.getElementById('livePrice').value = data.livePrice || '';
+// persist simple inputs
+const PERSIST=['buyPrice','numContracts','livePrice','startCash','betPercent','winPercent','lossPercent','winChance','steps','tslaPct','safePct','capPct','runs','portfolio','conviction','convWin','portfolio-sizing'];
+function loadInputs(){ const s=store.get('inputs',{}); PERSIST.forEach(id=>{ if(s[id]!==undefined&&s[id]!=='') $(id).value=s[id]; }); }
+function saveInputs(){ const s={}; PERSIST.forEach(id=>s[id]=$(id).value); store.set('inputs',s); }
+
+// ---------- 1. Moonshot ladder ----------
+const DEFAULT_TIERS=[[100,50],[200,8],[400,8],[800,10],[1500,10],[3000,4],[6000,3],[8000,2],[10000,1.5],[20000,1]];
+let tiers = store.get('tiers', DEFAULT_TIERS.map(t=>[...t]));
+
+function renderTierInputs(){
+  const tb=document.querySelector('#results tbody'); tb.innerHTML='';
+  tiers.forEach((t,i)=>{ const tr=document.createElement('tr');
+    tr.innerHTML=`<td><input type="number" data-i="${i}" data-k="0" value="${t[0]}" step="any"></td><td><input type="number" data-i="${i}" data-k="1" value="${t[1]}" step="any"></td>`+'<td></td>'.repeat(7)+`<td><button class="x" title="Remove" onclick="removeTier(${i})">×</button></td>`;
+    tb.appendChild(tr); });
+  tb.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',e=>{ const i=+e.target.dataset.i,k=+e.target.dataset.k; tiers[i][k]=parseFloat(e.target.value)||0; calculate(); }));
+  tb.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{ const order=tiers.map(t=>t[0]).join(); tiers.sort((a,b)=>a[0]-b[0]); if(order!==tiers.map(t=>t[0]).join()) { renderTierInputs(); calculate(); } }));
+}
+function addTier(){ const last=tiers.length?tiers[tiers.length-1][0]:100; tiers.push([last*2,1]); renderTierInputs(); calculate(); }
+function removeTier(i){ tiers.splice(i,1); renderTierInputs(); calculate(); }
+function resetTiers(){ tiers=DEFAULT_TIERS.map(t=>[...t]); renderTierInputs(); calculate(); }
+
+function calculate(){
+  saveInputs(); store.set('tiers',tiers);
+  const buy=num('buyPrice'), contracts=Math.floor(num('numContracts'));
+  const rows=document.querySelectorAll('#results tbody tr');
+  if(!(buy>0)||!(contracts>=1)){ $('ladderStats').innerHTML='<div class="warn">Enter a buy price &gt; 0 and at least 1 contract.</div>'; return; }
+  const cpc=buy*100, totalCost=cpc*contracts;
+  let remaining=contracts, locked=0, cashOut=0, sumPct=0;
+  const labels=['Entry'], cumProfit=[-totalCost], cumCash=[0];
+  tiers.forEach((t,i)=>{
+    const [gain,sellPct]=t; sumPct+=sellPct;
+    const price=buy*(1+gain/100);
+    let sell=Math.round(contracts*sellPct/100);
+    if(sell<1 && sellPct>0) sell=1;
+    sell=Math.min(sell,remaining);
+    const cash=sell*price*100, profit=cash-sell*cpc;
+    remaining-=sell; cashOut+=cash; locked+=profit;
+    const worst=cashOut-totalCost; // P/L if remaining contracts expire worthless
+    const c=rows[i].children;
+    c[2].textContent=money(price,2); c[3].textContent=sell; c[4].textContent=remaining;
+    c[5].innerHTML=`<span class="cash">${money(cash,0)}</span>`;
+    c[6].innerHTML=`<span class="${cls(profit)}">${money(profit,0)}</span>`;
+    c[7].innerHTML=`<span class="${cls(worst)}">${money(worst,0)}</span>`;
+    c[8].innerHTML=`<span class="${cls(worst)}">${pct(worst/totalCost*100)}</span>`;
+    labels.push('+'+gain.toLocaleString()+'%'); cumProfit.push(worst); cumCash.push(cashOut);
+  });
+  const lastGain=tiers.length?tiers[tiers.length-1][0]:0;
+  const trophyVal=remaining*buy*(1+lastGain/100)*100;
+  const be=cashOut>=totalCost ? labels[cumProfit.findIndex(v=>v>=0)] : 'not reached';
+  $('ladderStats').innerHTML=stat('Total cost',money(totalCost,0),'neg')+stat('Total cash out',money(cashOut,0),'cash')+stat('Net P/L (rest → $0)',money(cashOut-totalCost,0),cls(cashOut-totalCost))+stat('Break-even at',be)+stat('Trophy contracts left',remaining)+stat(`Trophy value @ +${lastGain.toLocaleString()}%`,compact(trophyVal),'pos');
+  $('tierWarn').textContent = sumPct>100 ? `Sell % adds up to ${sumPct}% (>100%) — later targets get fewer contracts.` : '';
+  chart('profitChart',{type:'line',data:{labels,datasets:[
+    {label:'Net P/L if rest expire worthless',data:cumProfit,borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.15)',fill:true,tension:.25,pointRadius:4,
+     segment:{borderColor:ctx=>ctx.p1.parsed.y<0?'#ef4444':'#22c55e'}},
+    {label:'Cumulative cash out',data:cumCash,borderColor:'#4f8cff',borderDash:[5,4],tension:.25,pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+money(c.raw,0)}}},scales:{y:moneyAxis}}});
+  quickCashOut();
+}
+
+function quickCashOut(){
+  const buy=num('buyPrice'), contracts=Math.floor(num('numContracts')), live=num('livePrice'), out=$('cashoutResult');
+  saveInputs();
+  if(!(live>0)||!(buy>0)||!(contracts>=1)){ out.className='result muted'; out.innerHTML='Enter the live price to see how many contracts to sell to recover your cost.'; return; }
+  out.className='result';
+  const totalCost=buy*contracts*100, perContract=live*100;
+  const exact=totalCost/perContract, sell=Math.ceil(exact), pl=(live-buy)/buy*100;
+  if(sell>contracts){
+    out.innerHTML=`Position is <span class="${cls(pl)}">${pct(pl)}</span>. Selling all ${contracts} returns only <span class="cash">${money(contracts*perContract,0)}</span> of your ${money(totalCost,0)} cost — cost can't be fully recovered yet (need ≥ ${money(buy,2)}).`;
+  } else {
+    out.innerHTML=`Position is <span class="${cls(pl)}">${pct(pl)}</span>. Sell <b>${sell}</b> contract${sell>1?'s':''} (exact ${exact.toFixed(2)}) → <span class="cash">${money(sell*perContract,0)}</span> back, covering your ${money(totalCost,0)} cost. <b class="pos">${contracts-sell}</b> contract${contracts-sell===1?'':'s'} ride free (worth ${money((contracts-sell)*perContract,0)} now).`;
   }
 }
 
-// Load on start
-window.addEventListener('load', () => {
-  loadSetup();
-  buildReferenceTable();
-  updateSizing(); // init sizing table
+// ---------- 2. Reference table ----------
+const REF_DEFAULT={prices:[0.10,0.20,0.40,0.60,0.80,1,2,4,6,8,10,20,40,60,80,90,100,150,200],contracts:[1,5,10,20,50,100,200,500,1000,2000,4000,8000,16000]};
+let ref=store.get('ref',JSON.parse(JSON.stringify(REF_DEFAULT)));
+function cashColor(v){ return v<1e3?'#7cb7ff':v<1e4?'#22c55e':v<1e5?'#f59e0b':v<1e6?'#a78bfa':'#facc15'; }
+function renderRef(){
+  store.set('ref',ref);
+  const t=$('referenceTable');
+  let h='<tr><th>Contracts ↓ / Price →</th>'+ref.prices.map((p,j)=>`<th><input type="number" step="any" data-col="${j}" value="${p}"><button class="x" title="Remove column" onclick="refDelCol(${j})">×</button></th>`).join('')+'<th></th></tr>';
+  t.tHead.innerHTML=h;
+  t.tBodies[0].innerHTML=ref.contracts.map((c,i)=>`<tr><td><input type="number" step="1" data-row="${i}" value="${c}"></td>`+ref.prices.map(p=>{const v=c*p*100;return `<td style="color:${cashColor(v)}">${money(v,v<100?2:0)}</td>`;}).join('')+`<td><button class="x" title="Remove row" onclick="refDelRow(${i})">×</button></td></tr>`).join('');
+  t.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',e=>{
+    const v=parseFloat(e.target.value); if(!isFinite(v)||v<0){ renderRef(); return; }
+    if(e.target.dataset.col!==undefined) ref.prices[+e.target.dataset.col]=v; else ref.contracts[+e.target.dataset.row]=Math.round(v);
+    renderRef(); }));
+}
+function refAddRow(){ ref.contracts.push((ref.contracts.at(-1)||1)*2); renderRef(); }
+function refAddCol(){ ref.prices.push((ref.prices.at(-1)||1)*2); renderRef(); }
+function refDelRow(i){ ref.contracts.splice(i,1); renderRef(); }
+function refDelCol(j){ ref.prices.splice(j,1); renderRef(); }
+function refReset(){ ref=JSON.parse(JSON.stringify(REF_DEFAULT)); renderRef(); }
+
+// ---------- 3. Simulator ----------
+function simParams(){ saveInputs(); return { start:num('startCash',10000), bet:num('betPercent',10)/100, win:num('winPercent',400)/100, loss:Math.min(num('lossPercent',100),100)/100,
+  p:Math.min(Math.max(num('winChance',50),0),100)/100, steps:Math.max(1,Math.min(1000,Math.floor(num('steps',100)))), tsla:num('tslaPct',10)/100, safe:num('safePct',10)/100, cap:num('capPct',20)/100, runs:Math.max(10,Math.min(5000,Math.floor(num('runs',100)))) }; }
+function simulate(P, log){
+  let active=P.start, tsla=0, safe=0, peak=P.start, mdd=0, bustStep=null; const path=[P.start];
+  for(let i=1;i<=P.steps;i++){
+    const total=active+tsla+safe; let bet=Math.min(total*P.bet, active*P.cap);
+    if(active<1){ bustStep=bustStep??i; path.push(total); continue; }
+    const w=Math.random()<P.p; let pl,tT=0,tS=0;
+    if(w){ pl=bet*P.win; tT=pl*P.tsla; tS=pl*P.safe; tsla+=tT; safe+=tS; active+=pl-tT-tS; }
+    else { pl=-bet*P.loss; active+=pl; }
+    const now=active+tsla+safe; path.push(now); peak=Math.max(peak,now); mdd=Math.max(mdd,(peak-now)/peak);
+    if(log) log.push([i,total,bet,w,pl,tT,tS,active,tsla,safe,now]);
+  }
+  return {path,final:path.at(-1),active,tsla,safe,mdd,busted:active<1};
+}
+function evNote(P){
+  const ev=P.p*P.win-(1-P.p)*P.loss; const g=P.p*Math.log(1+P.bet*P.win)+(1-P.p)*Math.log(Math.max(1e-9,1-P.bet*P.loss));
+  $('evNote').innerHTML=`Edge per $1 bet: <b class="${cls(ev)}">${ev>=0?'+':''}${ev.toFixed(2)}</b> · approx. growth per step: <b class="${cls(g)}">${pct(g*100,2)}</b>. Real win rates on far-OTM lotto options are often well under 30% — try lowering win chance to stress-test.`;
+}
+function runSingleSim(){
+  const P=simParams(); evNote(P); const log=[]; const r=simulate(P,log);
+  $('simTable').tBodies[0].innerHTML=log.map(l=>`<tr class="${l[3]?'win':'loss'}"><td>${l[0]}</td><td>${money(l[1],0)}</td><td>${money(l[2],0)}</td><td>${l[3]?'WIN':'LOSS'}</td><td class="${cls(l[4])}">${money(l[4],0)}</td><td>${l[3]?money(l[5],0):'—'}</td><td>${l[3]?money(l[6],0):'—'}</td><td>${money(l[7],0)}</td><td>${money(l[8],0)}</td><td>${money(l[9],0)}</td><td><b>${money(l[10],0)}</b></td></tr>`).join('');
+  const wins=log.filter(l=>l[3]).length;
+  $('singleStats').innerHTML=stat('Final wealth',compact(r.final),cls(r.final-P.start))+stat('Return',pct((r.final/P.start-1)*100),cls(r.final-P.start))+stat('Wins / losses',`${wins} / ${log.length-wins}`)+stat('Max drawdown',pct(r.mdd*100),'neg')+stat('TSLA + safe parked',compact(r.tsla+r.safe),'cash');
+  chart('simChart',{type:'line',data:{labels:r.path.map((_,i)=>i),datasets:[{label:'Single run — total wealth',data:r.path,borderColor:'#4f8cff',backgroundColor:'rgba(79,140,255,.12)',fill:true,pointRadius:0,tension:.15}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{tooltip:{callbacks:{title:c=>'Step '+c[0].label,label:c=>money(c.raw,0)}}},scales:{y:{type:logScale(r.path)?'logarithmic':'linear',...moneyAxis},x:{title:{display:true,text:'Step'}}}}});
+}
+const logScale=a=>Math.max(...a)/Math.max(1,Math.min(...a.filter(v=>v>0)))>1000;
+const q=(s,p)=>{ const i=(s.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i); return s[lo]+(s[hi]-s[lo])*(i-lo); };
+function runMonteCarlo(){
+  const P=simParams(); evNote(P); const res=[]; for(let r=0;r<P.runs;r++) res.push(simulate(P));
+  const finals=res.map(r=>r.final).sort((a,b)=>a-b), mdds=res.map(r=>r.mdd).sort((a,b)=>a-b);
+  const busts=res.filter(r=>r.busted).length, losers=res.filter(r=>r.final<P.start).length;
+  const mean=finals.reduce((a,b)=>a+b,0)/finals.length;
+  $('mcStats').innerHTML=stat('Median final',compact(q(finals,.5)),cls(q(finals,.5)-P.start))+stat('10th pct (bad luck)',compact(q(finals,.1)),cls(q(finals,.1)-P.start))+stat('90th pct (good luck)',compact(q(finals,.9)),cls(q(finals,.9)-P.start))+stat('Mean final',compact(mean))+stat('Runs ending below start',pct(losers/P.runs*100),losers?'neg':'pos')+stat('Bust rate (active < $1)',pct(busts/P.runs*100),busts?'neg':'pos')+stat('Median max drawdown',pct(q(mdds,.5)*100),'neg')+stat('Worst max drawdown',pct(mdds.at(-1)*100),'neg');
+  const bands=[.1,.25,.5,.75,.9].map(p=>[]);
+  for(let s=0;s<=P.steps;s++){ const col=res.map(r=>r.path[s]).sort((a,b)=>a-b); [.1,.25,.5,.75,.9].forEach((p,k)=>bands[k].push(q(col,p))); }
+  const L=bands[0].map((_,i)=>i);
+  chart('mcChart',{type:'line',data:{labels:L,datasets:[
+    {label:'90th pct',data:bands[4],borderColor:'rgba(34,197,94,.6)',pointRadius:0,fill:false},
+    {label:'75th pct',data:bands[3],borderColor:'rgba(34,197,94,.35)',backgroundColor:'rgba(79,140,255,.12)',pointRadius:0,fill:'+2'},
+    {label:'Median',data:bands[2],borderColor:'#4f8cff',borderWidth:2.5,pointRadius:0},
+    {label:'25th pct',data:bands[1],borderColor:'rgba(239,68,68,.35)',pointRadius:0},
+    {label:'10th pct',data:bands[0],borderColor:'rgba(239,68,68,.6)',pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{title:{display:true,text:`Wealth percentiles over ${P.runs} runs`},tooltip:{callbacks:{label:c=>c.dataset.label+': '+compact(c.raw)}}},scales:{y:{type:logScale(bands[4].concat(bands[0]))?'logarithmic':'linear',...moneyAxis},x:{title:{display:true,text:'Step'}}}}});
+  // histogram on log buckets
+  const lo=Math.max(1,finals[0]), hi=Math.max(lo*1.01,finals.at(-1)), B=16, edges=[];
+  for(let i=0;i<=B;i++) edges.push(lo*Math.pow(hi/lo,i/B));
+  const counts=new Array(B).fill(0); finals.forEach(f=>{ let k=Math.min(B-1,Math.max(0,Math.floor(Math.log(Math.max(f,lo)/lo)/Math.log(hi/lo)*B))); counts[k]++; });
+  chart('histChart',{type:'bar',data:{labels:counts.map((_,i)=>compact(edges[i])),datasets:[{label:'Runs',data:counts,backgroundColor:counts.map((_,i)=>edges[i+1]<=P.start?'rgba(239,68,68,.7)':edges[i]>=P.start?'rgba(34,197,94,.7)':'rgba(245,158,11,.7)')}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'Distribution of final wealth (red = below start)'},tooltip:{callbacks:{title:c=>`${compact(edges[c[0].dataIndex])} – ${compact(edges[c[0].dataIndex+1])}`}}},scales:{x:{ticks:{maxRotation:45,minRotation:45}}}}});
+}
+
+// ---------- 4. Conviction ----------
+function calculateBet(){
+  saveInputs(); const pf=num('portfolio'), conv=parseInt($('conviction').value), w=num('convWin',400);
+  if(!(pf>0)){ $('result').innerHTML='<div class="warn">Enter a valid portfolio amount.</div>'; return; }
+  const bet=Math.min(pf*conv/100, pf*0.10);
+  $('result').innerHTML=stat('Bet size',money(bet,0),'cash')+stat('% of portfolio',pct(bet/pf*100))+stat('Max loss if wrong',money(-bet,0),'neg')+stat(`Profit if +${w}%`,money(bet*w/100,0),'pos')+stat('New total if win',money(pf+bet*w/100,0),'pos')+stat('New total if lose',money(pf-bet,0),'neg');
+}
+
+// ---------- 5. Sizing ----------
+function updateSizing(){ saveInputs(); const t=num('portfolio-sizing',10000); const r=(a,b)=>money(t*a,0)+' – '+money(t*b,0);
+  $('sizing-short').textContent=r(.005,.01); $('sizing-medium').textContent=r(.01,.02); $('sizing-long').textContent=r(.05,.10); }
+
+// ---------- wiring ----------
+window.addEventListener('DOMContentLoaded',()=>{
+  loadInputs(); renderTierInputs(); calculate(); renderRef(); runSingleSim(); runMonteCarlo(); calculateBet(); updateSizing();
+  ['buyPrice','numContracts'].forEach(id=>$(id).addEventListener('input',calculate));
+  $('livePrice').addEventListener('input',quickCashOut);
+  ['portfolio','conviction','convWin'].forEach(id=>$(id).addEventListener('input',calculateBet));
+  $('portfolio-sizing').addEventListener('input',updateSizing);
+  ['startCash','betPercent','winPercent','lossPercent','winChance','steps','tslaPct','safePct','capPct','runs'].forEach(id=>$(id).addEventListener('change',()=>{runSingleSim();runMonteCarlo();}));
+  const links=[...document.querySelectorAll('#nav a')];
+  const obs=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id)); }),{rootMargin:'-40% 0px -55% 0px'});
+  document.querySelectorAll('section.card').forEach(s=>obs.observe(s));
 });
-
-// Calculation Functions (your ladder)
-function formatNumber(num) {
-  if (isNaN(num)) return '0';
-  if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
-  if (num >= 1e3) return (num / 1e3).toFixed(0) + 'k';
-  return num.toFixed(0);
-}
-
-function getValueClass(value) {
-  if (value > 0) return 'profit';
-  if (value < 0) return 'risk';
-  return 'neutral';
-}
-
-let chartInstance = null;
-
-function calculate() {
-  const buy = parseFloat(document.getElementById('buyPrice').value);
-  const contracts = parseInt(document.getElementById('numContracts').value);
-
-  if (isNaN(buy) || buy <= 0 || isNaN(contracts) || contracts < 1) {
-    alert("Please enter valid buy price and number of contracts.");
-    return;
-  }
-
-  saveSetup();
-
-  const costPerContract = buy * 100;
-  const totalCost = contracts * costPerContract;
-  document.getElementById('costDisplay').innerHTML =
-    `Total Cost: <span class="risk">$${formatNumber(totalCost)}</span>`;
-
-  const tiers = [
-    { gain: 100, pctOrig: 50 },
-    { gain: 200, pctOrig: 8 },
-    { gain: 400, pctOrig: 8 },
-    { gain: 800, pctOrig: 10 },
-    { gain: 1500, pctOrig: 10 },
-    { gain: 3000, pctOrig: 4 },
-    { gain: 6000, pctOrig: 3 },
-    { gain: 8000, pctOrig: 2 },
-    { gain: 10000, pctOrig: 1.5 },
-    { gain: 20000, pctOrig: 1 }
-  ];
-
-  let remaining = contracts;
-  let totalProfitLocked = 0;
-  let cumulativeCashOut = 0;
-  const tableBody = document.querySelector('#results tbody');
-  tableBody.innerHTML = '';
-
-  const cumProfits = [0];
-  const gainLabels = ['0%'];
-
-  tiers.forEach(tier => {
-    const targetPrice = buy * (1 + tier.gain / 100);
-    const sellFraction = tier.pctOrig / 100;
-    let calcSell = contracts * sellFraction;
-    let toSell = Math.floor(calcSell);
-    if (toSell < 1 && remaining > 0) toSell = 1;
-    toSell = Math.min(toSell, remaining);
-
-    const cashThisSell = toSell * targetPrice * 100;
-    const profitThis = cashThisSell - (toSell * costPerContract);
-    totalProfitLocked += profitThis;
-    cumulativeCashOut += cashThisSell;
-
-    const remainingAfter = remaining - toSell;
-    const maxPotentialLossGain = totalProfitLocked - (remainingAfter * costPerContract);
-    remaining = remainingAfter;
-
-    const cumProfitPct = totalCost > 0 ? (totalProfitLocked / totalCost * 100).toFixed(1) : 0;
-
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>+${tier.gain}%</td>
-      <td>$${targetPrice.toFixed(2)}</td>
-      <td>${tier.pctOrig}% orig</td>
-      <td>${toSell}</td>
-      <td>${remainingAfter}</td>
-      <td class="cash">$${formatNumber(cashThisSell)}</td>
-      <td class="profit">$${formatNumber(profitThis)}</td>
-      <td class="${getValueClass(maxPotentialLossGain)}">$${formatNumber(Math.abs(maxPotentialLossGain))}${maxPotentialLossGain >= 0 ? '' : '-'}</td>
-      <td class="profit">${cumProfitPct}%</td>
-    `;
-    tableBody.appendChild(row);
-
-    cumProfits.push(totalProfitLocked);
-    gainLabels.push(`+${tier.gain}%`);
-  });
-
-  document.getElementById('totalProfit').innerHTML = 
-    `Total Profit Locked: <span class="profit">$${formatNumber(totalProfitLocked)}</span> (${(totalProfitLocked / totalCost * 100).toFixed(1)}% of cost)`;
-
-  document.getElementById('totalCashOut').innerHTML = 
-    `Total Cash Out: <span class="cash">$${formatNumber(cumulativeCashOut)}</span>`;
-
-  document.getElementById('riskReward').innerHTML = 
-    `Trophy contracts left: ${remaining} — could add ~$${formatNumber(remaining * (buy * 201 - buy) * 100)} at +20,000%`;
-
-  drawInteractiveChart(gainLabels, cumProfits);
-}
-
-function drawInteractiveChart(labels, data) {
-  const ctx = document.getElementById('profitChart').getContext('2d');
-
-  if (chartInstance) chartInstance.destroy();
-
-  const maxProfit = Math.max(...data);
-  const yMax = Math.max(maxProfit * 1.25, 100000);
-
-  chartInstance = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Cumulative Profit ($)',
-        data: data,
-        borderColor: '#56d364',
-        backgroundColor: 'rgba(86, 212, 100, 0.2)',
-        fill: true,
-        tension: 0.3,
-        pointBackgroundColor: '#56d364',
-        pointRadius: 5,
-        pointHoverRadius: 8
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false,
-      },
-      plugins: {
-        tooltip: {
-          backgroundColor: '#21262d',
-          titleColor: '#58a6ff',
-          bodyColor: '#c9d1d9',
-          borderColor: '#30363d',
-          borderWidth: 1,
-          callbacks: {
-            label: function(context) {
-              return `$${formatNumber(context.raw)} at ${context.label}`;
-            }
-          }
-        },
-        legend: {
-          labels: { color: '#c9d1d9' }
-        }
-      },
-      scales: {
-        x: {
-          grid: { color: '#30363d' },
-          ticks: {
-            color: '#8b949e',
-            maxRotation: 45,
-            minRotation: 45,
-            autoSkip: true,
-            maxTicksLimit: 10
-          }
-        },
-        y: {
-          grid: { color: '#30363d' },
-          ticks: {
-            color: '#8b949e',
-            maxTicksLimit: 7,
-            callback: function(value) { return '$' + formatNumber(value); }
-          },
-          min: 0,
-          suggestedMin: 0,
-          suggestedMax: yMax,
-          grace: '15%',
-          padding: { left: 80 }
-        }
-      }
-    }
-  });
-}
-
-function calculateQuickCashOut() {
-  const buy = parseFloat(document.getElementById('buyPrice').value);
-  const contracts = parseInt(document.getElementById('numContracts').value);
-  const live = parseFloat(document.getElementById('livePrice').value);
-  const resultDiv = document.getElementById('cashoutResult');
-
-  resultDiv.innerHTML = '';
-
-  if (isNaN(buy) || isNaN(contracts) || isNaN(live) || buy <= 0 || contracts < 1 || live <= 0) {
-    resultDiv.innerHTML = '<span class="warn">Please fill buy price, contracts, and a valid live price > 0.</span>';
-    return;
-  }
-
-  const totalCost = buy * contracts * 100;
-  if (live <= buy) {
-    resultDiv.innerHTML = '<span class="warn">Live price ≤ buy price — no recovery possible yet.</span>';
-    return;
-  }
-
-  const gainPerContract = (live - buy) * 100;
-  const exactContracts = totalCost / gainPerContract;
-  const rounded = Math.round(exactContracts * 10) / 10;
-
-  let cashBack = Math.round(rounded * gainPerContract);
-  let msg = `Sell <strong>${rounded}</strong> contracts → get ≈ <span class="cash">$${formatNumber(cashBack)}</span> cash<br>`;
-  msg += `(exact: ${exactContracts.toFixed(3)} contracts)<br><br>`;
-  msg += `Recovers ≈ your total cost of $${formatNumber(totalCost)}<br>`;
-  msg += `Leaves <strong>${contracts - Math.floor(rounded)}</strong>–<strong>${contracts - Math.ceil(rounded) + 1}</strong> contracts riding free.`;
-
-  if (rounded > contracts) {
-    const maxCash = Math.round(contracts * gainPerContract);
-    msg += '<br><br><span class="warn">Not enough contracts — sell all for only $' + formatNumber(maxCash) + ' (partial recovery)</span>';
-  }
-
-  resultDiv.innerHTML = msg;
-}
-
-// Inline Editable Reference Table
-function buildReferenceTable() {
-  const headerRow = document.getElementById('referenceHeader');
-  headerRow.innerHTML = '<th contenteditable="true" data-type="header" class="editable-cell">Contracts</th>';
-
-  const defaultPrices = [0.10, 0.20, 0.40, 0.60, 0.80, 1.00, 2.00, 4.00, 6.00, 8.00, 10.00, 20.00, 40.00, 60.00, 80.00, 90.00, 100.00, 150.00, 200.00];
-  defaultPrices.forEach(price => {
-    const th = document.createElement('th');
-    th.contentEditable = true;
-    th.className = 'editable-cell';
-    th.dataset.type = 'price';
-    th.textContent = '$' + price.toFixed(2);
-    headerRow.appendChild(th);
-  });
-
-  const body = document.getElementById('referenceBody');
-  body.innerHTML = '';
-
-  const defaultContracts = [1, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 4000, 8000, 16000];
-  defaultContracts.forEach(contracts => addRow(contracts));
-
-  document.querySelectorAll('.editable-cell').forEach(cell => {
-    cell.addEventListener('keydown', handleCellEdit);
-    cell.addEventListener('blur', handleCellBlur);
-  });
-}
-
-function addRow(contracts) {
-  const body = document.getElementById('referenceBody');
-  const row = document.createElement('tr');
-
-  const tdContracts = document.createElement('td');
-  tdContracts.contentEditable = true;
-  tdContracts.className = 'editable-cell';
-  tdContracts.dataset.type = 'contract';
-  tdContracts.textContent = contracts;
-  row.appendChild(tdContracts);
-
-  const prices = getCurrentPrices();
-  prices.forEach(price => {
-    const cash = contracts * price * 100;
-    const td = document.createElement('td');
-    td.textContent = '$' + formatNumber(cash);
-    if (cash < 1000) td.className = 'cash-1';
-    else if (cash < 10000) td.className = 'cash-2';
-    else if (cash < 100000) td.className = 'cash-3';
-    else if (cash < 1000000) td.className = 'cash-4';
-    else td.className = 'cash-5';
-    row.appendChild(td);
-  });
-
-  body.appendChild(row);
-}
-
-function getCurrentPrices() {
-  const headerRow = document.getElementById('referenceHeader');
-  const prices = [];
-  headerRow.querySelectorAll('th:not(:first-child)').forEach(th => {
-    const text = th.textContent.replace('$', '').trim();
-    const price = parseFloat(text);
-    if (!isNaN(price)) prices.push(price);
-  });
-  return prices;
-}
-
-function recalculateTable() {
-  const contractsList = getCurrentContracts();
-  const pricesList = getCurrentPrices();
-
-  const body = document.getElementById('referenceBody');
-  body.innerHTML = '';
-
-  contractsList.forEach(contracts => addRow(contracts));
-
-  document.querySelectorAll('.editable-cell').forEach(cell => {
-    cell.addEventListener('keydown', handleCellEdit);
-    cell.addEventListener('blur', handleCellBlur);
-  });
-}
-
-function handleCellEdit(e) {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    e.target.blur();
-  }
-}
-
-function handleCellBlur(e) {
-  const cell = e.target;
-  const type = cell.dataset.type;
-  let value = cell.textContent.trim().replace(/[^0-9.]/g, '');
-
-  if (value === '') value = '0';
-
-  if (type === 'contract') {
-    cell.textContent = parseInt(value);
-  } else if (type === 'price') {
-    cell.textContent = '$' + parseFloat(value).toFixed(2);
-  }
-
-  recalculateTable();
-}
-
-// $1 Million 10% Bet Ladder Simulator
-function runSingleSim() {
-  const start = parseFloat(document.getElementById('startCash').value);
-  const betPct = parseFloat(document.getElementById('betPercent').value);
-  const winPct = parseFloat(document.getElementById('winPercent').value);
-  const winChance = parseFloat(document.getElementById('winChance').value) / 100;
-  const steps = parseInt(document.getElementById('steps').value);
-
-  let activeCash = start;
-  let tsla = 0;
-  let safeCash = 0;
-  const tableBody = document.querySelector('#simTable tbody');
-  tableBody.innerHTML = '';
-  document.getElementById('capWarning').classList.add('hidden');
-
-  for (let i = 1; i <= steps; i++) {
-    const totalPortfolio = activeCash + tsla + safeCash;
-    let bet = totalPortfolio * betPct;
-    const maxActiveBet = activeCash * 0.20;
-
-    if (bet > maxActiveBet) {
-      bet = maxActiveBet;
-      document.getElementById('capWarning').classList.remove('hidden');
-      document.getElementById('capWarning').textContent = `Bet capped at $${formatNumber(bet)} (20% of active cash) — safe mode on`;
-    }
-
-    const isWin = Math.random() < winChance;
-    let profit = 0;
-
-    if (isWin) {
-      profit = bet * (winPct / 100);
-      const toTsla = profit * 0.1;
-      const toSafe = profit * 0.1;
-      tsla += toTsla;
-      safeCash += toSafe;
-      activeCash += (profit - toTsla - toSafe);
-    } else {
-      activeCash -= bet;
-    }
-
-    const row = document.createElement('tr');
-    row.className = isWin ? 'sim-row win' : 'sim-row loss';
-    row.innerHTML = `
-      <td>${i}</td>
-      <td>$${formatNumber(totalPortfolio)}</td>
-      <td>$${formatNumber(bet)}</td>
-      <td>${isWin ? 'WIN' : 'LOSS'}</td>
-      <td>${isWin ? '$' + formatNumber(profit) : '-'}</td>
-      <td>${isWin ? '$' + formatNumber(profit * 0.1) : '-'}</td>
-      <td>${isWin ? '$' + formatNumber(profit * 0.1) : '-'}</td>
-      <td>$${formatNumber(activeCash)}</td>
-      <td>$${formatNumber(tsla)}</td>
-      <td>$${formatNumber(safeCash)}</td>
-      <td><strong>$${formatNumber(activeCash + tsla + safeCash)}</strong></td>
-    `;
-    tableBody.appendChild(row);
-
-    if (activeCash <= 0) {
-      const bustRow = document.createElement('tr');
-      bustRow.innerHTML = `<td colspan="11" class="risk">BUSTED! Active cash = $0 after ${i} steps. Parked: $${formatNumber(tsla + safeCash)}</td>`;
-      tableBody.appendChild(bustRow);
-      break;
-    }
-  }
-}
-
-function runMonteCarlo() {
-  const runs = 100;
-  let totalFinalActive = 0;
-  let totalFinalTsla = 0;
-  let totalFinalSafe = 0;
-  let busts = 0;
-
-  for (let r = 0; r < runs; r++) {
-    let activeCash = parseFloat(document.getElementById('startCash').value);
-    let tsla = 0;
-    let safeCash = 0;
-    const betPct = parseFloat(document.getElementById('betPercent').value);
-    const winPct = parseFloat(document.getElementById('winPercent').value);
-    const winChance = parseFloat(document.getElementById('winChance').value) / 100;
-
-    for (let s = 1; s <= 20; s++) {
-      if (activeCash <= 0) { busts++; break; }
-      const totalPortfolio = activeCash + tsla + safeCash;
-      let bet = totalPortfolio * betPct;
-      const maxActiveBet = activeCash * 0.20;
-      if (bet > maxActiveBet) bet = maxActiveBet;
-
-      if (Math.random() < winChance) {
-        const profit = bet * (winPct / 100);
-        tsla += profit * 0.1;
-        safeCash += profit * 0.1;
-        activeCash += profit * 0.8;
-      } else {
-        activeCash -= bet;
-      }
-    }
-    totalFinalActive += activeCash;
-    totalFinalTsla += tsla;
-    totalFinalSafe += safeCash;
-  }
-
-  const avgActive = totalFinalActive / runs;
-  const avgTsla = totalFinalTsla / runs;
-  const avgSafe = totalFinalSafe / runs;
-  const avgTotal = avgActive + avgTsla + avgSafe;
-  const bustRate = (busts / runs * 100).toFixed(1);
-
-  document.getElementById('monteResult').innerHTML = `
-    <span class="profit">After 100 random runs:</span><br>
-    Avg Active Cash: $${formatNumber(avgActive)}<br>
-    Avg TSLA: $${formatNumber(avgTsla)}<br>
-    Avg Safe Cash: $${formatNumber(avgSafe)}<br>
-    Avg Total: <strong>$${formatNumber(avgTotal)}</strong><br>
-    Bust Rate: <span class="risk">${bustRate}%</span> (active cash = $0)
-  `;
-}
-
-function formatNumber(num) {
-  if (isNaN(num) || num <= 0) return '0';
-  if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
-  if (num >= 1e3) return (num / 1e3).toFixed(0) + 'k';
-  return num.toFixed(0);
-}
-
-// Conviction Bet Sizer
-function calculateBet() {
-  const portfolio = parseFloat(document.getElementById('portfolio').value);
-  const conviction = parseInt(document.getElementById('conviction').value);
-
-  if (isNaN(portfolio) || portfolio <= 0) {
-    document.getElementById('result').innerHTML = '<span style="color:#f85149;">Please enter a valid portfolio amount.</span>';
-    return;
-  }
-
-  const betPercent = conviction / 100;
-  const betAmount = portfolio * betPercent;
-
-  // Hard cap at 10%
-  const cappedBet = Math.min(betAmount, portfolio * 0.10);
-
-  const message = `
-    <strong>Portfolio:</strong> $${portfolio.toLocaleString()}<br>
-    <strong>Conviction:</strong> ${conviction}/10 → ${betPercent * 100}%<br>
-    <strong>Suggested Bet:</strong> <span class="highlight">$${betAmount.toLocaleString(undefined, {minimumFractionDigits: 0})}</span><br>
-    <strong>Capped at 10% rule:</strong> <span class="highlight">$${cappedBet.toLocaleString(undefined, {minimumFractionDigits: 0})}</span><br><br>
-    <strong>Max loss if wrong:</strong> $${cappedBet.toLocaleString(undefined, {minimumFractionDigits: 0})} (${(cappedBet / portfolio * 100).toFixed(1)}%)<br>
-    <strong>If 400% win:</strong> +$${ (cappedBet * 4).toLocaleString(undefined, {minimumFractionDigits: 0}) } profit → new total ~$${ (portfolio + cappedBet * 4).toLocaleString() }
-  `;
-
-  if (betAmount > cappedBet) {
-    message += '<div class="warning">Bet capped at 10% — stay disciplined.</div>';
-  }
-
-  document.getElementById('result').innerHTML = message;
-}
-
-// Position Sizing Cheat Sheet (live update)
-function updateSizing() {
-  const total = parseFloat(document.getElementById('portfolio-sizing').value) || 10000;
-
-  document.getElementById('sizing-short').textContent = '$' + (total * 0.005).toFixed(0) + ' – $' + (total * 0.01).toFixed(0);
-  document.getElementById('sizing-medium').textContent = '$' + (total * 0.01).toFixed(0) + ' – $' + (total * 0.02).toFixed(0);
-  document.getElementById('sizing-long').textContent = '$' + (total * 0.05).toFixed(0) + ' – $' + (total * 0.10).toFixed(0);
-}
 </script>
-
 </body>
 </html>
