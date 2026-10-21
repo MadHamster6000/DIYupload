@@ -50,9 +50,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
 #lightbox img{max-width:96vw;max-height:94vh}
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--accent);padding:10px 16px;border-radius:8px;display:none;z-index:120}
 @media(max-width:760px){.entry{grid-template-columns:1fr}}
+.entry.draft{border:2px solid var(--amber)}.entry.dirty{border:2px solid var(--accent)}.draftTag{color:var(--amber);font-weight:700;font-size:.8rem}
+#status{margin-top:10px;font-size:.88rem;padding:8px 12px;border-radius:8px;background:var(--panel2);border:1px solid var(--line)}
+#status.err{border-color:var(--red);color:#fca5a5}#status.ok{border-color:var(--green);color:#86efac}
+.lockbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}.lockbar input{flex:1;min-width:220px}
+body.locked .edit-only{display:none!important}body:not(.locked) .ro-only{display:none!important}
+.entry input:disabled,.entry select:disabled,.entry textarea:disabled{opacity:1;color:var(--text);background:transparent;border-color:transparent}
+.busy{opacity:.6;pointer-events:none}
 </style>
+
 </head>
-<body>
+<body class="locked">
 <header class="top"><div class="top-inner">
   <div class="brand">🐹 MadHamster <span>Trade Journal</span></div>
   <a href="index.html">← Back to Toolkit</a>
@@ -60,17 +68,28 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
 <main>
 <section class="card">
   <h1>📸 Screenshot Trade Journal</h1>
-  <p class="sub">Moves are fast — capture the chart, then review your exit. Each screenshot becomes a draft stamped with the date &amp; time (ET) — click <b>Save entry</b> to keep it.</p>
-  <div class="drop" id="drop">
-    <div><b>Paste a screenshot anywhere (Ctrl+V / ⌘+V)</b>, drag &amp; drop images here, or upload.</div>
-    <div class="btns">
-      <label class="btn primary">Upload image<input type="file" id="file" accept="image/*" multiple hidden></label>
-      <button onclick="addEntry(null)">+ Entry without image</button>
-      <button onclick="exportData()">Export backup (JSON)</button>
-      <label class="btn">Import backup<input type="file" id="importFile" accept="application/json,.json" hidden></label>
-    </div>
+  <p class="sub">Moves are fast — capture the chart, then review your exit. Entries are stored in the GitHub repo, so every device sees the same journal.</p>
+  <div class="note">🌐 <b>Public:</b> this journal is saved in the public GitHub repo <code>MadHamster6000/DIYupload</code>. Anyone can view the screenshots and notes. Don't capture account numbers, balances or personal info. (GitHub Pages on a free plan needs a public repo, so making it private isn't an option here.)</div>
+
+  <div class="ro-only lockbar">
+    <span class="muted">🔒 Read-only.</span>
+    <input type="password" id="tokenInput" placeholder="Paste your GitHub token to unlock editing on this device" autocomplete="off">
+    <button class="primary" id="unlockBtn">Unlock editing</button>
   </div>
-  <div class="note">🔒 Your journal lives <b>only in this browser</b> (IndexedDB) — nothing is uploaded anywhere. Clearing site data or switching browsers/devices loses it, so use <b>Export</b> regularly and <b>Import</b> to move it.</div>
+  <div class="edit-only">
+    <div class="drop" id="drop" style="margin-top:12px">
+      <div><b>Paste a screenshot anywhere (Ctrl+V / ⌘+V)</b>, drag &amp; drop images here, or upload. Each one becomes a draft stamped with the date &amp; time (ET) — click <b>Save entry</b> to publish it.</div>
+      <div class="btns">
+        <label class="btn primary">Upload image<input type="file" id="file" accept="image/*" multiple hidden></label>
+        <button id="noImgBtn">+ Entry without image</button>
+        <label class="btn">Import backup<input type="file" id="importFile" accept="application/json,.json" hidden></label>
+        <button id="lockBtn" class="danger">Lock / forget token</button>
+      </div>
+    </div>
+    <p class="sub" style="margin-top:8px">🔑 Your token is kept only in this browser's localStorage. It's never committed or sent anywhere except api.github.com.</p>
+  </div>
+  <div class="btns" style="justify-content:flex-start"><button id="exportBtn">Export backup (JSON)</button><button id="refreshBtn">↻ Refresh</button></div>
+  <div id="status">Loading…</div>
 </section>
 
 <section class="card">
@@ -84,58 +103,118 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
 </section>
 <div class="note">⚠️ Educational tool only — not financial advice.</div>
 </main>
-<div id="lightbox" onclick="this.style.display='none'"><img alt=""></div>
+<div id="lightbox"><img alt=""></div>
 <div id="toast"></div>
 
 <script>
+const OWNER='MadHamster6000', REPO='DIYupload', BRANCH='Madhamster-Stock';
+const API=`https://api.github.com/repos/${OWNER}/${REPO}`, RAW=`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/`;
+const ENTRIES='journal/entries.json', imgPath=id=>`journal/images/${id}.jpg`;
 const CHECKS=['Followed exit plan','Took profit at +100%','Hit stop','Exited too early','Exited too late','A+ setup'];
-const TZ='America/New_York';
+const TZ='America/New_York', TOKEN_KEY='mh_journal_token';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let db, entries=[], urls={};
-function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2200); }
+let entries=[], localImg={}, token=localStorage.getItem(TOKEN_KEY)||'', imgBust=Date.now();
+function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2600); }
+function status(m,kind=''){ const s=$('status'); s.textContent=m; s.className=kind; }
 
-// ---- IndexedDB ----
-function openDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open('mh_journal',1);
-  r.onupgradeneeded=()=>r.result.createObjectStore('entries',{keyPath:'id'}); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
-const tx=(mode,fn)=>new Promise((res,rej)=>{ const t=db.transaction('entries',mode); const s=t.objectStore('entries'); const out=fn(s); t.oncomplete=()=>res(out&&out.result); t.onerror=()=>rej(t.error); });
-const dbAll=()=>tx('readonly',s=>s.getAll());
-const dbPut=e=>tx('readwrite',s=>s.put(e));
-const dbDel=id=>tx('readwrite',s=>s.delete(id));
+// ---------- GitHub API ----------
+class GHError extends Error{}
+async function gh(path,opts={}){
+  const h={'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',...(opts.headers||{})};
+  if(token) h.Authorization='Bearer '+token;
+  let r; try{ r=await fetch(API+path,{...opts,headers:h,cache:'no-store'}); }catch(e){ throw new GHError('Network error reaching GitHub — check your connection.'); }
+  if(r.ok) return r.status===204?null:r.json();
+  let body={}; try{ body=await r.json(); }catch(e){}
+  const rem=r.headers.get('x-ratelimit-remaining');
+  if((r.status===403||r.status===429)&&(rem==='0'||/rate limit/i.test(body.message||''))){
+    const reset=+r.headers.get('x-ratelimit-reset'); const at=reset?new Date(reset*1000).toLocaleTimeString('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit'})+' ET':'later';
+    const e=new GHError(`GitHub API rate limit reached${token?'':' (60 requests/hour without a token)'} — resets at ${at}.`); e.rate=true; throw e; }
+  if(r.status===401){ const e=new GHError('Bad or expired token (401). Lock and paste a new token.'); e.auth=true; throw e; }
+  const e=new GHError(`GitHub ${r.status}: ${body.message||r.statusText}`); e.status=r.status; throw e;
+}
+const b64ToText=b=>new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\n/g,'')),c=>c.charCodeAt(0)));
+const textToB64=t=>{ const bytes=new TextEncoder().encode(t); let s=''; bytes.forEach(x=>s+=String.fromCharCode(x)); return btoa(s); };
+const blobToB64=b=>new Promise(r=>{ const f=new FileReader(); f.onload=()=>r(f.result.split(',')[1]); f.readAsDataURL(b); });
+const blobToDataURL=b=>new Promise(r=>{ const f=new FileReader(); f.onload=()=>r(f.result); f.readAsDataURL(b); });
 
-// ---- images ----
+async function readEntriesAPI(){
+  try{ const f=await gh(`/contents/${ENTRIES}?ref=${BRANCH}`); return {list:JSON.parse(b64ToText(f.content)).entries||[],sha:f.sha}; }
+  catch(e){ if(e.status===404) return {list:[],sha:null}; throw e; }
+}
+async function load(){
+  status('Loading journal…');
+  try{ const {list}=await readEntriesAPI(); entries=list; status(`Loaded ${list.length} entries from GitHub (live).${token?' Editing unlocked.':''}`,'ok'); }
+  catch(e){
+    if(e.auth){ status(e.message,'err'); }
+    let note=e.message+' Falling back to ';
+    try{ let r=await fetch(RAW+ENTRIES+'?t='+Date.now(),{cache:'no-store'}); let src='raw.githubusercontent (may lag ~5 min)';
+      if(!r.ok){ r=await fetch(ENTRIES+'?t='+Date.now(),{cache:'no-store'}); src='GitHub Pages copy (may lag a few minutes)'; }
+      if(r.status===404){ entries=[]; status(note+src+': no entries yet.','err'); }
+      else if(r.ok){ entries=(await r.json()).entries||[]; status(note+src+`: ${entries.length} entries.`,'err'); }
+      else throw new Error('HTTP '+r.status);
+    }catch(e2){ status('Could not load the journal: '+e.message,'err'); }
+  }
+  render();
+}
+
+// mutate entries.json with SHA check; retry on conflict
+async function commitEntries(mutate,msg){
+  for(let attempt=0;attempt<4;attempt++){
+    const {list,sha}=await readEntriesAPI(); const next=mutate(list.slice());
+    const body={message:msg,branch:BRANCH,content:textToB64(JSON.stringify({version:1,updated:new Date().toISOString(),entries:next},null,1))}; if(sha) body.sha=sha;
+    try{ await gh(`/contents/${ENTRIES}`,{method:'PUT',body:JSON.stringify(body)}); return next; }
+    catch(e){ if(e.status===409||e.status===422){ await new Promise(r=>setTimeout(r,400*(attempt+1))); continue; } throw e; }
+  }
+  throw new GHError('Save conflict — someone else updated the journal. Refresh and try again.');
+}
+async function fileSha(path){ try{ return (await gh(`/contents/${path}?ref=${BRANCH}`)).sha; }catch(e){ if(e.status===404) return null; throw e; } }
+async function putImage(id,blob){ const sha=await fileSha(imgPath(id)); const body={message:`journal: image ${id}`,branch:BRANCH,content:await blobToB64(blob)}; if(sha) body.sha=sha; await gh(`/contents/${imgPath(id)}`,{method:'PUT',body:JSON.stringify(body)}); }
+async function deleteImage(id){ const sha=await fileSha(imgPath(id)); if(sha) await gh(`/contents/${imgPath(id)}`,{method:'DELETE',body:JSON.stringify({message:`journal: delete image ${id}`,branch:BRANCH,sha})}); }
+
+// ---------- images ----------
 function compress(file){ return new Promise((res,rej)=>{ const img=new Image(), u=URL.createObjectURL(file);
   img.onload=()=>{ const max=1600, k=Math.min(1,max/Math.max(img.width,img.height)); const c=document.createElement('canvas');
     c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); const x=c.getContext('2d'); x.fillStyle='#000'; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height);
     URL.revokeObjectURL(u); c.toBlob(b=>b?res(b):rej(new Error('compress failed')),'image/jpeg',0.82); };
   img.onerror=()=>{ URL.revokeObjectURL(u); rej(new Error('Not a readable image')); }; img.src=u; }); }
-const blobToDataURL=b=>new Promise(r=>{ const f=new FileReader(); f.onload=()=>r(f.result); f.readAsDataURL(b); });
-const dataURLToBlob=async d=>(await fetch(d)).blob();
-function imgURL(e){ if(!e.image) return ''; if(!urls[e.id]) urls[e.id]=URL.createObjectURL(e.image); return urls[e.id]; }
+const imgSrc=e=>localImg[e.id]?.url || (RAW+imgPath(e.id)+'?v='+imgBust);
 
-// ---- entries ----
-async function addEntry(file){
-  let image=null;
-  if(file){ try{ image=await compress(file); }catch(err){ toast(err.message); return; } }
-  const e={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),ts:Date.now(),image,note:'',ticker:'',result:'',pl:'',checks:[]};
-  e.draft=true; entries.push(e); render(); toast('Draft created — add details, then Save');
+// ---------- entries ----------
+const clean=e=>({id:e.id,ts:e.ts,note:e.note||'',ticker:e.ticker||'',result:e.result||'',pl:e.pl??'',checks:(e.checks||[]).filter(c=>CHECKS.includes(c)),hasImage:!!e.hasImage});
+async function addDraft(file){
+  if(!token) return;
+  let blob=null; if(file){ try{ blob=await compress(file); }catch(err){ toast(err.message); return; } }
+  const id=Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  if(blob) localImg[id]={blob,url:URL.createObjectURL(blob)};
+  entries.push({id,ts:Date.now(),note:'',ticker:'',result:'',pl:'',checks:[],hasImage:!!blob,draft:true}); render(); toast('Draft created — add details, then Save');
 }
-async function addFiles(files){ for(const f of files) if(f.type.startsWith('image/')) await addEntry(f); }
-async function update(id,patch){ const e=entries.find(x=>x.id===id); Object.assign(e,patch); if(!e.draft) await dbPut(e); renderStats(); }
-const hasDraft=()=>entries.some(e=>e.draft);
-window.addEventListener('beforeunload',e=>{ if(hasDraft()){ e.preventDefault(); e.returnValue='You have an unsaved trade entry — are you sure you want to leave?'; return e.returnValue; } });
-async function saveDraft(id){ const e=entries.find(x=>x.id===id); delete e.draft; await dbPut(e); render(); toast('Entry saved'); }
-function discardDraft(id){ if(!confirm('Discard this unsaved entry?')) return; if(urls[id]){URL.revokeObjectURL(urls[id]);delete urls[id];} entries=entries.filter(e=>e.id!==id); render(); toast('Draft discarded'); }
-async function removeEntry(id){ if(!confirm('Delete this journal entry? This cannot be undone.')) return;
-  await dbDel(id); if(urls[id]){ URL.revokeObjectURL(urls[id]); delete urls[id]; } entries=entries.filter(e=>e.id!==id); render(); toast('Deleted'); }
+async function addFiles(files){ for(const f of files) if(f.type.startsWith('image/')) await addDraft(f); }
+const unsaved=()=>entries.some(e=>e.draft||e.dirty);
+window.addEventListener('beforeunload',e=>{ if(unsaved()){ e.preventDefault(); e.returnValue='You have an unsaved trade entry — are you sure you want to leave?'; return e.returnValue; } });
+async function withBusy(card,fn){ card?.classList.add('busy'); try{ await fn(); }catch(e){ status(e.message,'err'); toast(e.message); } finally{ card?.classList.remove('busy'); } }
+async function saveEntry(id,card){ await withBusy(card,async()=>{
+  const e=entries.find(x=>x.id===id); status('Saving to GitHub…');
+  if(e.draft&&e.hasImage&&localImg[id]) await putImage(id,localImg[id].blob);
+  const data=clean(e); const next=await commitEntries(l=>{ const i=l.findIndex(x=>x.id===id); i>=0?l[i]=data:l.push(data); return l; },`journal: ${e.draft?'add':'update'} ${e.ticker||'entry'} ${id}`);
+  delete e.draft; delete e.dirty;
+  merge(next); status('Saved ✓ — visible on every device now.','ok'); toast('Saved'); }); }
+async function deleteEntry(id,card){ if(!confirm('Delete this journal entry (and its screenshot) from GitHub? This cannot be undone.')) return;
+  await withBusy(card,async()=>{ const e=entries.find(x=>x.id===id); status('Deleting…');
+    const next=await commitEntries(l=>l.filter(x=>x.id!==id),`journal: delete ${id}`); if(e?.hasImage) await deleteImage(id);
+    merge(next); status('Deleted ✓','ok'); toast('Deleted'); }); }
+function discardDraft(id){ if(!confirm('Discard this unsaved entry?')) return; if(localImg[id]){ URL.revokeObjectURL(localImg[id].url); delete localImg[id]; } entries=entries.filter(e=>e.id!==id); render(); }
+function revertEntry(id){ load(); }
+// keep local drafts/unsaved edits, replace the rest with server list
+function merge(server){ const keep=entries.filter(e=>e.draft||e.dirty), ids=new Set(keep.map(e=>e.id)); entries=server.filter(e=>!ids.has(e.id)).concat(keep); render(); }
 
-// ---- render ----
+// ---------- render ----------
 const dayKey=ts=>new Date(ts).toLocaleDateString('en-CA',{timeZone:TZ});
 const dayLabel=ts=>new Date(ts).toLocaleDateString('en-US',{timeZone:TZ,weekday:'long',month:'long',day:'numeric',year:'numeric'});
 const timeLabel=ts=>new Date(ts).toLocaleTimeString('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit',second:'2-digit'})+' ET';
 const money=n=>(n<0?'-':'')+'$'+Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:2});
 function filtered(){ const q=$('q').value.trim().toLowerCase(), c=$('fCheck').value, r=$('fRes').value;
-  return entries.filter(e=>e.draft||(!q||(e.note+' '+e.ticker).toLowerCase().includes(q))&&(!c||e.checks.includes(c))&&(!r||e.result===r)).sort((a,b)=>b.ts-a.ts); }
+  return entries.filter(e=>e.draft||((!q||(e.note+' '+e.ticker).toLowerCase().includes(q))&&(!c||e.checks.includes(c))&&(!r||e.result===r))).sort((a,b)=>b.ts-a.ts); }
 function renderStats(){
   const list=filtered().filter(e=>!e.draft), w=list.filter(e=>e.result==='W').length, l=list.filter(e=>e.result==='L').length;
   const fol=list.filter(e=>e.checks.includes('Followed exit plan')).length, pl=list.reduce((s,e)=>s+(parseFloat(e.pl)||0),0);
@@ -144,64 +223,100 @@ function renderStats(){
     +st('Followed exit plan',list.length?Math.round(fol/list.length*100)+'%':'—')+st('Total P/L',money(pl),pl>0?'pos':pl<0?'neg':'');
 }
 function render(){
-  renderStats(); const list=filtered(), box=$('list');
-  if(!list.length){ box.innerHTML=`<div class="empty">${entries.length?'No entries match your filters.':'No entries yet — paste a screenshot (Ctrl+V / ⌘+V) to start.'}</div>`; return; }
+  document.body.classList.toggle('locked',!token);
+  renderStats(); const list=filtered(), box=$('list'), dis=token?'':'disabled';
+  if(!list.length){ box.innerHTML=`<div class="empty">${entries.length?'No entries match your filters.':(token?'No entries yet — paste a screenshot (Ctrl+V / ⌘+V) to start.':'No journal entries yet.')}</div>`; return; }
   let html='', cur=null;
   list.forEach(e=>{ const d=dayKey(e.ts);
     if(d!==cur){ cur=d; const n=list.filter(x=>dayKey(x.ts)===d).length; html+=`<div class="day"><span>${dayLabel(e.ts)}</span><span>${n} entr${n>1?'ies':'y'}</span></div>`; }
-    html+=`<div class="entry${e.draft?' draft':''}" data-id="${e.id}">
-      <div>${e.image?`<img src="${imgURL(e)}" alt="Trade screenshot" data-zoom>`:'<div class="empty" style="border:1px dashed var(--line);border-radius:8px">No image</div>'}</div>
+    const btns=e.draft?'<span class="draftTag">UNSAVED DRAFT</span><button class="primary" data-save>Save entry</button><button class="danger" data-discard>Discard</button>'
+      :(e.dirty?'<button class="primary" data-save>Save changes</button><button data-revert>Undo</button>':'')+'<button class="danger" data-del>Delete</button>';
+    html+=`<div class="entry${e.draft?' draft':''}${e.dirty?' dirty':''}" data-id="${esc(e.id)}">
+      <div>${e.hasImage?`<img src="${esc(imgSrc(e))}" alt="Trade screenshot" data-zoom loading="lazy">`:'<div class="empty" style="border:1px dashed var(--line);border-radius:8px">No image</div>'}</div>
       <div>
         <div class="meta"><span class="time">🕒 ${timeLabel(e.ts)}</span>
-          <input class="ticker" data-f="ticker" placeholder="Ticker" value="${esc(e.ticker)}">
-          <select class="res ${e.result}" data-f="result"><option value="">Result</option>${['W','L','BE'].map(r=>`<option value="${r}" ${e.result===r?'selected':''}>${{W:'Win',L:'Loss',BE:'Breakeven'}[r]}</option>`).join('')}</select>
-          <input class="pl" data-f="pl" type="number" step="any" placeholder="P/L $" value="${esc(e.pl)}">
-          ${e.draft?'<span class="draftTag">UNSAVED DRAFT</span><button class="primary" data-save>Save entry</button><button class="danger" data-discard>Discard</button>':'<button class="danger" data-del>Delete</button>'}</div>
-        <textarea data-f="note" placeholder="What happened? Entry reason, exit, what to do better…">${esc(e.note)}</textarea>
-        <div class="checks">${CHECKS.map(c=>`<label><input type="checkbox" data-c="${esc(c)}" ${e.checks.includes(c)?'checked':''}><span>${esc(c)}</span></label>`).join('')}</div>
+          <input class="ticker" data-f="ticker" placeholder="${token?'Ticker':''}" value="${esc(e.ticker)}" ${dis}>
+          <select class="res ${esc(e.result)}" data-f="result" ${dis}><option value="">${token?'Result':'—'}</option>${['W','L','BE'].map(r=>`<option value="${r}" ${e.result===r?'selected':''}>${{W:'Win',L:'Loss',BE:'Breakeven'}[r]}</option>`).join('')}</select>
+          <input class="pl" data-f="pl" type="${token?'number':'text'}" step="any" placeholder="${token?'P/L $':''}" value="${token?esc(e.pl):(e.pl!==''?esc(money(+e.pl)):'')}" ${dis}>
+          <span class="edit-only" style="display:contents">${btns}</span></div>
+        <textarea data-f="note" placeholder="${token?'What happened? Entry reason, exit, what to do better…':''}" ${dis}>${esc(e.note)}</textarea>
+        <div class="checks">${CHECKS.map(c=>`<label><input type="checkbox" data-c="${esc(c)}" ${e.checks.includes(c)?'checked':''} ${dis}><span>${esc(c)}</span></label>`).join('')}</div>
       </div></div>`; });
   box.innerHTML=html;
+  box.querySelectorAll('img[data-zoom]').forEach(img=>img.addEventListener('error',()=>{ const p=imgPath(img.closest('.entry').dataset.id); if(!img.src.includes('/journal/images/')||img.src.startsWith(RAW)) img.src=p; },{once:true}));
 }
-$('list').addEventListener('input',ev=>{ const t=ev.target, card=t.closest('.entry'); if(!card) return; const id=card.dataset.id;
-  if(t.dataset.f){ let v=t.value; if(t.dataset.f==='ticker') v=v.toUpperCase(); if(t.dataset.f==='result') t.className='res '+v; update(id,{[t.dataset.f]:v}); }
-  else if(t.dataset.c!==undefined){ const e=entries.find(x=>x.id===id); const s=new Set(e.checks); t.checked?s.add(t.dataset.c):s.delete(t.dataset.c); update(id,{checks:CHECKS.filter(c=>s.has(c))}); } });
-$('list').addEventListener('change',ev=>{ if(ev.target.type==='checkbox'&&ev.type==='change') return; });
-$('list').addEventListener('click',ev=>{ const t=ev.target, card=t.closest('.entry'); if(!card) return;
-  if(t.matches('[data-del]')) removeEntry(card.dataset.id);
-  if(t.matches('[data-save]')) saveDraft(card.dataset.id);
-  if(t.matches('[data-discard]')) discardDraft(card.dataset.id);
-  if(t.matches('[data-zoom]')){ const lb=$('lightbox'); lb.querySelector('img').src=t.src; lb.style.display='flex'; } });
+$('list').addEventListener('input',ev=>{ if(!token) return; const t=ev.target, card=t.closest('.entry'); if(!card) return; const e=entries.find(x=>x.id===card.dataset.id);
+  if(t.dataset.f){ let v=t.value; if(t.dataset.f==='ticker') v=v.toUpperCase(); if(t.dataset.f==='result') t.className='res '+v; e[t.dataset.f]=v; }
+  else if(t.dataset.c!==undefined){ const s=new Set(e.checks); t.checked?s.add(t.dataset.c):s.delete(t.dataset.c); e.checks=CHECKS.filter(c=>s.has(c)); }
+  if(!e.draft&&!e.dirty){ e.dirty=true; render(); } else renderStats(); });
+$('list').addEventListener('click',ev=>{ const t=ev.target, card=t.closest('.entry'); if(!card) return; const id=card.dataset.id;
+  if(t.matches('[data-zoom]')){ const lb=$('lightbox'); lb.querySelector('img').src=t.src; lb.style.display='flex'; return; }
+  if(!token) return;
+  if(t.matches('[data-save]')) saveEntry(id,card);
+  if(t.matches('[data-del]')) deleteEntry(id,card);
+  if(t.matches('[data-discard]')) discardDraft(id);
+  if(t.matches('[data-revert]')){ const e=entries.find(x=>x.id===id); delete e.dirty; load(); } });
+$('lightbox').addEventListener('click',()=>$('lightbox').style.display='none');
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('lightbox').style.display='none'; });
 ['q','fCheck','fRes'].forEach(id=>$(id).addEventListener('input',render));
 CHECKS.forEach(c=>$('fCheck').insertAdjacentHTML('beforeend',`<option>${esc(c)}</option>`));
 
-// ---- input: paste / drop / upload ----
-document.addEventListener('paste',ev=>{ const files=[...(ev.clipboardData?.items||[])].filter(i=>i.kind==='file'&&i.type.startsWith('image/')).map(i=>i.getAsFile());
+// ---------- input: paste / drop / upload ----------
+document.addEventListener('paste',ev=>{ if(!token) return; const files=[...(ev.clipboardData?.items||[])].filter(i=>i.kind==='file'&&i.type.startsWith('image/')).map(i=>i.getAsFile());
   if(files.length){ ev.preventDefault(); addFiles(files); } });
 const drop=$('drop');
-['dragenter','dragover'].forEach(t=>document.addEventListener(t,e=>{ if([...(e.dataTransfer?.types||[])].includes('Files')){ e.preventDefault(); drop.classList.add('over'); } }));
+['dragenter','dragover'].forEach(t=>document.addEventListener(t,e=>{ if(token&&[...(e.dataTransfer?.types||[])].includes('Files')){ e.preventDefault(); drop.classList.add('over'); } }));
 ['dragleave','drop'].forEach(t=>document.addEventListener(t,e=>{ if(t==='dragleave'&&e.relatedTarget) return; drop.classList.remove('over'); }));
-document.addEventListener('drop',e=>{ if(e.dataTransfer?.files?.length){ e.preventDefault(); addFiles([...e.dataTransfer.files]); } });
+document.addEventListener('drop',e=>{ if(token&&e.dataTransfer?.files?.length){ e.preventDefault(); addFiles([...e.dataTransfer.files]); } });
 $('file').addEventListener('change',e=>{ addFiles([...e.target.files]); e.target.value=''; });
+$('noImgBtn').addEventListener('click',()=>addDraft(null));
 
-// ---- export / import ----
-async function exportData(){
-  const out=[]; for(const e of entries.filter(x=>!x.draft)) out.push({...e,image:e.image?await blobToDataURL(e.image):null});
-  const blob=new Blob([JSON.stringify({app:'mh_journal',version:1,exported:new Date().toISOString(),entries:out})],{type:'application/json'});
+// ---------- unlock / lock ----------
+$('unlockBtn').addEventListener('click',async()=>{
+  const t=$('tokenInput').value.trim(); if(!t){ status('Paste a token first.','err'); return; }
+  token=t; status('Checking token…');
+  try{ const repo=await gh(''); if(!repo.permissions||!(repo.permissions.push||repo.permissions.admin)) throw new GHError('This token can read but not write to the repo. It needs Contents: Read and write on DIYupload.');
+    localStorage.setItem(TOKEN_KEY,t); $('tokenInput').value=''; status('Editing unlocked on this device ✓','ok'); await load(); await offerMigration();
+  }catch(e){ token=''; status(e.auth?'Bad token (401) — check that you copied it fully and it has not expired.':e.message,'err'); render(); }
+});
+$('lockBtn').addEventListener('click',()=>{ if(unsaved()&&!confirm('You have unsaved entries that will be lost. Lock anyway?')) return;
+  localStorage.removeItem(TOKEN_KEY); token=''; entries=entries.filter(e=>!e.draft).map(e=>{ delete e.dirty; return e; }); status('Locked — token removed from this browser.','ok'); load(); });
+
+// ---------- migrate old IndexedDB journal ----------
+function readOldIDB(){ return new Promise(res=>{ if(!window.indexedDB) return res([]); let created=false; const r=indexedDB.open('mh_journal',1);
+  r.onupgradeneeded=()=>{ created=true; r.transaction.abort(); };
+  r.onerror=()=>{ if(created) indexedDB.deleteDatabase('mh_journal'); res([]); };
+  r.onsuccess=()=>{ const db=r.result; if(!db.objectStoreNames.contains('entries')){ db.close(); return res([]); }
+    const q=db.transaction('entries').objectStore('entries').getAll(); q.onsuccess=()=>{ db.close(); res(q.result||[]); }; q.onerror=()=>{ db.close(); res([]); }; }; }); }
+async function uploadMany(items,label){
+  const existing=new Set(entries.map(e=>e.id)); const todo=items.filter(e=>e&&e.id&&e.ts&&!existing.has(String(e.id)));
+  if(!todo.length){ toast('Nothing new to upload'); return 0; }
+  for(const [i,e] of todo.entries()){ status(`${label}: uploading ${i+1}/${todo.length}…`);
+    const id=String(e.id); let blob=e.image instanceof Blob?e.image:(typeof e.image==='string'?await (await fetch(e.image)).blob():null);
+    if(blob) await putImage(id,blob); e.hasImage=!!blob||!!e.hasImage&&!e.image; }
+  const add=todo.map(e=>clean({...e,id:String(e.id),hasImage:e.hasImage}));
+  const next=await commitEntries(l=>{ const ids=new Set(l.map(x=>x.id)); return l.concat(add.filter(x=>!ids.has(x.id))); },`journal: ${label.toLowerCase()} ${add.length} entries`);
+  merge(next); status(`${label}: ${add.length} entries uploaded ✓`,'ok'); return add.length;
+}
+async function offerMigration(){
+  const old=await readOldIDB(); if(!old.length) return;
+  if(!confirm(`Found ${old.length} journal entr${old.length>1?'ies':'y'} saved only in this browser (old version). Upload them to GitHub so all devices can see them?`)) return;
+  try{ await uploadMany(old,'Migration'); if(confirm('Migration done. Remove the old browser-only copy?')) indexedDB.deleteDatabase('mh_journal'); }catch(e){ status('Migration failed: '+e.message,'err'); }
+}
+$('importFile').addEventListener('change',async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{ const data=JSON.parse(await f.text()); if(!Array.isArray(data.entries)) throw new Error('Not a journal backup'); await uploadMany(data.entries,'Import'); }catch(err){ status('Import failed: '+err.message,'err'); } });
+
+// ---------- export ----------
+$('exportBtn').addEventListener('click',async()=>{ status('Preparing export…'); const out=[];
+  for(const e of entries.filter(x=>!x.draft)){ let image=null;
+    if(e.hasImage){ try{ const r=await fetch(localImg[e.id]?.url||RAW+imgPath(e.id)); if(r.ok) image=await blobToDataURL(await r.blob()); }catch(err){} }
+    out.push({...clean(e),image}); }
+  const blob=new Blob([JSON.stringify({app:'mh_journal',version:2,exported:new Date().toISOString(),entries:out})],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`trade-journal-${dayKey(Date.now())}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  toast(`Exported ${out.length} entries`);
-}
-async function importData(file){
-  try{ const data=JSON.parse(await file.text()); if(!Array.isArray(data.entries)) throw new Error('Not a journal backup');
-    let n=0; for(const r of data.entries){ if(!r.id||!r.ts) continue;
-      const e={id:String(r.id),ts:+r.ts,note:String(r.note||''),ticker:String(r.ticker||''),result:['W','L','BE'].includes(r.result)?r.result:'',pl:r.pl??'',checks:(r.checks||[]).filter(c=>CHECKS.includes(c)),image:r.image?await dataURLToBlob(r.image):null};
-      await dbPut(e); const i=entries.findIndex(x=>x.id===e.id); if(urls[e.id]){URL.revokeObjectURL(urls[e.id]);delete urls[e.id];} i>=0?entries[i]=e:entries.push(e); n++; }
-    render(); toast(`Imported ${n} entries`);
-  }catch(err){ toast('Import failed: '+err.message); }
-}
-$('importFile').addEventListener('change',e=>{ if(e.target.files[0]) importData(e.target.files[0]); e.target.value=''; });
+  status(`Exported ${out.length} entries`,'ok'); });
+$('refreshBtn').addEventListener('click',()=>{ imgBust=Date.now(); load(); });
 
-(async()=>{ try{ db=await openDB(); entries=await dbAll(); render(); }catch(err){ $('list').innerHTML='<div class="empty">Storage unavailable in this browser (private mode?).</div>'; } })();
+render(); load();
 </script>
 </body>
 </html>
