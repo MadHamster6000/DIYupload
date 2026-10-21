@@ -1,0 +1,28 @@
+name: Morning Brief
+on:
+  schedule:
+    - cron: '30 12 * * 1-5'   # 12:30 UTC = 8:30 AM EDT / 7:30 AM EST
+    - cron: '15 13 * * 1-5'   # 13:15 UTC = 9:15 AM EDT refresh
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: { group: morning-brief, cancel-in-progress: false }
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: Madhamster-Stock }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install --quiet yfinance
+      - run: python scripts/morning_brief.py
+      - name: Commit brief (market data only)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/brief
+          git diff --cached --quiet && exit 0
+          git commit -m "data: morning brief $(date -u +%F)"
+          git pull --rebase origin Madhamster-Stock && git push origin HEAD:Madhamster-Stock

@@ -1,0 +1,3 @@
+# One ticker per line. Added to the gamma squeeze scanner universe. Lines starting with # are ignored.
+GME
+AMC

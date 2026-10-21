@@ -69,6 +69,10 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
 .pb-item:has(input:checked){border-color:rgba(34,197,94,.6)}.pb-item:has(input:checked) span{color:var(--muted);text-decoration:line-through}
 .hidden{display:none}
 @media(max-width:760px){.two{grid-template-columns:1fr}section.card{padding:16px}h1{font-size:1.3rem}.chart{height:280px}}
+.mb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}.mb-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}.mb-card h3{margin:0 0 8px;color:var(--text)}
+.mb-t{width:100%;border-collapse:collapse;font-size:.88rem}.mb-t td,.mb-t th{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left}.mb-t th{color:var(--muted);font-weight:600}
+.mb-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;font-size:.85rem}.mb-nq{color:var(--muted)}.mb-why{font-size:.8rem;color:var(--muted);min-width:220px}
+.mb-tag{padding:2px 8px;border-radius:999px;font-size:.75rem;font-weight:700;text-transform:uppercase}.mb-high{background:#ef444433;color:var(--red)}.mb-med{background:#f59e0b33;color:var(--amber)}.mb-low{background:#8a96ad22;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -76,6 +80,7 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
   <div class="brand">🐹 MadHamster <span>Options Toolkit</span></div>
   <nav id="nav">
     <a href="journal.html" style="background:var(--accent);color:#fff;font-weight:600">📸 Trade Journal</a>
+    <a href="#morning-brief">☀️ Morning Brief</a>
     <a href="#playbook">🎯 Playbook</a>
     <a href="#moonshot">Moonshot Ladder</a>
     <a href="#reference">Cash Table</a>
@@ -88,6 +93,11 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
 
 <main>
 <!-- 0. Playbook -->
+<section class="card" id="morning-brief">
+  <h2>☀️ Morning Brief</h2>
+  <div id="mb-body"><p class="sub">Loading…</p></div>
+</section>
+
 <section class="card pb" id="playbook">
   <div class="pb-head"><div><h1>🎯 My 0DTE Playbook</h1><p class="sub" style="margin:0">Check off each rule as you follow it today. Resets automatically every new trading day (ET).</p></div>
   <div class="pb-meta"><span id="pbDate"></span><span id="pbCount" class="pb-count">0/5</span><button id="pbReset" title="Uncheck all for today">Reset</button></div></div>
@@ -349,5 +359,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   load();
 })();
 </script>
+<script src="morning-brief.js"></script>
 </body>
 </html>
