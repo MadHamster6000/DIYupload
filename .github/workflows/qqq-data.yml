@@ -1,0 +1,26 @@
+name: Snapshot QQQ market data
+on:
+  schedule:
+    - cron: '30 0 * * 2-6'    # 00:30 UTC Tue–Sat ≈ 8:30 PM EDT / 7:30 PM EST, after post-market
+    - cron: '0 13 */2 * *'    # safety net every ~2 days
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: { group: qqq-data, cancel-in-progress: false }
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: Madhamster-Stock }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python scripts/fetch_qqq.py
+      - name: Commit snapshots (market data only)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/qqq
+          git diff --cached --quiet && exit 0
+          git commit -m "data: QQQ snapshot $(date -u +%F)"
+          git pull --rebase origin Madhamster-Stock && git push origin HEAD:Madhamster-Stock
