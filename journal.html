@@ -66,6 +66,26 @@ body.locked .edit-only{display:none!important}body:not(.locked) .ro-only{display
 .score{font-weight:800;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}.score.good{color:var(--green);border-color:var(--green)}.score.bad{color:var(--red);border-color:var(--red)}
 .private{text-align:center;padding:40px 20px;color:var(--muted)}.private b{color:var(--text);font-size:1.2rem;display:block;margin-bottom:6px}
 .cfg{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.82rem;color:var(--muted);margin-top:10px}.cfg input{width:80px;padding:5px 7px}
+.dnav{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}.dnav input[type=date]{padding:7px 9px}
+.dnav .on{background:var(--accent);border-color:var(--accent);color:#fff}
+.cal{display:inline-grid;grid-template-columns:repeat(7,34px);gap:3px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;font-size:.78rem;vertical-align:top}
+.cal .h{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-bottom:4px}.cal .h button{padding:2px 8px}
+.cal .wd{color:var(--muted);text-align:center}.cal .c{height:32px;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);border:1px solid transparent}
+.cal .c.has{color:var(--text);cursor:pointer;background:#0b0f17}.cal .c.has:hover{border-color:var(--accent)}.cal .c.sel{border-color:var(--accent);background:rgba(79,140,255,.2)}.cal .c.today{text-decoration:underline}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block}.dot.g{background:var(--green)}.dot.r{background:var(--red)}
+.daylist{display:inline-flex;flex-wrap:wrap;gap:4px;max-width:560px;vertical-align:top;margin-left:10px;max-height:150px;overflow:auto}
+.daylist button{padding:3px 8px;font-size:.78rem;display:flex;gap:5px;align-items:center}.daylist button.sel{border-color:var(--accent)}
+.gal{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;flex:1;min-width:280px}
+.pic{margin:0;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px;width:200px}.pic img{width:100%;height:120px;object-fit:cover;border-radius:6px;cursor:zoom-in;background:#000}
+.pic figcaption{display:flex;gap:4px;margin-top:4px}.pic input{flex:1;min-width:0;padding:3px 6px;font-size:.8rem}.pic.dragging{opacity:.4}.pic.over{border-color:var(--accent)}
+.addpic{display:flex;flex-direction:column;gap:6px;justify-content:center;align-items:flex-start;padding:10px;border:1px dashed var(--line);border-radius:8px;min-height:120px;color:var(--muted);font-size:.85rem}
+.addpic.armed{border-color:var(--accent);color:var(--text)}
+#moreTools{padding:0}#moreTools>summary{cursor:pointer;padding:14px 20px;font-weight:700;color:var(--muted)}#moreTools[open]>summary{border-bottom:1px solid var(--line)}#moreBody{padding:16px 20px}
+#moreBody h3{margin:16px 0 8px;font-size:.95rem;color:var(--muted)}
+.qc{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0 14px}.qc .tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.qc .tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}.qc .chartbox{height:380px;margin-top:8px}
+.qc .legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px;font-size:.8rem}.qc .legend label{display:flex;gap:5px;align-items:center;cursor:pointer}.qc .legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.qc .cov{font-size:.78rem;color:var(--muted);margin-top:6px}
 details.purge{margin-top:10px;font-size:.85rem}details.purge code{background:#0b0f17;padding:2px 5px;border-radius:4px}
 .tl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:10px}
 .tl-grid label{display:block;font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:3px}.tl-grid input{width:100%}
@@ -150,7 +170,10 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
   <div id="pvWrap"></div>
 </section>
 
+<details class="card edit-only" id="moreTools"><summary>⚙️ More tools (paste text, screenshots, export/import, filters, settings, encryption, lock)</summary><div id="moreBody"></div></details>
+
 <section class="card edit-only">
+  <div id="dayNav"></div>
   <div class="stats" id="stats"></div>
   <div class="filters">
     <input id="q" placeholder="Search notes or ticker…">
@@ -161,11 +184,14 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
 </section>
 <div class="note">⚠️ Educational tool only — not financial advice.</div>
 </main>
+<datalist id="picLabels"><option>Day chart</option><option>15m</option><option>1m</option><option>5m</option><option>Entry</option><option>Exit</option><option>Other</option></datalist>
 <div id="lightbox"><img alt=""></div>
 <div id="toast"></div>
 
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <script src="trade-parser.js"></script>
 <script src="journal-report.js"></script>
+<script src="qqq-chart.js"></script>
 <script>
 const OWNER='MadHamster6000', REPO='DIYupload', BRANCH='Madhamster-Stock';
 const API=`https://api.github.com/repos/${OWNER}/${REPO}`, RAW=`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/`;
@@ -340,29 +366,58 @@ function groupCard(g,rows){ const pl=g.pl;
     <div class="tbl"><table><thead><tr><th>Time (ET)</th><th>Side</th><th>Tag</th><th>Qty</th><th>Price</th><th>Value</th></tr></thead><tbody>
     ${rows.sort((a,b)=>a.ts-b.ts).map(r=>`<tr><td>${tIme(r.ts)}</td><td class="${r.side==='buy'?'pos':'neg'}">${r.side.toUpperCase()}</td><td><span class="tag ${tagClass(r.tag)}">${esc(r.tag)}</span></td><td>${r.qty}</td><td>${px(r.price)}</td><td>${money(r.qty*r.price*TradeParser.mult(r))}</td></tr>`).join('')}
     </tbody></table></div></div>`; }
-function chartBlock(day,withReport){
-  const c=charts[day], id='day-'+day, armed=chartTarget===day;
-  const img=c?`<img src="${BLANK}" data-img="${esc(id)}" data-enc="${c.enc?1:0}" alt="QQQ chart ${day}" data-zoom>`:'';
-  const ctl=`<span class="edit-only chartslot${armed?' armed':''}" style="display:${token?'flex':'none'}">📈 ${c?'Replace':'Add'} QQQ chart of the day:
-    <label class="btn">Upload<input type="file" accept="image/*" hidden data-chartfile="${day}"></label><button data-chartpaste="${day}">${armed?'Now press Ctrl+V / ⌘+V…':'Paste'}</button>${c?`<button class="danger" data-chartdel="${day}">Remove</button>`:''}</span>`;
-  const rep=token&&withReport?reportCard(day):'';
-  return (c||token||rep)?`<div class="daychart"><div style="display:flex;flex-direction:column;gap:8px">${img}${ctl}</div>${rep}</div>`:''; }
+// ---- day gallery: charts[day] = {pics:[{id,label,enc,ts}]}; legacy {ts,enc} (single 'day-<date>' image) is read as a 1-picture gallery
+function picsOf(c,day){ const x=c[day]; if(!x) return []; if(Array.isArray(x.pics)) return x.pics; return [{id:'day-'+day,label:'QQQ chart',enc:!!x.enc,ts:x.ts||0}]; }
+function galleryBlock(day,withReport){
+  const pics=picsOf(charts,day), armed=chartTarget===day, rep=token&&withReport?reportCard(day):'';
+  if(!token&&!pics.length) return '';
+  const th=pics.map(p=>`<figure class="pic" draggable="true" data-pic="${esc(p.id)}" data-day="${day}"><img src="${BLANK}" data-img="${esc(p.id)}" data-enc="${p.enc?1:0}" alt="${esc(p.label||'Day picture')}" data-zoom>
+    <figcaption><input data-plabel="${esc(p.id)}" data-day="${day}" value="${esc(p.label||'')}" placeholder="Label (Day chart, 15m…)" list="picLabels"><button class="x danger" data-pdel="${esc(p.id)}" data-day="${day}" title="Delete picture">✕</button></figcaption></figure>`).join('');
+  const add=`<div class="addpic${armed?' armed':''}"><b>📷 Day pictures${pics.length?` (${pics.length})`:''}</b>
+    <label class="btn primary">+ Add picture<input type="file" accept="image/*" multiple hidden data-chartfile="${day}"></label>
+    <button data-chartpaste="${day}">${armed?'Now press Ctrl+V / ⌘+V…':'Paste picture'}</button>${pics.length>1?'<small>Drag thumbnails to reorder</small>':''}</div>`;
+  return `<div class="daychart"><div class="gal">${th}${add}</div>${rep}</div>`; }
+// ---------- day navigator ----------
+let selDay=null, calMonth=null; // selDay: 'YYYY-MM-DD' or 'all'
+const dLabel=d=>new Date(TradeParser.etToEpoch(+d.slice(0,4),+d.slice(5,7),+d.slice(8,10),12)).toLocaleDateString('en-US',{timeZone:TZ,weekday:'long',month:'long',day:'numeric',year:'numeric'});
+function dayData(){ const list=filtered(), ex=filteredExecs(), filt=$('q').value||$('fCheck').value||$('fRes').value;
+  const days=[...new Set([...list.map(e=>dayKey(e.ts)),...ex.map(e=>dayKey(e.ts)),...(filt?[]:Object.keys(charts))])].sort();
+  const pl={}; days.forEach(d=>{ const xs=ex.filter(e=>dayKey(e.ts)===d); pl[d]=xs.length?TradeParser.summarize(xs).reduce((a,g)=>a+g.netPl,0):null; });
+  return {list,ex,days,pl}; }
+function navHTML(days,pl){ const today=dayKey(Date.now()), cur=selDay==='all'?(days.at(-1)||today):selDay;
+  const i=days.indexOf(cur), prev=days.filter(d=>d<cur).at(-1), next=days.find(d=>d>cur);
+  const m=calMonth||cur.slice(0,7), y=+m.slice(0,4), mo=+m.slice(5,7), first=new Date(Date.UTC(y,mo-1,1)).getUTCDay(), n=new Date(Date.UTC(y,mo,0)).getUTCDate(), set=new Set(days);
+  const dot=d=>pl[d]==null?'<span class="dot"></span>':`<span class="dot ${pl[d]>0?'g':pl[d]<0?'r':''}"></span>`;
+  let cal=`<div class="cal"><div class="h"><button data-cal="-1" title="Previous month">‹</button><span>${new Date(Date.UTC(y,mo-1,15)).toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'})}</span><button data-cal="1" title="Next month">›</button></div>`+['S','M','T','W','T','F','S'].map(x=>`<span class="wd">${x}</span>`).join('')+'<span></span>'.repeat(first);
+  for(let k=1;k<=n;k++){ const d=`${m}-${String(k).padStart(2,'0')}`; cal+=`<span class="c${set.has(d)?' has':''}${d===selDay?' sel':''}${d===today?' today':''}" ${set.has(d)?`data-go="${d}" title="${d}${pl[d]!=null?' · '+money(pl[d]):''}"`:''}>${k}${set.has(d)?dot(d):''}</span>`; }
+  cal+='</div>';
+  const chips=days.slice().reverse().map(d=>`<button data-go="${d}" class="${d===selDay?'sel':''}">${dot(d)}${d.slice(5)}${pl[d]!=null?` <span class="${pl[d]>0?'pos':pl[d]<0?'neg':'muted'}">${money(Math.round(pl[d]))}</span>`:''}</button>`).join('');
+  return `<div class="dnav"><button data-go="${prev||''}" ${prev&&selDay!=='all'?'':'disabled'} title="Previous day with entries">◀ Prev</button>
+    <input type="date" id="dnDate" value="${selDay==='all'?'':cur}" title="Jump to any date"><button data-go="${next||''}" ${next&&selDay!=='all'?'':'disabled'} title="Next day with entries">Next ▶</button>
+    <button data-go="${today}" class="${selDay===today?'on':''}">Today</button><button data-go="all" class="${selDay==='all'?'on':''}">All days</button>
+    <span class="muted" style="font-size:.85rem">${days.length} day${days.length===1?'':'s'} with entries${selDay!=='all'&&i>=0?` · ${i+1} of ${days.length}`:''}</span></div>
+    <div>${cal}<div class="daylist">${chips||'<span class="muted">No saved days yet.</span>'}</div></div>`; }
+document.addEventListener('click',ev=>{ const t=ev.target.closest('[data-go],[data-cal]'); if(!t||!t.closest('#dayNav')) return;
+  if(t.dataset.cal){ const cur=calMonth||(selDay&&selDay!=='all'?selDay:dayKey(Date.now())).slice(0,7); let y=+cur.slice(0,4), m=+cur.slice(5,7)+ +t.dataset.cal; if(m<1){m=12;y--;} if(m>12){m=1;y++;} calMonth=`${y}-${String(m).padStart(2,'0')}`; render(); return; }
+  if(t.dataset.go){ selDay=t.dataset.go; calMonth=null; render(); } });
+document.addEventListener('change',ev=>{ if(ev.target.id==='dnDate'&&ev.target.value){ selDay=ev.target.value; calMonth=null; render(); } });
+function dayHTML(d,list,ex,dis){ const es=list.filter(e=>dayKey(e.ts)===d), xs=ex.filter(e=>dayKey(e.ts)===d), gs=TradeParser.summarize(xs), dpl=gs.reduce((a,g)=>a+g.netPl,0);
+  let h=`<div class="day"><span>${dLabel(d)}</span><span>${es.length?es.length+' entr'+(es.length>1?'ies':'y'):''}${gs.length?` ${es.length?'· ':''}${xs.length} fills in ${gs.length} contract round${gs.length>1?'s':''} · <span class="${dpl>0?'pos':dpl<0?'neg':''}">${money(dpl)}</span>`:''}</span></div>`;
+  h+=galleryBlock(d,true)+(token?`<div class="qc" data-qc="${d}"></div>`:'');
+  gs.forEach(g=>h+=groupCard(g,xs.filter(x=>x.group===g.group))); es.forEach(e=>h+=entryCard(e,dis)); return h; }
 function render(){
   document.body.classList.toggle('locked',!token); renderTally(); renderMigrate();
-  renderStats(); renderTLChart(); const list=filtered(), ex=filteredExecs(), box=$('list'), dis=token?'':'disabled';
-  const filt=$('q').value||$('fCheck').value||$('fRes').value;
-  const days=new Set([...list.map(e=>dayKey(e.ts)),...ex.map(e=>dayKey(e.ts)),...(filt?[]:Object.keys(charts))]);
-  if(!days.size){ box.innerHTML=`<div class="empty">${entries.length?'No entries match your filters.':(token?'No entries yet — paste a screenshot (Ctrl+V / ⌘+V) or a trade list to start.':'No journal entries yet.')}</div>`; return; }
+  renderStats(); renderTLChart(); const {list,ex,days,pl}=dayData(), box=$('list'), dis=token?'':'disabled';
+  if(!selDay){ const today=dayKey(Date.now()); selDay=days.includes(today)||!days.length?today:days.at(-1); }
+  const drafts=list.filter(e=>e.draft);
+  $('dayNav').innerHTML=token?navHTML(days,pl):'';
+  if(!days.length&&!token){ box.innerHTML=`<div class="empty">${entries.length?'No entries match your filters.':'No journal entries yet.'}</div>`; return; }
   let html='';
-  [...days].sort().reverse().forEach(d=>{
-    const es=list.filter(e=>dayKey(e.ts)===d), xs=ex.filter(e=>dayKey(e.ts)===d), gs=TradeParser.summarize(xs), dpl=gs.reduce((a,g)=>a+g.netPl,0);
-    const label=new Date(TradeParser.etToEpoch(+d.slice(0,4),+d.slice(5,7),+d.slice(8,10),12)).toLocaleDateString('en-US',{timeZone:TZ,weekday:'long',month:'long',day:'numeric',year:'numeric'});
-    html+=`<div class="day"><span>${label}</span><span>${es.length?es.length+' entr'+(es.length>1?'ies':'y'):''}${gs.length?` ${es.length?'· ':''}${xs.length} fills in ${gs.length} contract round${gs.length>1?'s':''} · <span class="${dpl>0?'pos':dpl<0?'neg':''}">${money(dpl)}</span>`:''}</span></div>`;
-    html+=chartBlock(d,true);
-    gs.forEach(g=>html+=groupCard(g,xs.filter(x=>x.group===g.group)));
-    es.forEach(e=>html+=entryCard(e,dis)); });
+  if(selDay==='all') days.slice().reverse().forEach(d=>html+=dayHTML(d,list,ex,dis));
+  else { html+=dayHTML(selDay,list,ex,dis); if(!days.includes(selDay)) html+=`<div class="empty">No saved trades or entries on ${dLabel(selDay)}. Use ◀ ▶, the calendar or the day list to pick a day with entries — or add pictures above.</div>`;
+    const od=drafts.filter(e=>dayKey(e.ts)!==selDay); if(od.length){ html+='<div class="day"><span>Unsaved drafts</span></div>'; od.forEach(e=>html+=entryCard(e,dis)); } }
   box.innerHTML=html;
-  hydrateImages(box); hydrateImages($('tlChart'));
+  hydrateImages(box); box.querySelectorAll('[data-qc]').forEach(el=>QC.mount(el,el.dataset.qc));
 }
 $('list').addEventListener('input',ev=>{ if(!token) return; const t=ev.target, card=t.closest('.entry'); if(!card) return; const e=entries.find(x=>x.id===card.dataset.id);
   if(t.dataset.f){ let v=t.value; if(t.dataset.f==='ticker') v=v.toUpperCase(); if(t.dataset.f==='result') t.className='res '+v; e[t.dataset.f]=v; }
@@ -370,10 +425,10 @@ $('list').addEventListener('input',ev=>{ if(!token) return; const t=ev.target, c
   if(!e.draft&&!e.dirty){ e.dirty=true; render(); } else renderStats(); });
 document.addEventListener('click',ev=>{ const t=ev.target; if(!token) return;
   if(t.dataset.chartpaste){ chartTarget=chartTarget===t.dataset.chartpaste?null:t.dataset.chartpaste; render(); if(chartTarget) toast('Now press Ctrl+V / ⌘+V to paste the chart'); }
-  if(t.dataset.chartdel) removeChart(t.dataset.chartdel);
+  if(t.dataset.pdel) delPic(t.dataset.day,t.dataset.pdel);
   const g=t.closest('.grp'); if(g&&t.matches('[data-gedit]')) editGroup(g.dataset.group); if(g&&t.matches('[data-gdel]')) deleteGroup(g.dataset.group,g); });
-document.addEventListener('change',ev=>{ const t=ev.target; if(t.dataset&&t.dataset.chartfile&&t.files[0]){ setChart(t.dataset.chartfile,t.files[0]); t.value=''; } });
-$('list').addEventListener('click',ev=>{ const t=ev.target; if(t.matches('[data-zoom]')&&!t.closest('.entry')){ const lb=$('lightbox'); lb.querySelector('img').src=t.src; lb.style.display='flex'; return; } const card=t.closest('.entry'); if(!card) return; const id=card.dataset.id;
+document.addEventListener('change',ev=>{ const t=ev.target; if(t.dataset&&t.dataset.chartfile&&t.files.length){ addPics(t.dataset.chartfile,[...t.files]); t.value=''; } });
+$('list').addEventListener('click',ev=>{ const t=ev.target; if(t.closest('[data-cal],.dnav')) return; if(t.matches('[data-zoom]')&&!t.closest('.entry')){ const lb=$('lightbox'); lb.querySelector('img').src=t.src; lb.style.display='flex'; return; } const card=t.closest('.entry'); if(!card) return; const id=card.dataset.id;
   if(t.matches('[data-zoom]')){ const lb=$('lightbox'); lb.querySelector('img').src=t.src; lb.style.display='flex'; return; }
   if(!token) return;
   if(t.matches('[data-save]')) saveEntry(id,card);
@@ -387,7 +442,7 @@ CHECKS.forEach(c=>$('fCheck').insertAdjacentHTML('beforeend',`<option>${esc(c)}<
 
 // ---------- input: paste / drop / upload ----------
 document.addEventListener('paste',ev=>{ if(!token) return; const files=[...(ev.clipboardData?.items||[])].filter(i=>i.kind==='file'&&i.type.startsWith('image/')).map(i=>i.getAsFile());
-  if(files.length){ ev.preventDefault(); if(chartTarget){ const d=chartTarget; chartTarget=null; setChart(d,files[0]); } else addFiles(files); } });
+  if(files.length){ ev.preventDefault(); if(chartTarget){ const d=chartTarget; chartTarget=null; addPics(d,files); } else addFiles(files); } });
 const drop=$('drop');
 ['dragenter','dragover'].forEach(t=>document.addEventListener(t,e=>{ if(token&&[...(e.dataTransfer?.types||[])].includes('Files')){ e.preventDefault(); drop.classList.add('over'); } }));
 ['dragleave','drop'].forEach(t=>document.addEventListener(t,e=>{ if(t==='dragleave'&&e.relatedTarget) return; drop.classList.remove('over'); }));
@@ -431,7 +486,7 @@ async function offerMigration(){
 }
 $('importFile').addEventListener('change',async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
   try{ const data=JSON.parse(await f.text()); if(!Array.isArray(data.entries)) throw new Error('Not a journal backup'); await uploadMany(data.entries,'Import');
-    for(const [d,c] of Object.entries(data.charts||{})) if(c&&c.image&&/^\d{4}-\d{2}-\d{2}$/.test(d)) await setChart(d,await (await fetch(c.image)).blob(),true); }catch(err){ status('Import failed: '+err.message,'err'); } });
+    for(const [d,c] of Object.entries(data.charts||{})){ if(!c||!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue; for(const p of (c.pics||(c.image?[{image:c.image,label:'QQQ chart'}]:[]))){ const b=await (await fetch(p.image)).blob(); b.label=p.label; await addPics(d,[b],p.label||true); } } }catch(err){ status('Import failed: '+err.message,'err'); } });
 
 // ---------- daily report card & tally (computed on the fly; never written to the repo) ----------
 const CFG_KEY='mh_report_cfg';
@@ -454,14 +509,14 @@ function spark(vals){ if(!vals.length) return ''; const w=Math.max(120,vals.leng
 function renderTally(){ const el=$('tally'); if(!token){ el.innerHTML=''; return; } computeReports();
   const reps=Object.values(reportCache).sort((a,b)=>a.day<b.day?-1:1), c=rcfg();
   const tot=reps.reduce((a,r)=>a+r.pl,0), w=reps.reduce((a,r)=>a+r.wins,0), l=reps.reduce((a,r)=>a+r.losses,0), td=reps.filter(r=>r.trades>0), avgF=td.length?td.reduce((a,r)=>a+r.followed,0)/td.length:NaN;
-  const last=td.slice(-30);
+  const last=td.slice(-30); if($('cfgBox')) $('cfgBox').innerHTML=`<div class="cfg">Rule settings: entry price $<input id="cfgLo" type="number" step="0.01" value="${c.priceLo}"> – $<input id="cfgHi" type="number" step="0.01" value="${c.priceHi}"> · big green day ≥ $<input id="cfgGreen" type="number" step="50" value="${c.greenThreshold}"></div>`;
   el.innerHTML=`<h1 style="font-size:1.2rem">📈 Running tally <span class="muted" style="font-size:.8rem;font-weight:400">(computed in this browser, never saved to the repo)</span></h1>
   <div class="stats"><div class="stat"><div class="k">Total P/L (trade lists)</div><div class="v ${tot>0?'pos':tot<0?'neg':''}">${money(tot)}</div></div>
   <div class="stat"><div class="k">Overall win rate</div><div class="v">${w+l?Math.round(w/(w+l)*100)+'%':'—'}</div></div>
   <div class="stat"><div class="k">Days / trades</div><div class="v">${td.length} / ${td.reduce((a,r)=>a+r.trades,0)}</div></div>
   <div class="stat"><div class="k">Avg rules followed</div><div class="v ${avgF>=4?'pos':'neg'}">${isFinite(avgF)?avgF.toFixed(1)+' / 5':'—'}</div></div></div>
   ${last.length?`<div style="margin-top:10px"><div class="muted" style="font-size:.8rem;margin-bottom:4px">Rules followed per day (last ${last.length} trading days, dashed line = 4/5) · ${last[0].day} → ${last.at(-1).day}</div>${spark(last.map(r=>r.followed))}</div>`:'<p class="sub">Import a trade list to start the tally.</p>'}
-  <div class="cfg">Rule settings: entry price $<input id="cfgLo" type="number" step="0.01" value="${c.priceLo}"> – $<input id="cfgHi" type="number" step="0.01" value="${c.priceHi}"> · big green day ≥ $<input id="cfgGreen" type="number" step="50" value="${c.greenThreshold}"></div>`; }
+`; }
 document.addEventListener('change',ev=>{ if(['cfgLo','cfgHi','cfgGreen'].includes(ev.target.id)){ const c=rcfg(); c.priceLo=+$('cfgLo').value||c.priceLo; c.priceHi=+$('cfgHi').value||c.priceHi; c.greenThreshold=+$('cfgGreen').value||c.greenThreshold; localStorage.setItem(CFG_KEY,JSON.stringify({priceLo:c.priceLo,priceHi:c.priceHi,greenThreshold:c.greenThreshold})); render(); renderPV(); } });
 let pvReport=null;
 document.addEventListener('click',async ev=>{ const k=ev.target.dataset&&ev.target.dataset.copy; if(!k) return; const r=k==='__preview'?pvReport:reportCache[k]; if(!r) return; const txt=JournalReport.summaryText(r);
@@ -469,7 +524,7 @@ document.addEventListener('click',async ev=>{ const k=ev.target.dataset&&ev.targ
 
 // ---------- encryption migration ----------
 function renderMigrate(){ const el=$('migrateBox'); if(!token){ el.innerHTML=''; return; }
-  const plainImgs=entries.filter(e=>e.hasImage&&!e.enc&&!e.draft).length+Object.values(charts).filter(c=>!c.enc).length;
+  const plainImgs=entries.filter(e=>e.hasImage&&!e.enc&&!e.draft).length+Object.keys(charts).reduce((a,d)=>a+picsOf(charts,d).filter(p=>!p.enc).length,0);
   const need=fileEncrypted===false||plainImgs>0;
   el.innerHTML=(need?`<div class="note" style="border-color:var(--red);color:#fca5a5">⚠️ This journal still has <b>plaintext</b> data in the public repo (${fileEncrypted===false?'entries.json':''}${fileEncrypted===false&&plainImgs?' + ':''}${plainImgs?plainImgs+' image'+(plainImgs>1?'s':''):''}).
     <div class="btns" style="justify-content:flex-start"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="migImgs" checked> Also encrypt images and delete the plaintext .jpg files</label><button class="primary" id="migBtn">🔐 Encrypt existing journal</button></div></div>`:'')+
@@ -486,22 +541,39 @@ document.addEventListener('click',async ev=>{ if(ev.target.id!=='migBtn') return
   try{ const del=[];
     if(doImgs){ const todo=entries.filter(e=>e.hasImage&&!e.enc&&!e.draft);
       for(const [i,e] of todo.entries()){ status(`Encrypting images ${i+1}/${todo.length}…`); const u=await getImageURL(e.id,false); await putImage(e.id,localImg[e.id].blob); del.push(e.id); }
-      for(const d of Object.keys(charts).filter(d=>!charts[d].enc)){ status('Encrypting chart '+d+'…'); await getImageURL('day-'+d,false); await putImage('day-'+d,localImg['day-'+d].blob); del.push('day-'+d); } }
+      for(const d of Object.keys(charts)) for(const p of picsOf(charts,d).filter(p=>!p.enc)){ status('Encrypting picture '+d+'…'); await getImageURL(p.id,false); await putImage(p.id,localImg[p.id].blob); del.push(p.id); } }
     status('Rewriting entries.json encrypted…'); const enc=new Set(del);
-    const next=await commitEntries(l=>l.map(e=>enc.has(e.id)?{...e,enc:true}:e),'journal: encrypt journal',c=>{ for(const d in c) if(enc.has('day-'+d)) c[d]={...c[d],enc:true}; return c; });
+    const next=await commitEntries(l=>l.map(e=>enc.has(e.id)?{...e,enc:true}:e),'journal: encrypt journal',c=>{ for(const d in c) c[d]={pics:picsOf(c,d).map(p=>enc.has(p.id)?{...p,enc:true}:p)}; return c; });
     for(const id of del){ status('Deleting plaintext '+id+'…'); await deleteImage(id,false); }
     merge(next); status(`Journal encrypted ✓ (${del.length} images re-saved encrypted). Old plaintext is still in git history — see the purge steps below.`,'ok');
   }catch(e){ status('Migration stopped: '+e.message,'err'); } finally{ btn.disabled=false; } });
 
 // ---------- day chart ----------
-async function setChart(day,file,raw){ if(!token) return; try{ status('Uploading QQQ chart for '+day+'…');
-  const blob=raw&&file.type==='image/jpeg'?file:await compress(file); const id='day-'+day; const old=charts[day]; await putImage(id,blob); if(old&&!old.enc) await deleteImage(id,false);
-  if(localImg[id]) URL.revokeObjectURL(localImg[id].url); localImg[id]={blob,url:URL.createObjectURL(blob)};
-  const next=await commitEntries(l=>l,`journal: QQQ chart ${day}`,c=>{ c[day]={ts:Date.now(),enc:true}; return c; }); merge(next); status('Chart saved ✓','ok'); }
+const picId=()=>'pic-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+async function addPics(day,files,raw){ if(!token) return; files=[...files].filter(f=>f&&(f.type||'').startsWith('image/')); if(!files.length) return;
+  try{ const add=[];
+    for(const [i,f] of files.entries()){ status(`Encrypting & uploading picture ${i+1}/${files.length} for ${day}…`);
+      const blob=raw&&f.type==='image/jpeg'?f:await compress(f), id=picId(); await putImage(id,blob); localImg[id]={blob,url:URL.createObjectURL(blob)};
+      add.push({id,label:(typeof raw==='string'?raw:'')||(f.label||''),enc:true,ts:Date.now()}); }
+    const next=await commitEntries(l=>l,`journal: ${add.length} picture(s) ${day}`,c=>{ c[day]={pics:picsOf(c,day).concat(add)}; return c; });
+    merge(next); status(`${add.length} picture${add.length>1?'s':''} saved ✓ (encrypted)`,'ok'); toast('Picture saved'); }
   catch(e){ status(e.message,'err'); } }
-async function removeChart(day){ if(!confirm('Remove the QQQ chart for '+day+'?')) return; try{ await deleteImage('day-'+day,!!charts[day]?.enc);
-  const next=await commitEntries(l=>l,`journal: remove chart ${day}`,c=>{ delete c[day]; return c; }); merge(next); status('Chart removed','ok'); }catch(e){ status(e.message,'err'); } }
-function renderTLChart(){ const d=$('tlDate').value; $('tlChart').innerHTML=d&&token?chartBlock(d,false):''; hydrateImages($('tlChart')); }
+const setChart=(day,file,raw)=>addPics(day,[file],raw);
+async function delPic(day,id){ if(!confirm('Delete this picture from '+day+'? This cannot be undone.')) return;
+  try{ const p=picsOf(charts,day).find(x=>x.id===id); await deleteImage(id,p?!!p.enc:true);
+    const next=await commitEntries(l=>l,`journal: delete picture ${day}`,c=>{ const ps=picsOf(c,day).filter(x=>x.id!==id); if(ps.length) c[day]={pics:ps}; else delete c[day]; return c; });
+    merge(next); status('Picture deleted','ok'); }catch(e){ status(e.message,'err'); } }
+async function editPics(day,fn,msg){ try{ const next=await commitEntries(l=>l,msg,c=>{ c[day]={pics:fn(picsOf(c,day).map(p=>({...p})))}; return c; }); merge(next); status('Saved ✓','ok'); }catch(e){ status(e.message,'err'); } }
+document.addEventListener('change',ev=>{ const t=ev.target; if(!token||!t.dataset||t.dataset.plabel===undefined) return; const id=t.dataset.plabel, v=t.value.trim().slice(0,40);
+  editPics(t.dataset.day,ps=>ps.map(p=>p.id===id?{...p,label:v}:p),`journal: label picture ${t.dataset.day}`); });
+let dragPic=null;
+document.addEventListener('dragstart',ev=>{ const f=ev.target.closest&&ev.target.closest('.pic'); if(!f||!token) return; dragPic=f; f.classList.add('dragging'); ev.dataTransfer.effectAllowed='move'; ev.dataTransfer.setData('text/plain',f.dataset.pic); });
+document.addEventListener('dragover',ev=>{ if(!dragPic) return; const f=ev.target.closest&&ev.target.closest('.pic'); if(f&&f.dataset.day===dragPic.dataset.day){ ev.preventDefault(); document.querySelectorAll('.pic.over').forEach(x=>x.classList.remove('over')); f.classList.add('over'); } });
+document.addEventListener('dragend',()=>{ document.querySelectorAll('.pic.over,.pic.dragging').forEach(x=>x.classList.remove('over','dragging')); dragPic=null; });
+document.addEventListener('drop',ev=>{ if(!dragPic) return; const f=ev.target.closest&&ev.target.closest('.pic'); ev.preventDefault(); ev.stopImmediatePropagation(); const from=dragPic.dataset.pic, day=dragPic.dataset.day; dragPic=null;
+  if(!f||f.dataset.pic===from||f.dataset.day!==day) return render(); const to=f.dataset.pic;
+  editPics(day,ps=>{ const a=ps.findIndex(p=>p.id===from); const [m]=ps.splice(a,1); ps.splice(ps.findIndex(p=>p.id===to),0,m); return ps; },`journal: reorder pictures ${day}`); },true);
+function renderTLChart(){ $('tlChart').innerHTML=''; }
 
 // ---------- trade list (paste & parse) ----------
 const TP=window.TradeParser;
@@ -594,12 +666,25 @@ $('exportBtn').addEventListener('click',async()=>{ status('Preparing export…')
   for(const e of entries.filter(x=>!x.draft)){ let image=null;
     if(e.hasImage){ try{ const u=await getImageURL(e.id,!!e.enc); image=await blobToDataURL(await (await fetch(u)).blob()); }catch(err){} }
     const c=clean(e); delete c.enc; out.push({...c,image}); }
-  const chOut={}; for(const d of Object.keys(charts)){ try{ const u=await getImageURL('day-'+d,!!charts[d].enc); chOut[d]={image:await blobToDataURL(await (await fetch(u)).blob())}; }catch(err){} }
+  const chOut={}; for(const d of Object.keys(charts)){ chOut[d]={pics:[]}; for(const p of picsOf(charts,d)){ try{ const u=await getImageURL(p.id,!!p.enc); chOut[d].pics.push({label:p.label||'',image:await blobToDataURL(await (await fetch(u)).blob())}); }catch(err){} } }
   const blob=new Blob([JSON.stringify({app:'mh_journal',version:3,exported:new Date().toISOString(),entries:out,charts:chOut})],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`trade-journal-${dayKey(Date.now())}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   status(`Exported ${out.length} entries`,'ok'); });
 $('refreshBtn').addEventListener('click',()=>{ imgBust=Date.now(); load(); });
 
+window.journalExecs=day=>entries.filter(e=>e.kind==='exec'&&dayKey(e.ts)===day);
+// ---------- simple layout: move rarely-used controls into the 'More tools' drawer (moved, not deleted) ----------
+(function(){ const mb=$('moreBody'), sec=(t,...els)=>{ const h=document.createElement('h3'); h.textContent=t; mb.append(h,...els.filter(Boolean)); };
+  const tl=$('tradeList'), grid=tl.querySelector('.tl-grid'), txt=$('tlText'), wrap=document.createElement('div'); wrap.className='btns'; wrap.style.justifyContent='flex-start';
+  wrap.append($('tlParse'),$('tlAdd'),$('tlReverse'));
+  sec('Paste trade list as text / import options',grid,txt,wrap);
+  sec('Screenshots (each becomes a journal entry)',$('drop'));
+  const io=$('exportBtn').parentElement; sec('Backup & refresh',io); io.prepend($('importFile').parentElement);
+  sec('Search & filters',document.querySelector('.filters'));
+  const cfg=document.createElement('div'); cfg.id='cfgBox'; sec('Report-card rule settings',cfg);
+  sec('Encryption',$('migrateBox'));
+  const lk=document.createElement('div'); lk.className='btns'; lk.style.justifyContent='flex-start'; lk.append($('lockBtn')); sec('Device',lk);
+})();
 if(token&&!pass) token=''; // older devices: require passphrase too
 render(); load().catch(()=>{});
 </script>
