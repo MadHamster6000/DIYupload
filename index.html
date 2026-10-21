@@ -58,6 +58,15 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
 .tip h4{margin:0 0 6px;font-size:1.02rem}.tip p{margin:4px 0;font-size:.88rem}.tip .rot{color:var(--amber);font-size:.82rem}
 .tsvg{width:100%;height:auto;max-height:150px;background:#0b0f17;border-radius:8px;border:1px solid var(--line)}
 @media(max-width:420px){.tgrid{grid-template-columns:1fr}}
+.pb{border-color:rgba(34,197,94,.45);background:linear-gradient(180deg,rgba(34,197,94,.07),var(--panel))}
+.pb-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:12px}
+.pb-meta{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:.9rem}
+.pb-count{font-weight:800;font-size:1.2rem;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 10px}
+.pb-count.done{color:var(--green);border-color:var(--green)}
+.pb-list{display:grid;gap:8px}
+.pb-item{display:flex;gap:12px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.98rem;color:var(--text);margin:0}
+.pb-item input{width:20px;height:20px;flex:none;margin-top:2px;accent-color:var(--green)}
+.pb-item:has(input:checked){border-color:rgba(34,197,94,.6)}.pb-item:has(input:checked) span{color:var(--muted);text-decoration:line-through}
 .hidden{display:none}
 @media(max-width:760px){.two{grid-template-columns:1fr}section.card{padding:16px}h1{font-size:1.3rem}.chart{height:280px}}
 </style>
@@ -67,6 +76,7 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
   <div class="brand">🐹 MadHamster <span>Options Toolkit</span></div>
   <nav id="nav">
     <a href="journal.html" style="background:var(--accent);color:#fff;font-weight:600">📸 Trade Journal</a>
+    <a href="#playbook">🎯 Playbook</a>
     <a href="#moonshot">Moonshot Ladder</a>
     <a href="#reference">Cash Table</a>
     <a href="#conviction-sizer">Conviction Sizer</a>
@@ -77,6 +87,12 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
 </div></header>
 
 <main>
+<!-- 0. Playbook -->
+<section class="card pb" id="playbook">
+  <div class="pb-head"><div><h1>🎯 My 0DTE Playbook</h1><p class="sub" style="margin:0">Check off each rule as you follow it today. Resets automatically every new trading day (ET).</p></div>
+  <div class="pb-meta"><span id="pbDate"></span><span id="pbCount" class="pb-count">0/5</span><button id="pbReset" title="Uncheck all for today">Reset</button></div></div>
+  <div class="pb-list"><label class="pb-item"><input type="checkbox" data-pb="0"><span><b>1.</b> Trade from 9:30 to 11:30 AM ET only, on SPY or QQQ.</span></label><label class="pb-item"><input type="checkbox" data-pb="1"><span><b>2.</b> Make 1 to 3 trades a day, and stop after your first loss.</span></label><label class="pb-item"><input type="checkbox" data-pb="2"><span><b>3.</b> Buy one cheap strike, about $0.30–0.40, and never add if it drops.</span></label><label class="pb-item"><input type="checkbox" data-pb="3"><span><b>4.</b> Sell half at +100%, more at +300%, and let one contract run with a 3 PM cutoff.</span></label><label class="pb-item"><input type="checkbox" data-pb="4"><span><b>5.</b> After a big green day, keep the next week's size flat.</span></label></div>
+</section>
 <!-- 1. Moonshot ladder -->
 <section class="card" id="moonshot">
   <h1>Moonshot Option Ladder</h1>
@@ -313,6 +329,25 @@ window.addEventListener('DOMContentLoaded',()=>{
   const obs=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id)); }),{rootMargin:'-40% 0px -55% 0px'});
   document.querySelectorAll('section.card').forEach(s=>obs.observe(s));
 });
+
+// ---------- 0. Playbook (state per ET day) ----------
+(function(){
+  const etDay=()=>new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  const boxes=[...document.querySelectorAll('[data-pb]')]; let day=etDay();
+  const key=()=>'mh_playbook_'+day;
+  function load(){ day=etDay(); let st=[]; try{ st=JSON.parse(localStorage.getItem(key()))||[]; }catch(e){}
+    boxes.forEach((b,i)=>b.checked=!!st[i]);
+    try{ Object.keys(localStorage).filter(k=>k.startsWith('mh_playbook_')&&k!==key()).forEach(k=>localStorage.removeItem(k)); }catch(e){}
+    show(); }
+  function save(){ try{ localStorage.setItem(key(),JSON.stringify(boxes.map(b=>b.checked))); }catch(e){} show(); }
+  function show(){ const n=boxes.filter(b=>b.checked).length; const c=document.getElementById('pbCount'); c.textContent=`${n}/${boxes.length}`; c.classList.toggle('done',n===boxes.length);
+    document.getElementById('pbDate').textContent=new Date().toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'short',month:'short',day:'numeric',year:'numeric'})+' ET'; }
+  boxes.forEach(b=>b.addEventListener('change',()=>{ if(etDay()!==day) load(); save(); }));
+  document.getElementById('pbReset').addEventListener('click',()=>{ boxes.forEach(b=>b.checked=false); save(); });
+  setInterval(()=>{ if(etDay()!==day) load(); },60000);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&etDay()!==day) load(); });
+  load();
+})();
 </script>
 </body>
 </html>
