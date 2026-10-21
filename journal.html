@@ -336,10 +336,16 @@ function renderStats(){
   const list=filtered().filter(e=>!e.draft), w=list.filter(e=>e.result==='W').length, l=list.filter(e=>e.result==='L').length;
   const fol=list.filter(e=>e.checks.includes('Followed exit plan')).length, pl=list.reduce((s,e)=>s+(parseFloat(e.pl)||0),0);
   const st=(k,v,c='')=>`<div class="stat"><div class="k">${k}</div><div class="v ${c}">${v}</div></div>`;
-  $('stats').innerHTML=st('Entries',list.length)+st('Win rate (W/(W+L))',w+l?Math.round(w/(w+l)*100)+'%':'—')+st('W / L / BE',`${w} / ${l} / ${list.filter(e=>e.result==='BE').length}`)
-    +st('Followed exit plan',list.length?Math.round(fol/list.length*100)+'%':'—')+st('Total P/L (screenshot entries)',money(pl),pl>0?'pos':pl<0?'neg':'');
   const ex=filteredExecs(), gs=TradeParser.summarize(ex), tpl=gs.reduce((a,g)=>a+g.netPl,0);
-  $('stats').innerHTML+=st('Executions / contracts',`${ex.length} / ${gs.length}`)+st('Trade-list realized P/L',money(tpl),tpl>0?'pos':tpl<0?'neg':'');
+  const tw=gs.filter(g=>g.netPl>0.005).length, tl=gs.filter(g=>g.netPl<-0.005).length, tb=gs.length-tw-tl;
+  const dayPl={}; gs.forEach(g=>{ const d=isFinite(g.first)?new Date(g.first).toLocaleDateString('en-CA',{timeZone:'America/New_York'}):'?'; dayPl[d]=(dayPl[d]||0)+g.netPl; });
+  const days=Object.keys(dayPl).filter(d=>d!=='?'), gd=days.filter(d=>dayPl[d]>0).length;
+  const winsAmt=gs.filter(g=>g.netPl>0).reduce((a,g)=>a+g.netPl,0), lossAmt=-gs.filter(g=>g.netPl<0).reduce((a,g)=>a+g.netPl,0);
+  let h=st('Positions (trade list)',gs.length)+st('Win rate (W/(W+L))',tw+tl?Math.round(tw/(tw+tl)*100)+'%':'—')+st('W / L / BE',`${tw} / ${tl} / ${tb}`)
+    +st('Green days',days.length?`${gd} / ${days.length}`:'—')+st('Avg win / avg loss',tw||tl?`${money(tw?winsAmt/tw:0)} / ${money(tl?-lossAmt/tl:0)}`:'—')
+    +st('Profit factor',lossAmt?(winsAmt/lossAmt).toFixed(2):(winsAmt?'∞':'—'))+st('Executions',ex.length)+st('Trade-list realized P/L',money(tpl),tpl>0?'pos':tpl<0?'neg':'');
+  if(list.length) h+=st('Screenshot entries',list.length)+st('Followed exit plan',Math.round(fol/list.length*100)+'%')+st('Screenshot W / L',`${w} / ${l}`)+st('Total P/L (screenshot entries)',money(pl),pl>0?'pos':pl<0?'neg':'');
+  $('stats').innerHTML=h;
 }
 function entryCard(e,dis){
     const btns=e.draft?'<span class="draftTag">UNSAVED DRAFT</span><button class="primary" data-save>Save entry</button><button class="danger" data-discard>Discard</button>'
