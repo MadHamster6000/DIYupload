@@ -124,7 +124,7 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
   <div class="ro-only lockbar">
     <span class="muted">🔒 Read-only.</span>
     <input type="password" id="tokenInput" placeholder="GitHub token" autocomplete="off">
-    <input type="password" id="passInput" placeholder="Journal passphrase (min 8 chars)" autocomplete="new-password">
+    <input type="password" id="passInput" placeholder="Journal passphrase (min 8 chars)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
     <button class="primary" id="unlockBtn">Unlock</button>
   </div>
   <div class="edit-only">
@@ -252,7 +252,7 @@ async function load(){
   status('Loading & decrypting journal…');
   try{ const d=await readEntriesAPI(); const list=d.list; charts=d.charts; entries=list.concat(entries.filter(e=>e.draft)); status(`Loaded ${list.length} entries from GitHub (live).${token?' Editing unlocked.':''}`,'ok'); }
   catch(e){
-    if(e.pass){ status(e.message,'err'); render(); throw e; }
+    if(e.pass){ const t=token; localStorage.removeItem(PASS_KEY); pass=''; token=''; keyCache.clear(); sessSalt=null; $('tokenInput').value=t; entries=entries.filter(x=>x.draft); status('Saved passphrase did not work on this device — type your journal passphrase below and tap Unlock.','err'); render(); return; }
     if(e.auth){ status(e.message,'err'); }
     let note=e.message+' Falling back to ';
     try{ let r=await fetch(RAW+ENTRIES+'?t='+Date.now(),{cache:'no-store'}); let src='raw.githubusercontent (may lag ~5 min)';
