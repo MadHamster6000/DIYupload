@@ -57,6 +57,16 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
 body.locked .edit-only{display:none!important}body:not(.locked) .ro-only{display:none!important}
 .entry input:disabled,.entry select:disabled,.entry textarea:disabled{opacity:1;color:var(--text);background:transparent;border-color:transparent}
 .busy{opacity:.6;pointer-events:none}
+.rcard{flex:1;min-width:300px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:.85rem}
+.rcard h4{margin:0 0 8px;font-size:.95rem;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px 12px;margin-bottom:8px}
+.rgrid div span{display:block;color:var(--muted);font-size:.72rem;text-transform:uppercase}.rgrid div b{font-variant-numeric:tabular-nums}
+.rules{list-style:none;margin:0;padding:0}.rules li{padding:3px 0;border-top:1px solid var(--line)}
+.rules .ok{color:var(--green)}.rules .broken{color:var(--red)}.rules .na{color:var(--muted)}.rules small{display:block;color:var(--muted);margin-left:20px}
+.score{font-weight:800;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}.score.good{color:var(--green);border-color:var(--green)}.score.bad{color:var(--red);border-color:var(--red)}
+.private{text-align:center;padding:40px 20px;color:var(--muted)}.private b{color:var(--text);font-size:1.2rem;display:block;margin-bottom:6px}
+.cfg{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.82rem;color:var(--muted);margin-top:10px}.cfg input{width:80px;padding:5px 7px}
+details.purge{margin-top:10px;font-size:.85rem}details.purge code{background:#0b0f17;padding:2px 5px;border-radius:4px}
 .tl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:10px}
 .tl-grid label{display:block;font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:3px}.tl-grid input{width:100%}
 #tlText{width:100%;min-height:140px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem}
@@ -89,12 +99,13 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
 <section class="card">
   <h1>📸 Screenshot Trade Journal</h1>
   <p class="sub">Moves are fast — capture the chart, then review your exit. Entries are stored in the GitHub repo, so every device sees the same journal.</p>
-  <div class="note">🌐 <b>Public:</b> this journal is saved in the public GitHub repo <code>MadHamster6000/DIYupload</code>. Anyone can view the screenshots and notes. Don't capture account numbers, balances or personal info. (GitHub Pages on a free plan needs a public repo, so making it private isn't an option here.)</div>
+  <div class="note">🔐 <b>Private &amp; encrypted:</b> entries, trade fills, notes, P/L and screenshots are encrypted in your browser (AES-256-GCM, key from your passphrase via PBKDF2 · 310,000 iterations) before they're saved to the public repo <code>MadHamster6000/DIYupload</code>. Without the passphrase the files are unreadable. Your token and passphrase are kept only in this browser. <b>If you forget the passphrase, the journal can't be recovered</b> — keep it safe and export backups.</div>
 
   <div class="ro-only lockbar">
     <span class="muted">🔒 Read-only.</span>
-    <input type="password" id="tokenInput" placeholder="Paste your GitHub token to unlock editing on this device" autocomplete="off">
-    <button class="primary" id="unlockBtn">Unlock editing</button>
+    <input type="password" id="tokenInput" placeholder="GitHub token" autocomplete="off">
+    <input type="password" id="passInput" placeholder="Journal passphrase (min 8 chars)" autocomplete="new-password">
+    <button class="primary" id="unlockBtn">Unlock</button>
   </div>
   <div class="edit-only">
     <div class="drop" id="drop" style="margin-top:12px">
@@ -103,14 +114,17 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
         <label class="btn primary">Upload image<input type="file" id="file" accept="image/*" multiple hidden></label>
         <button id="noImgBtn">+ Entry without image</button>
         <label class="btn">Import backup<input type="file" id="importFile" accept="application/json,.json" hidden></label>
-        <button id="lockBtn" class="danger">Lock / forget token</button>
+        <button id="lockBtn" class="danger">Lock / forget token &amp; passphrase</button>
       </div>
     </div>
     <p class="sub" style="margin-top:8px">🔑 Your token is kept only in this browser's localStorage. It's never committed or sent anywhere except api.github.com.</p>
   </div>
   <div class="btns" style="justify-content:flex-start"><button id="exportBtn">Export backup (JSON)</button><button id="refreshBtn">↻ Refresh</button></div>
   <div id="status">Loading…</div>
+  <div id="migrateBox" class="edit-only"></div>
 </section>
+<section class="card ro-only"><div class="private"><b>🔒 This journal is private.</b>Entries are encrypted. Unlock with the owner's token and passphrase to view.</div></section>
+<section class="card edit-only" id="tally"></section>
 
 <section class="card edit-only" id="tradeList">
   <h1 style="font-size:1.3rem">📋 Paste today's trade list</h1>
@@ -136,7 +150,7 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
   <div id="pvWrap"></div>
 </section>
 
-<section class="card">
+<section class="card edit-only">
   <div class="stats" id="stats"></div>
   <div class="filters">
     <input id="q" placeholder="Search notes or ticker…">
@@ -151,15 +165,35 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
 <div id="toast"></div>
 
 <script src="trade-parser.js"></script>
+<script src="journal-report.js"></script>
 <script>
 const OWNER='MadHamster6000', REPO='DIYupload', BRANCH='Madhamster-Stock';
 const API=`https://api.github.com/repos/${OWNER}/${REPO}`, RAW=`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/`;
-const ENTRIES='journal/entries.json', imgPath=id=>`journal/images/${id}.jpg`;
+const ENTRIES='journal/entries.json', imgPath=(id,enc)=>`journal/images/${id}.${enc?'bin':'jpg'}`;
 const CHECKS=['Followed exit plan','Took profit at +100%','Hit stop','Exited too early','Exited too late','A+ setup'];
 const TZ='America/New_York', TOKEN_KEY='mh_journal_token';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const PASS_KEY='mh_journal_pass'; let pass=localStorage.getItem(PASS_KEY)||'', fileEncrypted=null;
 let charts={}, pv=null, chartTarget=null, entries=[], localImg={}, token=localStorage.getItem(TOKEN_KEY)||'', imgBust=Date.now();
+// ---------- encryption (WebCrypto AES-GCM, PBKDF2-SHA256) ----------
+const ITER=310000, keyCache=new Map(); let sessSalt=null;
+const toB64u=u=>{ let s=''; const a=u instanceof Uint8Array?u:new Uint8Array(u); for(let i=0;i<a.length;i+=0x8000) s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000)); return btoa(s); };
+const fromB64u=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function deriveKey(salt,iter=ITER){ const k=toB64u(salt)+'|'+iter+'|'+pass; if(keyCache.has(k)) return keyCache.get(k);
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pass),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']); keyCache.set(k,key); return key; }
+const newSalt=()=>sessSalt||(sessSalt=crypto.getRandomValues(new Uint8Array(16)));
+async function encBytes(bytes){ const salt=newSalt(), iv=crypto.getRandomValues(new Uint8Array(12)); const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await deriveKey(salt),bytes)); return {salt,iv,ct}; }
+async function decBytes(salt,iv,ct,iter){ try{ return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv},await deriveKey(salt,iter),ct)); }
+  catch(e){ const err=new Error('Wrong passphrase — the journal could not be decrypted.'); err.pass=true; throw err; } }
+async function encJSON(obj){ const {salt,iv,ct}=await encBytes(new TextEncoder().encode(JSON.stringify(obj))); return {v:1,alg:'AES-GCM-256',kdf:'PBKDF2-SHA256',iter:ITER,salt:toB64u(salt),iv:toB64u(iv),ciphertext:toB64u(ct)}; }
+async function decJSON(d){ if(!d||!d.ciphertext){ return {doc:d||{},encrypted:false}; } if(!pass){ const e=new Error('Passphrase needed to read this journal.'); e.pass=true; throw e; }
+  const pt=await decBytes(fromB64u(d.salt),fromB64u(d.iv),fromB64u(d.ciphertext),d.iter||ITER); return {doc:JSON.parse(new TextDecoder().decode(pt)),encrypted:true}; }
+const MAGIC=[77,72,69,49]; // "MHE1"
+async function encBlob(blob){ const {salt,iv,ct}=await encBytes(new Uint8Array(await blob.arrayBuffer())); const out=new Uint8Array(4+16+12+ct.length); out.set(MAGIC,0); out.set(salt,4); out.set(iv,20); out.set(ct,32); return out; }
+async function decBlob(buf){ const a=new Uint8Array(buf); if(MAGIC.some((m,i)=>a[i]!==m)) throw new Error('Not an encrypted image'); return new Blob([await decBytes(a.slice(4,20),a.slice(20,32),a.slice(32))],{type:'image/jpeg'}); }
+
 function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2600); }
 function status(m,kind=''){ const s=$('status'); s.textContent=m; s.className=kind; }
 
@@ -180,23 +214,25 @@ async function gh(path,opts={}){
 }
 const b64ToText=b=>new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\n/g,'')),c=>c.charCodeAt(0)));
 const textToB64=t=>{ const bytes=new TextEncoder().encode(t); let s=''; bytes.forEach(x=>s+=String.fromCharCode(x)); return btoa(s); };
-const blobToB64=b=>new Promise(r=>{ const f=new FileReader(); f.onload=()=>r(f.result.split(',')[1]); f.readAsDataURL(b); });
+const blobToB64=b=>b instanceof Uint8Array?Promise.resolve(toB64u(b)):new Promise(r=>{ const f=new FileReader(); f.onload=()=>r(f.result.split(',')[1]); f.readAsDataURL(b); });
 const blobToDataURL=b=>new Promise(r=>{ const f=new FileReader(); f.onload=()=>r(f.result); f.readAsDataURL(b); });
 
 async function readEntriesAPI(){
-  try{ const f=await gh(`/contents/${ENTRIES}?ref=${BRANCH}`); const d=JSON.parse(b64ToText(f.content)); return {list:d.entries||[],charts:d.charts||{},sha:f.sha}; }
-  catch(e){ if(e.status===404) return {list:[],charts:{},sha:null}; throw e; }
+  try{ const f=await gh(`/contents/${ENTRIES}?ref=${BRANCH}`); const {doc:d,encrypted}=await decJSON(JSON.parse(b64ToText(f.content))); fileEncrypted=encrypted; return {list:d.entries||[],charts:d.charts||{},sha:f.sha}; }
+  catch(e){ if(e.status===404){ fileEncrypted=null; return {list:[],charts:{},sha:null}; } throw e; }
 }
 async function load(){
-  status('Loading journal…');
+  if(!token){ entries=entries.filter(e=>e.draft); charts={}; status('🔒 Locked. This journal is private — unlock to view.'); render(); return; }
+  status('Loading & decrypting journal…');
   try{ const d=await readEntriesAPI(); const list=d.list; charts=d.charts; entries=list.concat(entries.filter(e=>e.draft)); status(`Loaded ${list.length} entries from GitHub (live).${token?' Editing unlocked.':''}`,'ok'); }
   catch(e){
+    if(e.pass){ status(e.message,'err'); render(); throw e; }
     if(e.auth){ status(e.message,'err'); }
     let note=e.message+' Falling back to ';
     try{ let r=await fetch(RAW+ENTRIES+'?t='+Date.now(),{cache:'no-store'}); let src='raw.githubusercontent (may lag ~5 min)';
       if(!r.ok){ r=await fetch(ENTRIES+'?t='+Date.now(),{cache:'no-store'}); src='GitHub Pages copy (may lag a few minutes)'; }
       if(r.status===404){ entries=[]; status(note+src+': no entries yet.','err'); }
-      else if(r.ok){ const d=await r.json(); entries=(d.entries||[]).concat(entries.filter(e=>e.draft)); charts=d.charts||{}; status(note+src+`: ${entries.length} entries.`,'err'); }
+      else if(r.ok){ const {doc:d}=await decJSON(await r.json()); entries=(d.entries||[]).concat(entries.filter(e=>e.draft)); charts=d.charts||{}; status(note+src+`: ${entries.length} entries.`,'err'); }
       else throw new Error('HTTP '+r.status);
     }catch(e2){ status('Could not load the journal: '+e.message,'err'); }
   }
@@ -207,15 +243,15 @@ async function load(){
 async function commitEntries(mutate,msg,chartMutate){
   for(let attempt=0;attempt<4;attempt++){
     const d=await readEntriesAPI(); const next=mutate(d.list.slice()); const ch=chartMutate?chartMutate({...d.charts}):d.charts;
-    const body={message:msg,branch:BRANCH,content:textToB64(JSON.stringify({version:1,updated:new Date().toISOString(),entries:next,charts:ch},null,1))}; if(d.sha) body.sha=d.sha;
-    try{ await gh(`/contents/${ENTRIES}`,{method:'PUT',body:JSON.stringify(body)}); charts=ch; return next; }
+    const body={message:msg,branch:BRANCH,content:textToB64(JSON.stringify(await encJSON({version:1,updated:new Date().toISOString(),entries:next,charts:ch})))}; if(d.sha) body.sha=d.sha;
+    try{ await gh(`/contents/${ENTRIES}`,{method:'PUT',body:JSON.stringify(body)}); charts=ch; fileEncrypted=true; return next; }
     catch(e){ if(e.status===409||e.status===422){ await new Promise(r=>setTimeout(r,400*(attempt+1))); continue; } throw e; }
   }
   throw new GHError('Save conflict — someone else updated the journal. Refresh and try again.');
 }
 async function fileSha(path){ try{ return (await gh(`/contents/${path}?ref=${BRANCH}`)).sha; }catch(e){ if(e.status===404) return null; throw e; } }
-async function putImage(id,blob){ const sha=await fileSha(imgPath(id)); const body={message:`journal: image ${id}`,branch:BRANCH,content:await blobToB64(blob)}; if(sha) body.sha=sha; await gh(`/contents/${imgPath(id)}`,{method:'PUT',body:JSON.stringify(body)}); }
-async function deleteImage(id){ const sha=await fileSha(imgPath(id)); if(sha) await gh(`/contents/${imgPath(id)}`,{method:'DELETE',body:JSON.stringify({message:`journal: delete image ${id}`,branch:BRANCH,sha})}); }
+async function putImage(id,blob){ const p=imgPath(id,true), sha=await fileSha(p); const body={message:`journal: image ${id}`,branch:BRANCH,content:toB64u(await encBlob(blob))}; if(sha) body.sha=sha; await gh(`/contents/${p}`,{method:'PUT',body:JSON.stringify(body)}); }
+async function deleteImage(id,enc=true){ const sha=await fileSha(imgPath(id,enc)); if(sha) await gh(`/contents/${imgPath(id,enc)}`,{method:'DELETE',body:JSON.stringify({message:`journal: delete image ${id}`,branch:BRANCH,sha})}); }
 
 // ---------- images ----------
 function compress(file){ return new Promise((res,rej)=>{ const img=new Image(), u=URL.createObjectURL(file);
@@ -223,12 +259,18 @@ function compress(file){ return new Promise((res,rej)=>{ const img=new Image(), 
     c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); const x=c.getContext('2d'); x.fillStyle='#000'; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height);
     URL.revokeObjectURL(u); c.toBlob(b=>b?res(b):rej(new Error('compress failed')),'image/jpeg',0.82); };
   img.onerror=()=>{ URL.revokeObjectURL(u); rej(new Error('Not a readable image')); }; img.src=u; }); }
-const imgSrc=e=>localImg[e.id]?.url || (RAW+imgPath(e.id)+'?v='+imgBust);
+const BLANK='data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+async function getImageURL(id,enc){ if(localImg[id]) return localImg[id].url;
+  const r=await fetch(`${API}/contents/${imgPath(id,enc)}?ref=${BRANCH}`,{headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github.raw'},cache:'no-store'});
+  if(!r.ok) throw new Error('image '+r.status); const buf=await r.arrayBuffer(); const blob=enc?await decBlob(buf):new Blob([buf],{type:'image/jpeg'});
+  localImg[id]={blob,url:URL.createObjectURL(blob)}; return localImg[id].url; }
+function hydrateImages(root=document){ root.querySelectorAll('img[data-img]').forEach(img=>{ if(img.dataset.done) return; img.dataset.done=1;
+  getImageURL(img.dataset.img,img.dataset.enc==='1').then(u=>img.src=u).catch(()=>{ img.alt='Image unavailable'; }); }); }
 
 // ---------- entries ----------
 // WHITELIST of fields ever written for executions (no account id, description, raw text, etc.)
 const cleanExec=e=>({kind:'exec',id:String(e.id),ts:+e.ts,ticker:String(e.ticker||'').toUpperCase().slice(0,12),expiry:/^\d{4}-\d{2}-\d{2}$/.test(e.expiry||'')?e.expiry:'',strike:+e.strike||0,right:['C','P','S'].includes(e.right)?e.right:'',side:e.side==='sell'?'sell':'buy',qty:+e.qty,price:+e.price,fee:+e.fee||0,tag:String(e.tag||'').slice(0,24),group:String(e.group||'').slice(0,80),batch:String(e.batch||'').slice(0,20)});
-const clean=e=>e.kind==='exec'?cleanExec(e):({id:e.id,ts:e.ts,note:e.note||'',ticker:e.ticker||'',result:e.result||'',pl:e.pl??'',checks:(e.checks||[]).filter(c=>CHECKS.includes(c)),hasImage:!!e.hasImage});
+const clean=e=>e.kind==='exec'?cleanExec(e):({id:e.id,ts:e.ts,note:e.note||'',ticker:e.ticker||'',result:e.result||'',pl:e.pl??'',checks:(e.checks||[]).filter(c=>CHECKS.includes(c)),enc:!!e.enc,hasImage:!!e.hasImage});
 async function addDraft(file){
   if(!token) return;
   let blob=null; if(file){ try{ blob=await compress(file); }catch(err){ toast(err.message); return; } }
@@ -243,13 +285,13 @@ window.addEventListener('beforeunload',e=>{ if(unsaved()){ e.preventDefault(); e
 async function withBusy(card,fn){ card?.classList.add('busy'); try{ await fn(); }catch(e){ status(e.message,'err'); toast(e.message); } finally{ card?.classList.remove('busy'); } }
 async function saveEntry(id,card){ await withBusy(card,async()=>{
   const e=entries.find(x=>x.id===id); status('Saving to GitHub…');
-  if(e.draft&&e.hasImage&&localImg[id]) await putImage(id,localImg[id].blob);
+  if(e.draft&&e.hasImage&&localImg[id]){ await putImage(id,localImg[id].blob); e.enc=true; }
   const data=clean(e); const next=await commitEntries(l=>{ const i=l.findIndex(x=>x.id===id); i>=0?l[i]=data:l.push(data); return l; },`journal: ${e.draft?'add':'update'} ${e.ticker||'entry'} ${id}`);
   delete e.draft; delete e.dirty;
   merge(next); status('Saved ✓ — visible on every device now.','ok'); toast('Saved'); }); }
 async function deleteEntry(id,card){ if(!confirm('Delete this journal entry (and its screenshot) from GitHub? This cannot be undone.')) return;
   await withBusy(card,async()=>{ const e=entries.find(x=>x.id===id); status('Deleting…');
-    const next=await commitEntries(l=>l.filter(x=>x.id!==id),`journal: delete ${id}`); if(e?.hasImage) await deleteImage(id);
+    const next=await commitEntries(l=>l.filter(x=>x.id!==id),`journal: delete ${id}`); if(e?.hasImage) await deleteImage(id,!!e.enc);
     merge(next); status('Deleted ✓','ok'); toast('Deleted'); }); }
 function discardDraft(id){ if(!confirm('Discard this unsaved entry?')) return; if(localImg[id]){ URL.revokeObjectURL(localImg[id].url); delete localImg[id]; } entries=entries.filter(e=>e.id!==id); render(); }
 function revertEntry(id){ load(); }
@@ -277,7 +319,7 @@ function entryCard(e,dis){
     const btns=e.draft?'<span class="draftTag">UNSAVED DRAFT</span><button class="primary" data-save>Save entry</button><button class="danger" data-discard>Discard</button>'
       :(e.dirty?'<button class="primary" data-save>Save changes</button><button data-revert>Undo</button>':'')+'<button class="danger" data-del>Delete</button>';
     return `<div class="entry${e.draft?' draft':''}${e.dirty?' dirty':''}" data-id="${esc(e.id)}">
-      <div>${e.hasImage?`<img src="${esc(imgSrc(e))}" alt="Trade screenshot" data-zoom loading="lazy">`:'<div class="empty" style="border:1px dashed var(--line);border-radius:8px">No image</div>'}</div>
+      <div>${e.hasImage?`<img src="${BLANK}" data-img="${esc(e.id)}" data-enc="${e.enc?1:0}" alt="Trade screenshot" data-zoom>`:'<div class="empty" style="border:1px dashed var(--line);border-radius:8px">No image</div>'}</div>
       <div>
         <div class="meta"><span class="time">🕒 ${timeLabel(e.ts)}</span>
           <input class="ticker" data-f="ticker" placeholder="${token?'Ticker':''}" value="${esc(e.ticker)}" ${dis}>
@@ -298,14 +340,15 @@ function groupCard(g,rows){ const pl=g.pl;
     <div class="tbl"><table><thead><tr><th>Time (ET)</th><th>Side</th><th>Tag</th><th>Qty</th><th>Price</th><th>Value</th></tr></thead><tbody>
     ${rows.sort((a,b)=>a.ts-b.ts).map(r=>`<tr><td>${tIme(r.ts)}</td><td class="${r.side==='buy'?'pos':'neg'}">${r.side.toUpperCase()}</td><td><span class="tag ${tagClass(r.tag)}">${esc(r.tag)}</span></td><td>${r.qty}</td><td>${px(r.price)}</td><td>${money(r.qty*r.price*TradeParser.mult(r))}</td></tr>`).join('')}
     </tbody></table></div></div>`; }
-function chartBlock(day){
+function chartBlock(day,withReport){
   const c=charts[day], id='day-'+day, armed=chartTarget===day;
-  const img=c?`<img src="${esc(localImg[id]?.url||RAW+imgPath(id)+'?v='+(c.ts||imgBust))}" alt="QQQ chart ${day}" data-zoom data-fallback="${esc(imgPath(id))}">`:'';
+  const img=c?`<img src="${BLANK}" data-img="${esc(id)}" data-enc="${c.enc?1:0}" alt="QQQ chart ${day}" data-zoom>`:'';
   const ctl=`<span class="edit-only chartslot${armed?' armed':''}" style="display:${token?'flex':'none'}">📈 ${c?'Replace':'Add'} QQQ chart of the day:
     <label class="btn">Upload<input type="file" accept="image/*" hidden data-chartfile="${day}"></label><button data-chartpaste="${day}">${armed?'Now press Ctrl+V / ⌘+V…':'Paste'}</button>${c?`<button class="danger" data-chartdel="${day}">Remove</button>`:''}</span>`;
-  return (c||token)?`<div class="daychart">${img}${ctl}</div>`:''; }
+  const rep=token&&withReport?reportCard(day):'';
+  return (c||token||rep)?`<div class="daychart"><div style="display:flex;flex-direction:column;gap:8px">${img}${ctl}</div>${rep}</div>`:''; }
 function render(){
-  document.body.classList.toggle('locked',!token);
+  document.body.classList.toggle('locked',!token); renderTally(); renderMigrate();
   renderStats(); renderTLChart(); const list=filtered(), ex=filteredExecs(), box=$('list'), dis=token?'':'disabled';
   const filt=$('q').value||$('fCheck').value||$('fRes').value;
   const days=new Set([...list.map(e=>dayKey(e.ts)),...ex.map(e=>dayKey(e.ts)),...(filt?[]:Object.keys(charts))]);
@@ -315,11 +358,11 @@ function render(){
     const es=list.filter(e=>dayKey(e.ts)===d), xs=ex.filter(e=>dayKey(e.ts)===d), gs=TradeParser.summarize(xs), dpl=gs.reduce((a,g)=>a+g.netPl,0);
     const label=new Date(TradeParser.etToEpoch(+d.slice(0,4),+d.slice(5,7),+d.slice(8,10),12)).toLocaleDateString('en-US',{timeZone:TZ,weekday:'long',month:'long',day:'numeric',year:'numeric'});
     html+=`<div class="day"><span>${label}</span><span>${es.length?es.length+' entr'+(es.length>1?'ies':'y'):''}${gs.length?` ${es.length?'· ':''}${xs.length} fills in ${gs.length} contract round${gs.length>1?'s':''} · <span class="${dpl>0?'pos':dpl<0?'neg':''}">${money(dpl)}</span>`:''}</span></div>`;
-    html+=chartBlock(d);
+    html+=chartBlock(d,true);
     gs.forEach(g=>html+=groupCard(g,xs.filter(x=>x.group===g.group)));
     es.forEach(e=>html+=entryCard(e,dis)); });
   box.innerHTML=html;
-  box.querySelectorAll('img[data-zoom]').forEach(img=>img.addEventListener('error',()=>{ const fb=img.dataset.fallback||imgPath(img.closest('.entry')?.dataset.id); if(img.src.startsWith(RAW)) img.src=fb; },{once:true}));
+  hydrateImages(box); hydrateImages($('tlChart'));
 }
 $('list').addEventListener('input',ev=>{ if(!token) return; const t=ev.target, card=t.closest('.entry'); if(!card) return; const e=entries.find(x=>x.id===card.dataset.id);
   if(t.dataset.f){ let v=t.value; if(t.dataset.f==='ticker') v=v.toUpperCase(); if(t.dataset.f==='result') t.className='res '+v; e[t.dataset.f]=v; }
@@ -354,14 +397,16 @@ $('noImgBtn').addEventListener('click',()=>addDraft(null));
 
 // ---------- unlock / lock ----------
 $('unlockBtn').addEventListener('click',async()=>{
-  const t=$('tokenInput').value.trim(); if(!t){ status('Paste a token first.','err'); return; }
-  token=t; status('Checking token…');
+  const t=$('tokenInput').value.trim(), pw=$('passInput').value; if(!t){ status('Paste a token first.','err'); return; }
+  if(pw.length<8){ status('Enter your journal passphrase (at least 8 characters). New journal? Pick one now and keep it safe — it cannot be recovered.','err'); return; }
+  token=t; pass=pw; keyCache.clear(); sessSalt=null; status('Checking token…');
   try{ const repo=await gh(''); if(!repo.permissions||!(repo.permissions.push||repo.permissions.admin)) throw new GHError('This token can read but not write to the repo. It needs Contents: Read and write on DIYupload.');
-    localStorage.setItem(TOKEN_KEY,t); $('tokenInput').value=''; status('Editing unlocked on this device ✓','ok'); await load(); await offerMigration();
-  }catch(e){ token=''; status(e.auth?'Bad token (401) — check that you copied it fully and it has not expired.':e.message,'err'); render(); }
+    status('Checking passphrase…'); await readEntriesAPI();
+    localStorage.setItem(TOKEN_KEY,t); localStorage.setItem(PASS_KEY,pw); $('tokenInput').value=''; $('passInput').value=''; status('Unlocked on this device ✓','ok'); await load(); await offerMigration();
+  }catch(e){ token=''; pass=''; keyCache.clear(); entries=entries.filter(x=>x.draft); status(e.auth?'Bad token (401) — check that you copied it fully and it has not expired.':e.message,'err'); render(); }
 });
 $('lockBtn').addEventListener('click',()=>{ if(unsaved()&&!confirm('You have unsaved entries that will be lost. Lock anyway?')) return;
-  localStorage.removeItem(TOKEN_KEY); token=''; entries=entries.filter(e=>!e.draft).map(e=>{ delete e.dirty; return e; }); pv=null; chartTarget=null; renderPV(); status('Locked — token removed from this browser.','ok'); load(); });
+  localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(PASS_KEY); token=''; pass=''; keyCache.clear(); sessSalt=null; Object.values(localImg).forEach(x=>URL.revokeObjectURL(x.url)); localImg={}; entries=entries.filter(e=>!e.draft).map(e=>{ delete e.dirty; return e; }); pv=null; chartTarget=null; renderPV(); load(); status('Locked — token and passphrase removed from this browser.','ok'); });
 
 // ---------- migrate old IndexedDB journal ----------
 function readOldIDB(){ return new Promise(res=>{ if(!window.indexedDB) return res([]); let created=false; const r=indexedDB.open('mh_journal',1);
@@ -374,7 +419,7 @@ async function uploadMany(items,label){
   if(!todo.length){ toast('Nothing new to upload'); return 0; }
   for(const [i,e] of todo.entries()){ status(`${label}: uploading ${i+1}/${todo.length}…`);
     const id=String(e.id); let blob=e.image instanceof Blob?e.image:(typeof e.image==='string'?await (await fetch(e.image)).blob():null);
-    if(blob&&e.kind!=='exec') await putImage(id,blob); e.hasImage=!!blob||!!e.hasImage&&!e.image; }
+    if(blob&&e.kind!=='exec'){ await putImage(id,blob); e.enc=true; } e.hasImage=!!blob||!!e.hasImage&&!e.image; }
   const add=todo.map(e=>clean({...e,id:String(e.id),hasImage:e.hasImage}));
   const next=await commitEntries(l=>{ const ids=new Set(l.map(x=>x.id)); return l.concat(add.filter(x=>!ids.has(x.id))); },`journal: ${label.toLowerCase()} ${add.length} entries`);
   merge(next); status(`${label}: ${add.length} entries uploaded ✓`,'ok'); return add.length;
@@ -388,15 +433,75 @@ $('importFile').addEventListener('change',async e=>{ const f=e.target.files[0]; 
   try{ const data=JSON.parse(await f.text()); if(!Array.isArray(data.entries)) throw new Error('Not a journal backup'); await uploadMany(data.entries,'Import');
     for(const [d,c] of Object.entries(data.charts||{})) if(c&&c.image&&/^\d{4}-\d{2}-\d{2}$/.test(d)) await setChart(d,await (await fetch(c.image)).blob(),true); }catch(err){ status('Import failed: '+err.message,'err'); } });
 
+// ---------- daily report card & tally (computed on the fly; never written to the repo) ----------
+const CFG_KEY='mh_report_cfg';
+const rcfg=()=>{ try{ return {...JournalReport.DEFAULT_CFG,...JSON.parse(localStorage.getItem(CFG_KEY)||'{}')}; }catch(e){ return {...JournalReport.DEFAULT_CFG}; } };
+let RH=[], reportCache={};
+function computeReports(){ const ex=entries.filter(e=>e.kind==='exec'); RH=JournalReport.history(ex); reportCache={}; const c=rcfg();
+  RH.forEach(h=>reportCache[h.day]=JournalReport.report(h.day,h.execs,RH,c)); }
+const pctS=x=>isFinite(x)?Math.round(x*100)+'%':'—', mS=x=>isFinite(x)?money(Math.round(x)):'—';
+function reportHTML(r,copyKey){ const icon={ok:'✓',broken:'✗',na:'–'};
+  return `<div class="rcard"><h4><span>📊 Daily report · ${r.day}</span><span class="score ${r.followed>=4?'good':'bad'}">${r.followed} of 5 rules</span></h4>
+  <div class="rgrid"><div><span>P/L</span><b class="${r.pl>0?'pos':r.pl<0?'neg':''}">${money(r.pl)}</b></div><div><span>Trades</span><b>${r.trades}</b></div><div><span>Win rate</span><b>${pctS(r.winRate)}</b></div>
+  <div><span>Avg win / loss</span><b><em class="pos" style="font-style:normal">${mS(r.avgWin)}</em> / <em class="neg" style="font-style:normal">${mS(r.avgLoss)}</em></b></div>
+  <div><span>Median hold</span><b>${isFinite(r.medianHold)?Math.round(r.medianHold)+' min':'—'}</b></div><div><span>Entries &lt;10 / ≥10 AM</span><b>${r.before10} / ${r.after10}</b></div>
+  <div><span>Re-entries ≤15m after loss</span><b class="${r.reentries?'neg':''}">${r.reentries}</b></div><div><span>Positions with adds</span><b class="${r.withAdds?'warn':''}">${r.withAdds}</b></div></div>
+  <ul class="rules">${r.rules.map(x=>`<li><span class="${x.status}">${icon[x.status]} ${x.n}. ${esc(x.name)}${x.status==='na'?' (N/A)':''}</span>${x.why.length?`<small>${x.why.slice(0,4).map(esc).join('<br>')}${x.why.length>4?`<br>+${x.why.length-4} more`:''}</small>`:''}</li>`).join('')}</ul>
+  <div class="btns" style="justify-content:flex-start;margin-top:8px"><button data-copy="${esc(copyKey)}">📋 Copy summary</button></div></div>`; }
+function reportCard(day){ const r=reportCache[day]; return r?reportHTML(r,day):''; }
+function spark(vals){ if(!vals.length) return ''; const w=Math.max(120,vals.length*14), h=44, x=i=>vals.length===1?w/2:4+i*(w-8)/(vals.length-1), y=v=>h-4-(v/5)*(h-8);
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;max-width:${w}px;height:${h}px;background:#0b0f17;border:1px solid var(--line);border-radius:8px"><line x1="0" x2="${w}" y1="${y(4)}" y2="${y(4)}" stroke="#22c55e" stroke-dasharray="3 3" opacity=".5"/><polyline fill="none" stroke="#4f8cff" stroke-width="2" points="${vals.map((v,i)=>x(i)+','+y(v)).join(' ')}"/>${vals.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="${v>=4?'#22c55e':'#ef4444'}"/>`).join('')}</svg>`; }
+function renderTally(){ const el=$('tally'); if(!token){ el.innerHTML=''; return; } computeReports();
+  const reps=Object.values(reportCache).sort((a,b)=>a.day<b.day?-1:1), c=rcfg();
+  const tot=reps.reduce((a,r)=>a+r.pl,0), w=reps.reduce((a,r)=>a+r.wins,0), l=reps.reduce((a,r)=>a+r.losses,0), td=reps.filter(r=>r.trades>0), avgF=td.length?td.reduce((a,r)=>a+r.followed,0)/td.length:NaN;
+  const last=td.slice(-30);
+  el.innerHTML=`<h1 style="font-size:1.2rem">📈 Running tally <span class="muted" style="font-size:.8rem;font-weight:400">(computed in this browser, never saved to the repo)</span></h1>
+  <div class="stats"><div class="stat"><div class="k">Total P/L (trade lists)</div><div class="v ${tot>0?'pos':tot<0?'neg':''}">${money(tot)}</div></div>
+  <div class="stat"><div class="k">Overall win rate</div><div class="v">${w+l?Math.round(w/(w+l)*100)+'%':'—'}</div></div>
+  <div class="stat"><div class="k">Days / trades</div><div class="v">${td.length} / ${td.reduce((a,r)=>a+r.trades,0)}</div></div>
+  <div class="stat"><div class="k">Avg rules followed</div><div class="v ${avgF>=4?'pos':'neg'}">${isFinite(avgF)?avgF.toFixed(1)+' / 5':'—'}</div></div></div>
+  ${last.length?`<div style="margin-top:10px"><div class="muted" style="font-size:.8rem;margin-bottom:4px">Rules followed per day (last ${last.length} trading days, dashed line = 4/5) · ${last[0].day} → ${last.at(-1).day}</div>${spark(last.map(r=>r.followed))}</div>`:'<p class="sub">Import a trade list to start the tally.</p>'}
+  <div class="cfg">Rule settings: entry price $<input id="cfgLo" type="number" step="0.01" value="${c.priceLo}"> – $<input id="cfgHi" type="number" step="0.01" value="${c.priceHi}"> · big green day ≥ $<input id="cfgGreen" type="number" step="50" value="${c.greenThreshold}"></div>`; }
+document.addEventListener('change',ev=>{ if(['cfgLo','cfgHi','cfgGreen'].includes(ev.target.id)){ const c=rcfg(); c.priceLo=+$('cfgLo').value||c.priceLo; c.priceHi=+$('cfgHi').value||c.priceHi; c.greenThreshold=+$('cfgGreen').value||c.greenThreshold; localStorage.setItem(CFG_KEY,JSON.stringify({priceLo:c.priceLo,priceHi:c.priceHi,greenThreshold:c.greenThreshold})); render(); renderPV(); } });
+let pvReport=null;
+document.addEventListener('click',async ev=>{ const k=ev.target.dataset&&ev.target.dataset.copy; if(!k) return; const r=k==='__preview'?pvReport:reportCache[k]; if(!r) return; const txt=JournalReport.summaryText(r);
+  try{ await navigator.clipboard.writeText(txt); toast('Summary copied'); }catch(e){ const t=document.createElement('textarea'); t.value=txt; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); toast('Summary copied'); } });
+
+// ---------- encryption migration ----------
+function renderMigrate(){ const el=$('migrateBox'); if(!token){ el.innerHTML=''; return; }
+  const plainImgs=entries.filter(e=>e.hasImage&&!e.enc&&!e.draft).length+Object.values(charts).filter(c=>!c.enc).length;
+  const need=fileEncrypted===false||plainImgs>0;
+  el.innerHTML=(need?`<div class="note" style="border-color:var(--red);color:#fca5a5">⚠️ This journal still has <b>plaintext</b> data in the public repo (${fileEncrypted===false?'entries.json':''}${fileEncrypted===false&&plainImgs?' + ':''}${plainImgs?plainImgs+' image'+(plainImgs>1?'s':''):''}).
+    <div class="btns" style="justify-content:flex-start"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="migImgs" checked> Also encrypt images and delete the plaintext .jpg files</label><button class="primary" id="migBtn">🔐 Encrypt existing journal</button></div></div>`:'')+
+  `<details class="purge"><summary>Git history still has old plaintext versions — how to purge it</summary>
+   <p>Encrypting rewrites the current files, but earlier commits on <code>Madhamster-Stock</code> still contain the old plaintext <code>journal/</code> files. To remove them you have to rewrite that branch's history (force-push). From a computer with git:</p>
+   <ol><li><code>pip install git-filter-repo</code></li><li><code>git clone --branch Madhamster-Stock https://github.com/MadHamster6000/DIYupload.git purge &amp;&amp; cd purge</code></li>
+   <li>Back up the current encrypted files: <code>cp -r journal ../journal-encrypted</code></li><li><code>git filter-repo --path journal --invert-paths --force</code></li>
+   <li><code>cp -r ../journal-encrypted journal &amp;&amp; git add journal &amp;&amp; git commit -m "journal (encrypted)"</code></li>
+   <li><code>git remote add origin https://github.com/MadHamster6000/DIYupload.git &amp;&amp; git push --force origin Madhamster-Stock</code></li>
+   <li>Optional: ask GitHub Support to purge cached views of old commits.</li></ol>
+   <p class="muted">This rewrites history for that branch, so only do it once the encrypted journal is confirmed working. Ask Grok Bot if you'd like it done for you.</p></details>`; }
+document.addEventListener('click',async ev=>{ if(ev.target.id!=='migBtn') return; if(!confirm('Encrypt the journal now? entries.json will be rewritten encrypted'+($('migImgs').checked?' and plaintext images deleted':'')+'.')) return;
+  const btn=ev.target; btn.disabled=true; const doImgs=$('migImgs').checked;
+  try{ const del=[];
+    if(doImgs){ const todo=entries.filter(e=>e.hasImage&&!e.enc&&!e.draft);
+      for(const [i,e] of todo.entries()){ status(`Encrypting images ${i+1}/${todo.length}…`); const u=await getImageURL(e.id,false); await putImage(e.id,localImg[e.id].blob); del.push(e.id); }
+      for(const d of Object.keys(charts).filter(d=>!charts[d].enc)){ status('Encrypting chart '+d+'…'); await getImageURL('day-'+d,false); await putImage('day-'+d,localImg['day-'+d].blob); del.push('day-'+d); } }
+    status('Rewriting entries.json encrypted…'); const enc=new Set(del);
+    const next=await commitEntries(l=>l.map(e=>enc.has(e.id)?{...e,enc:true}:e),'journal: encrypt journal',c=>{ for(const d in c) if(enc.has('day-'+d)) c[d]={...c[d],enc:true}; return c; });
+    for(const id of del){ status('Deleting plaintext '+id+'…'); await deleteImage(id,false); }
+    merge(next); status(`Journal encrypted ✓ (${del.length} images re-saved encrypted). Old plaintext is still in git history — see the purge steps below.`,'ok');
+  }catch(e){ status('Migration stopped: '+e.message,'err'); } finally{ btn.disabled=false; } });
+
 // ---------- day chart ----------
 async function setChart(day,file,raw){ if(!token) return; try{ status('Uploading QQQ chart for '+day+'…');
-  const blob=raw&&file.type==='image/jpeg'?file:await compress(file); const id='day-'+day; await putImage(id,blob);
+  const blob=raw&&file.type==='image/jpeg'?file:await compress(file); const id='day-'+day; const old=charts[day]; await putImage(id,blob); if(old&&!old.enc) await deleteImage(id,false);
   if(localImg[id]) URL.revokeObjectURL(localImg[id].url); localImg[id]={blob,url:URL.createObjectURL(blob)};
-  const next=await commitEntries(l=>l,`journal: QQQ chart ${day}`,c=>{ c[day]={ts:Date.now()}; return c; }); merge(next); status('Chart saved ✓','ok'); }
+  const next=await commitEntries(l=>l,`journal: QQQ chart ${day}`,c=>{ c[day]={ts:Date.now(),enc:true}; return c; }); merge(next); status('Chart saved ✓','ok'); }
   catch(e){ status(e.message,'err'); } }
-async function removeChart(day){ if(!confirm('Remove the QQQ chart for '+day+'?')) return; try{ await deleteImage('day-'+day);
+async function removeChart(day){ if(!confirm('Remove the QQQ chart for '+day+'?')) return; try{ await deleteImage('day-'+day,!!charts[day]?.enc);
   const next=await commitEntries(l=>l,`journal: remove chart ${day}`,c=>{ delete c[day]; return c; }); merge(next); status('Chart removed','ok'); }catch(e){ status(e.message,'err'); } }
-function renderTLChart(){ const d=$('tlDate').value; $('tlChart').innerHTML=d&&token?chartBlock(d):''; }
+function renderTLChart(){ const d=$('tlDate').value; $('tlChart').innerHTML=d&&token?chartBlock(d,false):''; hydrateImages($('tlChart')); }
 
 // ---------- trade list (paste & parse) ----------
 const TP=window.TradeParser;
@@ -451,6 +556,8 @@ function renderPV(){ const w=$('pvWrap');
     const chk=closed.length?`<p class="sub" style="margin-top:6px">Cash check (${closed.length} closed rounds): Σ net_cash_amount = <b>${money(cash)}</b> vs computed net P/L <b>${money(cnet)}</b> ${Math.abs(cash-cnet)<0.01?'<span class="pos">✓ match</span>':'<span class="warn">≠ — review rows</span>'}</p>`:'';
     h+=`<h3 style="margin:14px 0 6px">Per-contract summary · realized <span class="${tot>0?'pos':tot<0?'neg':''}">${money(tot)}</span> · fees ${money(-fees)} · net <span class="${tot-fees>0?'pos':'neg'}">${money(tot-fees)}</span></h3><div class="tbl"><table><thead><tr><th>Contract</th><th>Round</th><th>Fills</th><th>Bought</th><th>Avg in</th><th>Sold</th><th>Avg out</th><th>Open</th><th>Gross P/L</th><th>Fees</th><th>Net P/L</th></tr></thead><tbody>`+
       gs.map(g=>`<tr><td><b>${esc(g.label)}</b></td><td>${g.round}</td><td>${g.n}</td><td>${g.bq}</td><td>${px(g.avgIn)}</td><td>${g.sq}</td><td>${px(g.avgOut)}</td><td class="${g.open?'warn':''}">${g.open}</td><td class="${g.pl>0?'pos':g.pl<0?'neg':''}">${money(g.pl)}</td><td>${money(-g.fee)}</td><td class="${g.netPl>0?'pos':g.netPl<0?'neg':''}">${money(g.netPl)}</td></tr>`).join('')+'</tbody></table></div><p class="sub" style="margin-top:6px">P/L = (avg out − avg in) × matched qty × 100 (×1 for stock) − commissions. Positions carried from before the selected range only count fills inside the range.</p>'+chk; }
+  pvReport=null; const pdays=[...new Set(pv.rows.map(r=>dayKey(r.ts)))];
+  if(pdays.length===1&&pv.rows.some(r=>TP.valid(r))){ const others=entries.filter(e=>e.kind==='exec'&&dayKey(e.ts)!==pdays[0]); const H=JournalReport.history(others.concat(pv.rows.filter(r=>TP.valid(r)))); const hd=H.find(x=>x.day===pdays[0]); if(hd){ pvReport=JournalReport.report(pdays[0],hd.execs,H,rcfg()); h+=`<h3 style="margin:14px 0 6px">Report card (preview)</h3><div class="daychart">${reportHTML(pvReport,'__preview')}</div>`; } }
   if(pv.ignored.length) h+=`<h3 style="margin:14px 0 6px">Skipped lines — fix in the table if they were real fills</h3>`+pv.ignored.map((g,i)=>`<div class="ign"><span>${esc(g.raw)}<br><span class="muted">(${esc(g.why)})</span></span><span><button data-mk="${i}">Make row</button> <button class="x" data-ig="${i}">✕</button></span></div>`).join('');
   w.innerHTML=h; }
 $('pvWrap').addEventListener('change',ev=>{ const t=ev.target, tr=t.closest('tr[data-i]'); if(!tr||!t.dataset.k) return; const r=pv.rows[+tr.dataset.i], k=t.dataset.k; let v=t.value.trim();
@@ -485,15 +592,16 @@ async function deleteGroup(group,el){ const ids=new Set(entries.filter(e=>e.kind
 // ---------- export ----------
 $('exportBtn').addEventListener('click',async()=>{ status('Preparing export…'); const out=[];
   for(const e of entries.filter(x=>!x.draft)){ let image=null;
-    if(e.hasImage){ try{ const r=await fetch(localImg[e.id]?.url||RAW+imgPath(e.id)); if(r.ok) image=await blobToDataURL(await r.blob()); }catch(err){} }
-    out.push({...clean(e),image}); }
-  const chOut={}; for(const d of Object.keys(charts)){ try{ const r=await fetch(RAW+imgPath('day-'+d)); if(r.ok) chOut[d]={image:await blobToDataURL(await r.blob())}; }catch(err){} }
+    if(e.hasImage){ try{ const u=await getImageURL(e.id,!!e.enc); image=await blobToDataURL(await (await fetch(u)).blob()); }catch(err){} }
+    const c=clean(e); delete c.enc; out.push({...c,image}); }
+  const chOut={}; for(const d of Object.keys(charts)){ try{ const u=await getImageURL('day-'+d,!!charts[d].enc); chOut[d]={image:await blobToDataURL(await (await fetch(u)).blob())}; }catch(err){} }
   const blob=new Blob([JSON.stringify({app:'mh_journal',version:3,exported:new Date().toISOString(),entries:out,charts:chOut})],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`trade-journal-${dayKey(Date.now())}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   status(`Exported ${out.length} entries`,'ok'); });
 $('refreshBtn').addEventListener('click',()=>{ imgBust=Date.now(); load(); });
 
-render(); load();
+if(token&&!pass) token=''; // older devices: require passphrase too
+render(); load().catch(()=>{});
 </script>
 </body>
 </html>
