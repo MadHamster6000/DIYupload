@@ -57,6 +57,26 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
 body.locked .edit-only{display:none!important}body:not(.locked) .ro-only{display:none!important}
 .entry input:disabled,.entry select:disabled,.entry textarea:disabled{opacity:1;color:var(--text);background:transparent;border-color:transparent}
 .busy{opacity:.6;pointer-events:none}
+.tl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:10px}
+.tl-grid label{display:block;font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:3px}.tl-grid input{width:100%}
+#tlText{width:100%;min-height:140px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:.84rem;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{background:var(--panel2);color:var(--muted);font-weight:600}
+#pvTable input,#pvTable select{padding:4px 6px;font-size:.82rem;width:100%;min-width:60px}
+#pvTable .w-time{min-width:150px}#pvTable .w-exp{min-width:100px}
+tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family:ui-monospace,monospace;font-size:.75rem;white-space:pre-wrap;background:rgba(239,68,68,.05)}
+.tag{font-size:.75rem;padding:2px 7px;border-radius:999px;background:var(--panel2);border:1px solid var(--line)}
+.tag.entry{color:#93c5fd;border-color:#1d4ed8}.tag.add{color:#c4b5fd;border-color:#6d28d9}.tag.exit{color:#fcd34d;border-color:#b45309}.tag.final{color:#86efac;border-color:#15803d}.tag.warn{color:#fca5a5;border-color:#b91c1c}
+.ign{font-family:ui-monospace,monospace;font-size:.78rem;white-space:pre-wrap;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:8px;margin:6px 0;display:flex;gap:10px;justify-content:space-between;align-items:flex-start}
+.grp{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.gh{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:.9rem}.gh b{font-size:1rem}
+.grp table{margin-top:8px}.grp td,.grp th{padding:4px 8px}
+.daychart{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0 12px}
+.daychart img{max-width:520px;width:100%;max-height:260px;object-fit:contain;background:#000;border:1px solid var(--line);border-radius:8px;cursor:zoom-in}
+.chartslot{border:1px dashed var(--line);border-radius:8px;padding:10px 14px;color:var(--muted);font-size:.88rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chartslot.armed{border-color:var(--accent);color:var(--text);background:rgba(79,140,255,.08)}
 </style>
 
 </head>
@@ -92,6 +112,30 @@ body.locked .edit-only{display:none!important}body:not(.locked) .ro-only{display
   <div id="status">Loading…</div>
 </section>
 
+<section class="card edit-only" id="tradeList">
+  <h1 style="font-size:1.3rem">📋 Paste today's trade list</h1>
+  <p class="sub">Paste Wealthsimple order history (copied text, Activity CSV export, or tab-separated). The parser finds ticker, strike, expiry, call/put, buy/sell, qty, price and time (ET), then tags each fill as entry / add / exit. Review and fix the preview, then save — one commit for the whole list.</p>
+  <div class="tl-grid">
+    <div><label for="tlDate">Trade date (used when a line has no date)</label><input type="date" id="tlDate"></div>
+    <div><label for="tlTicker">Default ticker (if missing)</label><input id="tlTicker" value="QQQ"></div>
+    <div><label><input type="checkbox" id="tlStocks" style="width:auto"> Include stock trades</label></div>
+  </div>
+  <p class="sub" style="margin:0 0 8px">Best: Wealthsimple → Activity → export CSV, then <b>Load CSV file</b> (or paste its text). Only ticker, strike, expiry, call/put, side, qty, price, commission and time are kept — account ID, account type, settlement date, description and name are dropped while parsing, and the pasted text is cleared right away.</p>
+  <textarea id="tlText" placeholder="e.g.&#10;QQQ 715C 10/20 Buy 5 @ 1.20 9:35 AM&#10;QQQ Oct 20 2026 $715 Call · Sell to close · Filled 5 of 5 · Avg price $1.85 · 10:02 AM&#10;or paste the Wealthsimple activities-export CSV"></textarea>
+  <div class="btns" style="justify-content:flex-start">
+    <button class="primary" id="tlParse">Parse</button>
+    <label class="btn">Load CSV file<input type="file" id="tlFile" accept=".csv,.tsv,.txt,text/*" hidden></label>
+    <button id="tlAdd">+ Add row</button>
+    <button id="tlReverse">⇅ Reverse order</button>
+    <button id="tlDiscard" class="danger">Discard preview</button>
+    <button id="tlSave" class="primary">Save executions</button>
+  </div>
+  <div id="tlChart"></div>
+  <div id="pvRange" class="tl-grid" style="margin-top:10px"></div>
+  <div id="pvInfo" class="sub" style="margin:8px 0 0"></div>
+  <div id="pvWrap"></div>
+</section>
+
 <section class="card">
   <div class="stats" id="stats"></div>
   <div class="filters">
@@ -106,6 +150,7 @@ body.locked .edit-only{display:none!important}body:not(.locked) .ro-only{display
 <div id="lightbox"><img alt=""></div>
 <div id="toast"></div>
 
+<script src="trade-parser.js"></script>
 <script>
 const OWNER='MadHamster6000', REPO='DIYupload', BRANCH='Madhamster-Stock';
 const API=`https://api.github.com/repos/${OWNER}/${REPO}`, RAW=`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/`;
@@ -114,7 +159,7 @@ const CHECKS=['Followed exit plan','Took profit at +100%','Hit stop','Exited too
 const TZ='America/New_York', TOKEN_KEY='mh_journal_token';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let entries=[], localImg={}, token=localStorage.getItem(TOKEN_KEY)||'', imgBust=Date.now();
+let charts={}, pv=null, chartTarget=null, entries=[], localImg={}, token=localStorage.getItem(TOKEN_KEY)||'', imgBust=Date.now();
 function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2600); }
 function status(m,kind=''){ const s=$('status'); s.textContent=m; s.className=kind; }
 
@@ -139,19 +184,19 @@ const blobToB64=b=>new Promise(r=>{ const f=new FileReader(); f.onload=()=>r(f.r
 const blobToDataURL=b=>new Promise(r=>{ const f=new FileReader(); f.onload=()=>r(f.result); f.readAsDataURL(b); });
 
 async function readEntriesAPI(){
-  try{ const f=await gh(`/contents/${ENTRIES}?ref=${BRANCH}`); return {list:JSON.parse(b64ToText(f.content)).entries||[],sha:f.sha}; }
-  catch(e){ if(e.status===404) return {list:[],sha:null}; throw e; }
+  try{ const f=await gh(`/contents/${ENTRIES}?ref=${BRANCH}`); const d=JSON.parse(b64ToText(f.content)); return {list:d.entries||[],charts:d.charts||{},sha:f.sha}; }
+  catch(e){ if(e.status===404) return {list:[],charts:{},sha:null}; throw e; }
 }
 async function load(){
   status('Loading journal…');
-  try{ const {list}=await readEntriesAPI(); entries=list; status(`Loaded ${list.length} entries from GitHub (live).${token?' Editing unlocked.':''}`,'ok'); }
+  try{ const d=await readEntriesAPI(); const list=d.list; charts=d.charts; entries=list.concat(entries.filter(e=>e.draft)); status(`Loaded ${list.length} entries from GitHub (live).${token?' Editing unlocked.':''}`,'ok'); }
   catch(e){
     if(e.auth){ status(e.message,'err'); }
     let note=e.message+' Falling back to ';
     try{ let r=await fetch(RAW+ENTRIES+'?t='+Date.now(),{cache:'no-store'}); let src='raw.githubusercontent (may lag ~5 min)';
       if(!r.ok){ r=await fetch(ENTRIES+'?t='+Date.now(),{cache:'no-store'}); src='GitHub Pages copy (may lag a few minutes)'; }
       if(r.status===404){ entries=[]; status(note+src+': no entries yet.','err'); }
-      else if(r.ok){ entries=(await r.json()).entries||[]; status(note+src+`: ${entries.length} entries.`,'err'); }
+      else if(r.ok){ const d=await r.json(); entries=(d.entries||[]).concat(entries.filter(e=>e.draft)); charts=d.charts||{}; status(note+src+`: ${entries.length} entries.`,'err'); }
       else throw new Error('HTTP '+r.status);
     }catch(e2){ status('Could not load the journal: '+e.message,'err'); }
   }
@@ -159,11 +204,11 @@ async function load(){
 }
 
 // mutate entries.json with SHA check; retry on conflict
-async function commitEntries(mutate,msg){
+async function commitEntries(mutate,msg,chartMutate){
   for(let attempt=0;attempt<4;attempt++){
-    const {list,sha}=await readEntriesAPI(); const next=mutate(list.slice());
-    const body={message:msg,branch:BRANCH,content:textToB64(JSON.stringify({version:1,updated:new Date().toISOString(),entries:next},null,1))}; if(sha) body.sha=sha;
-    try{ await gh(`/contents/${ENTRIES}`,{method:'PUT',body:JSON.stringify(body)}); return next; }
+    const d=await readEntriesAPI(); const next=mutate(d.list.slice()); const ch=chartMutate?chartMutate({...d.charts}):d.charts;
+    const body={message:msg,branch:BRANCH,content:textToB64(JSON.stringify({version:1,updated:new Date().toISOString(),entries:next,charts:ch},null,1))}; if(d.sha) body.sha=d.sha;
+    try{ await gh(`/contents/${ENTRIES}`,{method:'PUT',body:JSON.stringify(body)}); charts=ch; return next; }
     catch(e){ if(e.status===409||e.status===422){ await new Promise(r=>setTimeout(r,400*(attempt+1))); continue; } throw e; }
   }
   throw new GHError('Save conflict — someone else updated the journal. Refresh and try again.');
@@ -181,7 +226,9 @@ function compress(file){ return new Promise((res,rej)=>{ const img=new Image(), 
 const imgSrc=e=>localImg[e.id]?.url || (RAW+imgPath(e.id)+'?v='+imgBust);
 
 // ---------- entries ----------
-const clean=e=>({id:e.id,ts:e.ts,note:e.note||'',ticker:e.ticker||'',result:e.result||'',pl:e.pl??'',checks:(e.checks||[]).filter(c=>CHECKS.includes(c)),hasImage:!!e.hasImage});
+// WHITELIST of fields ever written for executions (no account id, description, raw text, etc.)
+const cleanExec=e=>({kind:'exec',id:String(e.id),ts:+e.ts,ticker:String(e.ticker||'').toUpperCase().slice(0,12),expiry:/^\d{4}-\d{2}-\d{2}$/.test(e.expiry||'')?e.expiry:'',strike:+e.strike||0,right:['C','P','S'].includes(e.right)?e.right:'',side:e.side==='sell'?'sell':'buy',qty:+e.qty,price:+e.price,fee:+e.fee||0,tag:String(e.tag||'').slice(0,24),group:String(e.group||'').slice(0,80),batch:String(e.batch||'').slice(0,20)});
+const clean=e=>e.kind==='exec'?cleanExec(e):({id:e.id,ts:e.ts,note:e.note||'',ticker:e.ticker||'',result:e.result||'',pl:e.pl??'',checks:(e.checks||[]).filter(c=>CHECKS.includes(c)),hasImage:!!e.hasImage});
 async function addDraft(file){
   if(!token) return;
   let blob=null; if(file){ try{ blob=await compress(file); }catch(err){ toast(err.message); return; } }
@@ -190,7 +237,8 @@ async function addDraft(file){
   entries.push({id,ts:Date.now(),note:'',ticker:'',result:'',pl:'',checks:[],hasImage:!!blob,draft:true}); render(); toast('Draft created — add details, then Save');
 }
 async function addFiles(files){ for(const f of files) if(f.type.startsWith('image/')) await addDraft(f); }
-const unsaved=()=>entries.some(e=>e.draft||e.dirty);
+const pvDirty=()=>!!(pv&&(pv.rows.length||pv.ignored.length));
+const unsaved=()=>entries.some(e=>e.draft||e.dirty)||pvDirty();
 window.addEventListener('beforeunload',e=>{ if(unsaved()){ e.preventDefault(); e.returnValue='You have an unsaved trade entry — are you sure you want to leave?'; return e.returnValue; } });
 async function withBusy(card,fn){ card?.classList.add('busy'); try{ await fn(); }catch(e){ status(e.message,'err'); toast(e.message); } finally{ card?.classList.remove('busy'); } }
 async function saveEntry(id,card){ await withBusy(card,async()=>{
@@ -214,24 +262,21 @@ const dayLabel=ts=>new Date(ts).toLocaleDateString('en-US',{timeZone:TZ,weekday:
 const timeLabel=ts=>new Date(ts).toLocaleTimeString('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit',second:'2-digit'})+' ET';
 const money=n=>(n<0?'-':'')+'$'+Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:2});
 function filtered(){ const q=$('q').value.trim().toLowerCase(), c=$('fCheck').value, r=$('fRes').value;
-  return entries.filter(e=>e.draft||((!q||(e.note+' '+e.ticker).toLowerCase().includes(q))&&(!c||e.checks.includes(c))&&(!r||e.result===r))).sort((a,b)=>b.ts-a.ts); }
+  return entries.filter(e=>e.kind!=='exec'&&(e.draft||((!q||(e.note+' '+e.ticker).toLowerCase().includes(q))&&(!c||e.checks.includes(c))&&(!r||e.result===r)))).sort((a,b)=>b.ts-a.ts); }
+function filteredExecs(){ const q=$('q').value.trim().toLowerCase(); if($('fCheck').value||$('fRes').value) return []; return entries.filter(e=>e.kind==='exec'&&(!q||e.ticker.toLowerCase().includes(q))); }
 function renderStats(){
   const list=filtered().filter(e=>!e.draft), w=list.filter(e=>e.result==='W').length, l=list.filter(e=>e.result==='L').length;
   const fol=list.filter(e=>e.checks.includes('Followed exit plan')).length, pl=list.reduce((s,e)=>s+(parseFloat(e.pl)||0),0);
   const st=(k,v,c='')=>`<div class="stat"><div class="k">${k}</div><div class="v ${c}">${v}</div></div>`;
   $('stats').innerHTML=st('Entries',list.length)+st('Win rate (W/(W+L))',w+l?Math.round(w/(w+l)*100)+'%':'—')+st('W / L / BE',`${w} / ${l} / ${list.filter(e=>e.result==='BE').length}`)
-    +st('Followed exit plan',list.length?Math.round(fol/list.length*100)+'%':'—')+st('Total P/L',money(pl),pl>0?'pos':pl<0?'neg':'');
+    +st('Followed exit plan',list.length?Math.round(fol/list.length*100)+'%':'—')+st('Total P/L (screenshot entries)',money(pl),pl>0?'pos':pl<0?'neg':'');
+  const ex=filteredExecs(), gs=TradeParser.summarize(ex), tpl=gs.reduce((a,g)=>a+g.netPl,0);
+  $('stats').innerHTML+=st('Executions / contracts',`${ex.length} / ${gs.length}`)+st('Trade-list realized P/L',money(tpl),tpl>0?'pos':tpl<0?'neg':'');
 }
-function render(){
-  document.body.classList.toggle('locked',!token);
-  renderStats(); const list=filtered(), box=$('list'), dis=token?'':'disabled';
-  if(!list.length){ box.innerHTML=`<div class="empty">${entries.length?'No entries match your filters.':(token?'No entries yet — paste a screenshot (Ctrl+V / ⌘+V) to start.':'No journal entries yet.')}</div>`; return; }
-  let html='', cur=null;
-  list.forEach(e=>{ const d=dayKey(e.ts);
-    if(d!==cur){ cur=d; const n=list.filter(x=>dayKey(x.ts)===d).length; html+=`<div class="day"><span>${dayLabel(e.ts)}</span><span>${n} entr${n>1?'ies':'y'}</span></div>`; }
+function entryCard(e,dis){
     const btns=e.draft?'<span class="draftTag">UNSAVED DRAFT</span><button class="primary" data-save>Save entry</button><button class="danger" data-discard>Discard</button>'
       :(e.dirty?'<button class="primary" data-save>Save changes</button><button data-revert>Undo</button>':'')+'<button class="danger" data-del>Delete</button>';
-    html+=`<div class="entry${e.draft?' draft':''}${e.dirty?' dirty':''}" data-id="${esc(e.id)}">
+    return `<div class="entry${e.draft?' draft':''}${e.dirty?' dirty':''}" data-id="${esc(e.id)}">
       <div>${e.hasImage?`<img src="${esc(imgSrc(e))}" alt="Trade screenshot" data-zoom loading="lazy">`:'<div class="empty" style="border:1px dashed var(--line);border-radius:8px">No image</div>'}</div>
       <div>
         <div class="meta"><span class="time">🕒 ${timeLabel(e.ts)}</span>
@@ -241,15 +286,51 @@ function render(){
           <span class="edit-only" style="display:contents">${btns}</span></div>
         <textarea data-f="note" placeholder="${token?'What happened? Entry reason, exit, what to do better…':''}" ${dis}>${esc(e.note)}</textarea>
         <div class="checks">${CHECKS.map(c=>`<label><input type="checkbox" data-c="${esc(c)}" ${e.checks.includes(c)?'checked':''} ${dis}><span>${esc(c)}</span></label>`).join('')}</div>
-      </div></div>`; });
+      </div></div>`; }
+const tagClass=t=>/flip|short|expired/.test(t)?'warn':t==='entry'?'entry':t==='add'?'add':/final/.test(t)?'final':'exit';
+const tIme=ts=>new Date(ts).toLocaleTimeString('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit',second:'2-digit'});
+const px=n=>isFinite(n)?'$'+n.toFixed(n<10?3:2).replace(/0$/,''):'—';
+function groupCard(g,rows){ const pl=g.pl;
+  return `<div class="grp" data-group="${esc(g.group)}"><div class="gh"><b>${esc(g.label)}</b><span class="muted">round ${g.round} · ${g.n} fills · ${tIme(g.first)}–${tIme(g.last)} ET</span>
+    <span>in ${g.bq} @ ${px(g.avgIn)} → out ${g.sq} @ ${px(g.avgOut)}</span>${g.open?`<span class="warn">${g.open} still open</span>`:''}
+    <b class="${g.netPl>0?'pos':g.netPl<0?'neg':'muted'}">P/L ${money(g.netPl)}</b>${g.fee?`<span class="muted">(fees ${money(g.fee)})</span>`:''}
+    <span class="edit-only" style="display:contents"><button data-gedit>Edit</button><button class="danger" data-gdel>Delete</button></span></div>
+    <div class="tbl"><table><thead><tr><th>Time (ET)</th><th>Side</th><th>Tag</th><th>Qty</th><th>Price</th><th>Value</th></tr></thead><tbody>
+    ${rows.sort((a,b)=>a.ts-b.ts).map(r=>`<tr><td>${tIme(r.ts)}</td><td class="${r.side==='buy'?'pos':'neg'}">${r.side.toUpperCase()}</td><td><span class="tag ${tagClass(r.tag)}">${esc(r.tag)}</span></td><td>${r.qty}</td><td>${px(r.price)}</td><td>${money(r.qty*r.price*TradeParser.mult(r))}</td></tr>`).join('')}
+    </tbody></table></div></div>`; }
+function chartBlock(day){
+  const c=charts[day], id='day-'+day, armed=chartTarget===day;
+  const img=c?`<img src="${esc(localImg[id]?.url||RAW+imgPath(id)+'?v='+(c.ts||imgBust))}" alt="QQQ chart ${day}" data-zoom data-fallback="${esc(imgPath(id))}">`:'';
+  const ctl=`<span class="edit-only chartslot${armed?' armed':''}" style="display:${token?'flex':'none'}">📈 ${c?'Replace':'Add'} QQQ chart of the day:
+    <label class="btn">Upload<input type="file" accept="image/*" hidden data-chartfile="${day}"></label><button data-chartpaste="${day}">${armed?'Now press Ctrl+V / ⌘+V…':'Paste'}</button>${c?`<button class="danger" data-chartdel="${day}">Remove</button>`:''}</span>`;
+  return (c||token)?`<div class="daychart">${img}${ctl}</div>`:''; }
+function render(){
+  document.body.classList.toggle('locked',!token);
+  renderStats(); renderTLChart(); const list=filtered(), ex=filteredExecs(), box=$('list'), dis=token?'':'disabled';
+  const filt=$('q').value||$('fCheck').value||$('fRes').value;
+  const days=new Set([...list.map(e=>dayKey(e.ts)),...ex.map(e=>dayKey(e.ts)),...(filt?[]:Object.keys(charts))]);
+  if(!days.size){ box.innerHTML=`<div class="empty">${entries.length?'No entries match your filters.':(token?'No entries yet — paste a screenshot (Ctrl+V / ⌘+V) or a trade list to start.':'No journal entries yet.')}</div>`; return; }
+  let html='';
+  [...days].sort().reverse().forEach(d=>{
+    const es=list.filter(e=>dayKey(e.ts)===d), xs=ex.filter(e=>dayKey(e.ts)===d), gs=TradeParser.summarize(xs), dpl=gs.reduce((a,g)=>a+g.netPl,0);
+    const label=new Date(TradeParser.etToEpoch(+d.slice(0,4),+d.slice(5,7),+d.slice(8,10),12)).toLocaleDateString('en-US',{timeZone:TZ,weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    html+=`<div class="day"><span>${label}</span><span>${es.length?es.length+' entr'+(es.length>1?'ies':'y'):''}${gs.length?` ${es.length?'· ':''}${xs.length} fills in ${gs.length} contract round${gs.length>1?'s':''} · <span class="${dpl>0?'pos':dpl<0?'neg':''}">${money(dpl)}</span>`:''}</span></div>`;
+    html+=chartBlock(d);
+    gs.forEach(g=>html+=groupCard(g,xs.filter(x=>x.group===g.group)));
+    es.forEach(e=>html+=entryCard(e,dis)); });
   box.innerHTML=html;
-  box.querySelectorAll('img[data-zoom]').forEach(img=>img.addEventListener('error',()=>{ const p=imgPath(img.closest('.entry').dataset.id); if(!img.src.includes('/journal/images/')||img.src.startsWith(RAW)) img.src=p; },{once:true}));
+  box.querySelectorAll('img[data-zoom]').forEach(img=>img.addEventListener('error',()=>{ const fb=img.dataset.fallback||imgPath(img.closest('.entry')?.dataset.id); if(img.src.startsWith(RAW)) img.src=fb; },{once:true}));
 }
 $('list').addEventListener('input',ev=>{ if(!token) return; const t=ev.target, card=t.closest('.entry'); if(!card) return; const e=entries.find(x=>x.id===card.dataset.id);
   if(t.dataset.f){ let v=t.value; if(t.dataset.f==='ticker') v=v.toUpperCase(); if(t.dataset.f==='result') t.className='res '+v; e[t.dataset.f]=v; }
   else if(t.dataset.c!==undefined){ const s=new Set(e.checks); t.checked?s.add(t.dataset.c):s.delete(t.dataset.c); e.checks=CHECKS.filter(c=>s.has(c)); }
   if(!e.draft&&!e.dirty){ e.dirty=true; render(); } else renderStats(); });
-$('list').addEventListener('click',ev=>{ const t=ev.target, card=t.closest('.entry'); if(!card) return; const id=card.dataset.id;
+document.addEventListener('click',ev=>{ const t=ev.target; if(!token) return;
+  if(t.dataset.chartpaste){ chartTarget=chartTarget===t.dataset.chartpaste?null:t.dataset.chartpaste; render(); if(chartTarget) toast('Now press Ctrl+V / ⌘+V to paste the chart'); }
+  if(t.dataset.chartdel) removeChart(t.dataset.chartdel);
+  const g=t.closest('.grp'); if(g&&t.matches('[data-gedit]')) editGroup(g.dataset.group); if(g&&t.matches('[data-gdel]')) deleteGroup(g.dataset.group,g); });
+document.addEventListener('change',ev=>{ const t=ev.target; if(t.dataset&&t.dataset.chartfile&&t.files[0]){ setChart(t.dataset.chartfile,t.files[0]); t.value=''; } });
+$('list').addEventListener('click',ev=>{ const t=ev.target; if(t.matches('[data-zoom]')&&!t.closest('.entry')){ const lb=$('lightbox'); lb.querySelector('img').src=t.src; lb.style.display='flex'; return; } const card=t.closest('.entry'); if(!card) return; const id=card.dataset.id;
   if(t.matches('[data-zoom]')){ const lb=$('lightbox'); lb.querySelector('img').src=t.src; lb.style.display='flex'; return; }
   if(!token) return;
   if(t.matches('[data-save]')) saveEntry(id,card);
@@ -263,7 +344,7 @@ CHECKS.forEach(c=>$('fCheck').insertAdjacentHTML('beforeend',`<option>${esc(c)}<
 
 // ---------- input: paste / drop / upload ----------
 document.addEventListener('paste',ev=>{ if(!token) return; const files=[...(ev.clipboardData?.items||[])].filter(i=>i.kind==='file'&&i.type.startsWith('image/')).map(i=>i.getAsFile());
-  if(files.length){ ev.preventDefault(); addFiles(files); } });
+  if(files.length){ ev.preventDefault(); if(chartTarget){ const d=chartTarget; chartTarget=null; setChart(d,files[0]); } else addFiles(files); } });
 const drop=$('drop');
 ['dragenter','dragover'].forEach(t=>document.addEventListener(t,e=>{ if(token&&[...(e.dataTransfer?.types||[])].includes('Files')){ e.preventDefault(); drop.classList.add('over'); } }));
 ['dragleave','drop'].forEach(t=>document.addEventListener(t,e=>{ if(t==='dragleave'&&e.relatedTarget) return; drop.classList.remove('over'); }));
@@ -280,7 +361,7 @@ $('unlockBtn').addEventListener('click',async()=>{
   }catch(e){ token=''; status(e.auth?'Bad token (401) — check that you copied it fully and it has not expired.':e.message,'err'); render(); }
 });
 $('lockBtn').addEventListener('click',()=>{ if(unsaved()&&!confirm('You have unsaved entries that will be lost. Lock anyway?')) return;
-  localStorage.removeItem(TOKEN_KEY); token=''; entries=entries.filter(e=>!e.draft).map(e=>{ delete e.dirty; return e; }); status('Locked — token removed from this browser.','ok'); load(); });
+  localStorage.removeItem(TOKEN_KEY); token=''; entries=entries.filter(e=>!e.draft).map(e=>{ delete e.dirty; return e; }); pv=null; chartTarget=null; renderPV(); status('Locked — token removed from this browser.','ok'); load(); });
 
 // ---------- migrate old IndexedDB journal ----------
 function readOldIDB(){ return new Promise(res=>{ if(!window.indexedDB) return res([]); let created=false; const r=indexedDB.open('mh_journal',1);
@@ -293,7 +374,7 @@ async function uploadMany(items,label){
   if(!todo.length){ toast('Nothing new to upload'); return 0; }
   for(const [i,e] of todo.entries()){ status(`${label}: uploading ${i+1}/${todo.length}…`);
     const id=String(e.id); let blob=e.image instanceof Blob?e.image:(typeof e.image==='string'?await (await fetch(e.image)).blob():null);
-    if(blob) await putImage(id,blob); e.hasImage=!!blob||!!e.hasImage&&!e.image; }
+    if(blob&&e.kind!=='exec') await putImage(id,blob); e.hasImage=!!blob||!!e.hasImage&&!e.image; }
   const add=todo.map(e=>clean({...e,id:String(e.id),hasImage:e.hasImage}));
   const next=await commitEntries(l=>{ const ids=new Set(l.map(x=>x.id)); return l.concat(add.filter(x=>!ids.has(x.id))); },`journal: ${label.toLowerCase()} ${add.length} entries`);
   merge(next); status(`${label}: ${add.length} entries uploaded ✓`,'ok'); return add.length;
@@ -304,14 +385,110 @@ async function offerMigration(){
   try{ await uploadMany(old,'Migration'); if(confirm('Migration done. Remove the old browser-only copy?')) indexedDB.deleteDatabase('mh_journal'); }catch(e){ status('Migration failed: '+e.message,'err'); }
 }
 $('importFile').addEventListener('change',async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
-  try{ const data=JSON.parse(await f.text()); if(!Array.isArray(data.entries)) throw new Error('Not a journal backup'); await uploadMany(data.entries,'Import'); }catch(err){ status('Import failed: '+err.message,'err'); } });
+  try{ const data=JSON.parse(await f.text()); if(!Array.isArray(data.entries)) throw new Error('Not a journal backup'); await uploadMany(data.entries,'Import');
+    for(const [d,c] of Object.entries(data.charts||{})) if(c&&c.image&&/^\d{4}-\d{2}-\d{2}$/.test(d)) await setChart(d,await (await fetch(c.image)).blob(),true); }catch(err){ status('Import failed: '+err.message,'err'); } });
+
+// ---------- day chart ----------
+async function setChart(day,file,raw){ if(!token) return; try{ status('Uploading QQQ chart for '+day+'…');
+  const blob=raw&&file.type==='image/jpeg'?file:await compress(file); const id='day-'+day; await putImage(id,blob);
+  if(localImg[id]) URL.revokeObjectURL(localImg[id].url); localImg[id]={blob,url:URL.createObjectURL(blob)};
+  const next=await commitEntries(l=>l,`journal: QQQ chart ${day}`,c=>{ c[day]={ts:Date.now()}; return c; }); merge(next); status('Chart saved ✓','ok'); }
+  catch(e){ status(e.message,'err'); } }
+async function removeChart(day){ if(!confirm('Remove the QQQ chart for '+day+'?')) return; try{ await deleteImage('day-'+day);
+  const next=await commitEntries(l=>l,`journal: remove chart ${day}`,c=>{ delete c[day]; return c; }); merge(next); status('Chart removed','ok'); }catch(e){ status(e.message,'err'); } }
+function renderTLChart(){ const d=$('tlDate').value; $('tlChart').innerHTML=d&&token?chartBlock(d):''; }
+
+// ---------- trade list (paste & parse) ----------
+const TP=window.TradeParser;
+$('tlDate').value=dayKey(Date.now());
+$('tlDate').addEventListener('change',renderTLChart);
+function parseTL(text){ const txt=text!==undefined?text:$('tlText').value; if(!txt.trim()){ status('Paste some order history first.','err'); return; }
+  const res=TP.parse(txt,{date:$('tlDate').value,ticker:$('tlTicker').value.trim(),includeStocks:$('tlStocks').checked});
+  $('tlText').value=''; // never keep the raw text around
+  const all=res.rows; all.sort((a,b)=>a.ts-b.ts);
+  const days=[...new Set(all.map(r=>dayKey(r.ts)))].sort();
+  pv={all,days,from:days.at(-1)||'',to:days.at(-1)||'',ignored:res.ignored,format:res.format,note:res.note||'',replaceIds:pv?.replaceIds||[],multi:days.length>1};
+  if(pv.from) $('tlDate').value=pv.from;
+  applyRange(); }
+function applyRange(){ if(!pv||!pv.all) return; const f=pv.from||'0000', t=pv.to||'9999';
+  pv.rows=pv.all.filter(r=>{ const d=dayKey(r.ts); return d>=f&&d<=t; });
+  const keys=new Set(pv.rows.map(r=>`${r.ticker}|${r.expiry}|${r.strike}|${r.right}`));
+  pv.prior=pv.all.filter(r=>dayKey(r.ts)<f&&keys.has(`${r.ticker}|${r.expiry}|${r.strike}|${r.right}`)); // context so carried positions tag correctly
+  renderPV(); }
+$('tlParse').addEventListener('click',()=>parseTL());
+$('tlFile').addEventListener('change',async e=>{ const f=e.target.files[0]; e.target.value=''; if(f) parseTL(await f.text()); });
+$('pvRange').addEventListener('change',ev=>{ const t=ev.target; if(!pv) return; if(t.id==='pvDay'){ pv.from=pv.to=t.value; } if(t.id==='pvFrom') pv.from=t.value; if(t.id==='pvTo') pv.to=t.value; if(pv.from>pv.to) pv.to=pv.from; if(pv.from) $('tlDate').value=pv.from; applyRange(); });
+$('tlAdd').addEventListener('click',()=>{ pv=pv||{rows:[],ignored:[],format:'manual',replaceIds:[],prior:[]}; const d=$('tlDate').value;
+  pv.rows.push({raw:'',ts:TP.parseETString(d+' 09:30:00'),ticker:$('tlTicker').value.trim().toUpperCase(),strike:NaN,right:'C',expiry:d,side:'buy',qty:1,price:NaN}); renderPV(); });
+$('tlReverse').addEventListener('click',()=>{ if(!pv) return; const ts=pv.rows.map(r=>r.ts).sort((a,b)=>a-b); pv.rows.reverse(); pv.rows.forEach((r,i)=>r.ts=ts[i]); renderPV(); });
+$('tlDiscard').addEventListener('click',()=>{ if(pvDirty()&&!confirm('Discard the parsed preview?')) return; pv=null; renderPV(); });
+function renderPV(){ const w=$('pvWrap');
+  if(!pv){ w.innerHTML=''; $('pvInfo').textContent=''; $('pvRange').innerHTML=''; return; }
+  if(pv.multi){ const cnt={}; pv.all.forEach(r=>{ const d=dayKey(r.ts); cnt[d]=(cnt[d]||0)+1; });
+    $('pvRange').innerHTML=`<div><label for="pvDay">Day in file (${pv.days.length} days)</label><select id="pvDay">${pv.days.slice().reverse().map(d=>`<option value="${d}" ${pv.from===d&&pv.to===d?'selected':''}>${d} — ${cnt[d]} fills</option>`).join('')}</select></div>
+      <div><label for="pvFrom">Or range from</label><input type="date" id="pvFrom" value="${pv.from}" min="${pv.days[0]}" max="${pv.days.at(-1)}"></div><div><label for="pvTo">to</label><input type="date" id="pvTo" value="${pv.to}" min="${pv.days[0]}" max="${pv.days.at(-1)}"></div>`; }
+  else $('pvRange').innerHTML='';
+  TP.tagRows((pv.prior||[]).concat(pv.rows)); const bad=pv.rows.filter(r=>!TP.valid(r)).length;
+  $('pvInfo').innerHTML=`Parsed as <b>${esc(pv.format)}</b>: ${pv.rows.length} executions${bad?`, <span class="neg">${bad} need fixing</span>`:''}${pv.ignored.length?`, ${pv.ignored.length} lines skipped`:''}. ${pv.replaceIds.length?`<span class="warn">Editing a saved group — saving replaces ${pv.replaceIds.length} fills.</span> `:''}${esc(pv.note)} <span class="draftTag">UNSAVED PREVIEW</span>${pv.rows.length>400?' <span class="warn">Large range — table may be slow; pick fewer days.</span>':''}`;
+  const opt=(v,list)=>list.map(([k,l])=>`<option value="${k}" ${v===k?'selected':''}>${l}</option>`).join('');
+  let h=`<div class="tbl"><table id="pvTable"><thead><tr><th>Time (ET)</th><th>Ticker</th><th>Expiry</th><th>Strike</th><th>C/P</th><th>Side</th><th>Qty</th><th>Price</th><th>Fee</th><th>Tag</th><th></th></tr></thead><tbody>`;
+  pv.rows.forEach((r,i)=>{ const ok=TP.valid(r);
+    h+=`<tr class="${ok?'':'bad'}" data-i="${i}"><td><input class="w-time" data-k="ts" value="${isFinite(r.ts)?TP.fmtET(r.ts):''}" placeholder="YYYY-MM-DD HH:MM:SS"></td>
+    <td><input data-k="ticker" value="${esc(r.ticker)}" size="5"></td><td><input class="w-exp" data-k="expiry" value="${esc(r.expiry)}" placeholder="YYYY-MM-DD"></td>
+    <td><input data-k="strike" type="number" step="any" value="${isFinite(r.strike)?r.strike:''}"></td>
+    <td><select data-k="right"><option value=""></option>${opt(r.right,[['C','Call'],['P','Put'],['S','Stock']])}</select></td>
+    <td><select data-k="side"><option value=""></option>${opt(r.side,[['buy','Buy'],['sell','Sell']])}</select></td>
+    <td><input data-k="qty" type="number" step="1" min="0" value="${isFinite(r.qty)?r.qty:''}"></td>
+    <td><input data-k="price" type="number" step="any" min="0" value="${isFinite(r.price)?r.price:''}"></td>
+    <td><input data-k="fee" type="number" step="any" min="0" value="${+r.fee||0}" style="min-width:50px"></td>
+    <td>${r.tag?`<span class="tag ${tagClass(r.tag)}">${esc(r.tag)}</span>`:'<span class="neg">incomplete</span>'}</td>
+    <td><button class="x" data-rm="${i}" title="Delete row">✕</button></td></tr>`;
+    if(!ok&&r.raw) h+=`<tr class="rawrow"><td colspan="11">raw: ${esc(r.raw)}</td></tr>`; });
+  h+='</tbody></table></div>';
+  const gs=TP.summarize(pv.rows);
+  if(gs.length){ const tot=gs.reduce((a,g)=>a+g.pl,0);
+    const fees=gs.reduce((a,g)=>a+g.fee,0), closed=gs.filter(g=>g.open===0&&g.hasCash), cash=closed.reduce((a,g)=>a+g.cash,0), cnet=closed.reduce((a,g)=>a+g.netPl,0);
+    const chk=closed.length?`<p class="sub" style="margin-top:6px">Cash check (${closed.length} closed rounds): Σ net_cash_amount = <b>${money(cash)}</b> vs computed net P/L <b>${money(cnet)}</b> ${Math.abs(cash-cnet)<0.01?'<span class="pos">✓ match</span>':'<span class="warn">≠ — review rows</span>'}</p>`:'';
+    h+=`<h3 style="margin:14px 0 6px">Per-contract summary · realized <span class="${tot>0?'pos':tot<0?'neg':''}">${money(tot)}</span> · fees ${money(-fees)} · net <span class="${tot-fees>0?'pos':'neg'}">${money(tot-fees)}</span></h3><div class="tbl"><table><thead><tr><th>Contract</th><th>Round</th><th>Fills</th><th>Bought</th><th>Avg in</th><th>Sold</th><th>Avg out</th><th>Open</th><th>Gross P/L</th><th>Fees</th><th>Net P/L</th></tr></thead><tbody>`+
+      gs.map(g=>`<tr><td><b>${esc(g.label)}</b></td><td>${g.round}</td><td>${g.n}</td><td>${g.bq}</td><td>${px(g.avgIn)}</td><td>${g.sq}</td><td>${px(g.avgOut)}</td><td class="${g.open?'warn':''}">${g.open}</td><td class="${g.pl>0?'pos':g.pl<0?'neg':''}">${money(g.pl)}</td><td>${money(-g.fee)}</td><td class="${g.netPl>0?'pos':g.netPl<0?'neg':''}">${money(g.netPl)}</td></tr>`).join('')+'</tbody></table></div><p class="sub" style="margin-top:6px">P/L = (avg out − avg in) × matched qty × 100 (×1 for stock) − commissions. Positions carried from before the selected range only count fills inside the range.</p>'+chk; }
+  if(pv.ignored.length) h+=`<h3 style="margin:14px 0 6px">Skipped lines — fix in the table if they were real fills</h3>`+pv.ignored.map((g,i)=>`<div class="ign"><span>${esc(g.raw)}<br><span class="muted">(${esc(g.why)})</span></span><span><button data-mk="${i}">Make row</button> <button class="x" data-ig="${i}">✕</button></span></div>`).join('');
+  w.innerHTML=h; }
+$('pvWrap').addEventListener('change',ev=>{ const t=ev.target, tr=t.closest('tr[data-i]'); if(!tr||!t.dataset.k) return; const r=pv.rows[+tr.dataset.i], k=t.dataset.k; let v=t.value.trim();
+  if(k==='ts') r.ts=TP.parseETString(v); else if(['strike','qty','price','fee'].includes(k)) r[k]=v===''?NaN:+v; else if(k==='ticker') r[k]=v.toUpperCase(); else r[k]=v;
+  renderPV(); });
+$('pvWrap').addEventListener('click',ev=>{ const t=ev.target;
+  if(t.dataset.rm!==undefined){ pv.rows.splice(+t.dataset.rm,1); renderPV(); }
+  if(t.dataset.ig!==undefined){ pv.ignored.splice(+t.dataset.ig,1); renderPV(); }
+  if(t.dataset.mk!==undefined){ const g=pv.ignored.splice(+t.dataset.mk,1)[0]; const r=TP.parse(g.raw,{date:$('tlDate').value,ticker:$('tlTicker').value}).rows[0]||{};
+    const d=$('tlDate').value; pv.rows.push({ts:TP.parseETString(d+' 09:30:00'),ticker:$('tlTicker').value.toUpperCase(),strike:NaN,right:'',expiry:d,side:'',qty:NaN,price:NaN,...r,raw:g.raw}); renderPV(); } });
+const sameFill=(a,b)=>Math.abs(a.ts-b.ts)<1000&&a.ticker===b.ticker&&a.expiry===b.expiry&&+a.strike===+b.strike&&a.right===b.right&&a.side===b.side&&+a.qty===+b.qty&&Math.abs(a.price-b.price)<1e-9;
+$('tlSave').addEventListener('click',async()=>{ if(!pv||!pv.rows.length){ status('Nothing to save — parse a trade list first.','err'); return; }
+  const bad=pv.rows.filter(r=>!TP.valid(r)).length; if(bad){ status(`${bad} row(s) are incomplete (red). Fix or delete them before saving.`,'err'); return; }
+  const btn=$('tlSave'); btn.disabled=true; const batch='b'+Date.now().toString(36);
+  if(!pv.replaceIds.length){ const ex=entries.filter(x=>x.kind==='exec'); if(pv.rows.every(r=>ex.some(x=>sameFill(x,r)))){ btn.disabled=false; const n=pv.rows.length; pv=null; renderPV(); status(`All ${n} executions were already saved — nothing to commit.`,'ok'); return; } }
+  try{ status('Saving trade list (one commit)…'); const replace=new Set(pv.replaceIds); let dup=0;
+    const next=await commitEntries(l=>{ const keep=l.filter(x=>!replace.has(x.id)); const days=new Set(pv.rows.map(r=>dayKey(r.ts)));
+      const existing=keep.filter(x=>x.kind==='exec'&&days.has(dayKey(x.ts)));
+      const fresh=pv.rows.filter(r=>{ if(existing.some(x=>sameFill(x,r))){ dup++; return false; } return true; })
+        .map((r,i)=>({...r,kind:'exec',id:'x'+Date.now().toString(36)+i.toString(36)+Math.random().toString(36).slice(2,5),batch}));
+      const all=existing.concat(fresh); TP.tagRows((pv.prior||[]).concat(all)); const ids=new Set(all.map(x=>x.id));
+      return keep.filter(x=>!ids.has(x.id)).concat(all.map(cleanExec)); },`journal: trade list ${$('tlDate').value} (${pv.rows.length} fills)`);
+    const n=pv.rows.length-dup; pv=null; $('tlText').value=''; renderPV(); merge(next); status(`Saved ${n} executions in one commit ✓${dup?` (${dup} duplicates already saved were skipped)`:''}`,'ok'); toast('Trade list saved');
+  }catch(e){ status(e.message,'err'); } finally{ btn.disabled=false; } });
+function editGroup(group){ const rows=entries.filter(e=>e.kind==='exec'&&e.group===group); if(!rows.length) return;
+  if(pvDirty()&&!confirm('Replace the current unsaved preview?')) return;
+  pv={rows:rows.map(r=>({...r,raw:''})),prior:[],ignored:[],format:'saved group',note:'',replaceIds:rows.map(r=>r.id)}; $('tlDate').value=dayKey(rows[0].ts); renderPV(); $('tradeList').scrollIntoView({behavior:'smooth'}); }
+async function deleteGroup(group,el){ const ids=new Set(entries.filter(e=>e.kind==='exec'&&e.group===group).map(e=>e.id));
+  if(!confirm(`Delete ${ids.size} executions for this contract round? This cannot be undone.`)) return;
+  await withBusy(el,async()=>{ const next=await commitEntries(l=>l.filter(x=>!ids.has(x.id)),`journal: delete group ${group}`); merge(next); status('Group deleted ✓','ok'); }); }
 
 // ---------- export ----------
 $('exportBtn').addEventListener('click',async()=>{ status('Preparing export…'); const out=[];
   for(const e of entries.filter(x=>!x.draft)){ let image=null;
     if(e.hasImage){ try{ const r=await fetch(localImg[e.id]?.url||RAW+imgPath(e.id)); if(r.ok) image=await blobToDataURL(await r.blob()); }catch(err){} }
     out.push({...clean(e),image}); }
-  const blob=new Blob([JSON.stringify({app:'mh_journal',version:2,exported:new Date().toISOString(),entries:out})],{type:'application/json'});
+  const chOut={}; for(const d of Object.keys(charts)){ try{ const r=await fetch(RAW+imgPath('day-'+d)); if(r.ok) chOut[d]={image:await blobToDataURL(await r.blob())}; }catch(err){} }
+  const blob=new Blob([JSON.stringify({app:'mh_journal',version:3,exported:new Date().toISOString(),entries:out,charts:chOut})],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`trade-journal-${dayKey(Date.now())}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   status(`Exported ${out.length} entries`,'ok'); });
 $('refreshBtn').addEventListener('click',()=>{ imgBust=Date.now(); load(); });
