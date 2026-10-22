@@ -125,6 +125,13 @@ function parseTable(lines,d,ctx){
 // ---- Wealthsimple Activity export (primary format) ----
 // Whitelist: only these fields ever leave this function. account_id, account_type, settlement_date, description, name are dropped here.
 function isWS(head){ const h=head.map(x=>x.toLowerCase()); return h.includes('activity_type')&&h.includes('symbol')&&(h.includes('effective_date')||h.includes('transaction_date')); }
+// Wealthsimple option unit_price is sometimes x100 (33 = $0.33) and sometimes raw (1.83). net_cash_amount is always true USD.
+// Pick the scale whose qty*price*100 best matches |net| (net may include commission); fall back to legacy /100 when net is missing.
+function wsOptPrice(raw,q,net,fee){ if(!isFinite(raw)) return NaN; raw=Math.abs(raw);
+  if(isFinite(net)&&net!==0&&q>0){ const n=Math.abs(net), err=p=>Math.min(...[n,n-fee,n+fee].map(c=>Math.abs(q*p*100-c)))/n;
+    const a=raw, b=raw/100; if(Math.min(err(a),err(b))<0.05) return err(a)<=err(b)?a:b;
+    const d=Math.max(n-fee,0)/(q*100); if(d>0) return Math.round(d*10000)/10000; }
+  return raw/100; }
 function parseWS(lines,d,opts){
   const head=splitDelim(lines[0],d).map(x=>x.toLowerCase()); const ix=k=>head.indexOf(k);
   const I={date:ix('effective_date')>=0?ix('effective_date'):ix('transaction_date'),time:ix('effective_time'),type:ix('activity_type'),sub:ix('activity_sub_type'),sym:ix('symbol'),und:ix('underlying symbol'),qty:ix('quantity'),price:ix('unit_price'),fee:ix('commission'),net:ix('net_cash_amount'),cur:ix('currency')};
@@ -139,7 +146,7 @@ function parseWS(lines,d,opts){
     const q=num(g('qty')), fee=Math.abs(num(g('fee'))||0), net=num(g('net'));
     let r=null;
     if(type==='Trade'&&occ){ const sub=g('sub').toUpperCase(); const side=sub==='BUY'?'buy':sub==='SELL'?'sell':(q<0?'sell':'buy');
-      r={ts,hasTime:!!tm[1],ticker:occ[1],expiry:`20${occ[2]}-${occ[3]}-${occ[4]}`,right:occ[5],strike:+occ[6]/1000,side,qty:Math.abs(q),price:num(g('price'))/100,fee}; }
+      r={ts,hasTime:!!tm[1],ticker:occ[1],expiry:`20${occ[2]}-${occ[3]}-${occ[4]}`,right:occ[5],strike:+occ[6]/1000,side,qty:Math.abs(q),price:wsOptPrice(num(g('price')),Math.abs(q),net,fee),fee}; }
     else if(type==='OptionExpiry'&&occ){ r={ts,hasTime:!!tm[1],ticker:occ[1],expiry:`20${occ[2]}-${occ[3]}-${occ[4]}`,right:occ[5],strike:+occ[6]/1000,side:q<0?'sell':'buy',qty:Math.abs(q),price:0,fee:0,expired:true}; }
     else if(type==='Trade'&&opts.includeStocks&&g('sym')){ const sub=g('sub').toUpperCase();
       r={ts,hasTime:!!tm[1],ticker:g('sym').toUpperCase(),expiry:'',right:'S',strike:0,side:sub==='BUY'?'buy':'sell',qty:Math.abs(q),price:num(g('price')),fee}; }
