@@ -37,13 +37,13 @@ function report(day,execs,history,cfg){
   { const bad=[]; started.forEach(r=>{ if(r.right==='S') return; const p=r.entry.price; if(p<cfg.priceLo||p>cfg.priceHi) bad.push(`${r.label} entry $${p.toFixed(2)}`); });
     rs.forEach(r=>{ let q=0,c=0; r.fills.forEach(f=>{ if(f.side==='buy'){ if(/^add/.test(f.tag)&&q>0&&f.price<c/q-1e-9) bad.push(`${r.label} added at $${f.price.toFixed(2)} below avg $${(c/q).toFixed(2)}`); q+=f.qty; c+=f.qty*f.price; } else if(q>0){ const k=Math.min(1,f.qty/q); c-=c*k; q=Math.max(0,q-f.qty); } }); });
     rules.push({n:3,name:`Entry $${cfg.priceLo.toFixed(2)}–${cfg.priceHi.toFixed(2)}, no adds below avg`,status:started.length===0?'na':bad.length?'broken':'ok',why:bad}); }
-  // 4. partial at +100%, all closed by 15:00
+  // 4. partial at +100%, all closed by 15:30
   { const bad=[]; let reached=0;
     rs.forEach(r=>{ const exits=r.fills.filter(f=>f.side==='sell'); const hit=exits.find(f=>r.avgIn>0&&f.price>=2*r.avgIn);
       if(hit){ reached++; if(!/partial/.test(hit.tag)&&r.bq>1) bad.push(`${r.label}: first +100% exit sold everything (no partial)`); }
-      const late=r.fills.filter(f=>etMin(f.ts)>900&&f.side==='sell'); if(late.length) bad.push(`${r.label}: ${late[0].expired?'expired':'closed'} at ${hhmm(late[0].ts)} (after 15:00)`);
+      const late=r.fills.filter(f=>etMin(f.ts)>930&&f.side==='sell'); if(late.length) bad.push(`${r.label}: ${late[0].expired?'expired':'closed'} at ${hhmm(late[0].ts)} (after 15:30)`);
       if(r.open>0&&(!r.expiry||r.expiry<=day)) bad.push(`${r.label}: ${r.open} still open`); });
-    rules.push({n:4,name:'Half at +100%, closed by 15:00',status:bad.length?'broken':reached?'ok':'na',why:bad.length?bad:reached?[]:['no position reached +100%']}); }
+    rules.push({n:4,name:'Half at +100%, closed by 15:30',status:bad.length?'broken':reached?'ok':'na',why:bad.length?bad:reached?[]:['no position reached +100%']}); }
   // 5. size flat after big green day
   { const prior=(history||[]).filter(h=>h.day<day).sort((a,b)=>a.day<b.day?-1:1); const last5=prior.slice(-5); const green=last5.filter(h=>h.pl>=cfg.greenThreshold).pop();
     if(!green||!isFinite(avgPerTrade)) rules.push({n:5,name:`Flat size after a ≥${money(cfg.greenThreshold)} day`,status:'na',why:[green?'no trades today':'no big green day in prior 5 sessions']});
