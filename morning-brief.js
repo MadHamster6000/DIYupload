@@ -18,9 +18,18 @@
     <div class="mb-two"><div><b>Top call OI</b>${w.top_calls.map(x=>`<div>${f(x.k)} · ${f(x.oi,0)}</div>`).join('')}</div>
     <div><b>Top put OI</b>${w.top_puts.map(x=>`<div>${f(x.k)} · ${f(x.oi,0)}</div>`).join('')}</div></div></div>`;
   }
+  function stratCard(t){
+    if(!t) return '';
+    const col=t.bias==='PUT'?'var(--red)':t.bias==='CALL'?'var(--green)':'var(--amber)';
+    const ver=(n,v)=>v?`<div class="mb-card"><h3>${n}</h3><table class="mb-t"><tr><td>Entry</td><td><b>${esc(v.entry)}</b></td></tr><tr><td>TP1 +100%</td><td style="color:var(--green)">${esc(v.tp1)}</td></tr><tr><td>TP2 +300%</td><td style="color:var(--green)">${esc(v.tp2)}</td></tr><tr><td>Rest</td><td>kite until 3:30 PM ET</td></tr><tr><td>Stop</td><td style="color:var(--red)">${esc(v.stop)}</td></tr></table><p class="sub" style="margin:6px 0 0">${esc(v.setup)}</p></div>`:'';
+    return `<h3>0 · Today's Strategy</h3><div class="mb-card" style="border-left:3px solid ${col}"><h3 style="color:${col}">${esc(t.bias)} bias${t.strength?' · '+esc(t.strength):''}</h3><p class="sub" style="margin:0">${esc(t.summary)}</p></div>
+    <div class="mb-grid">${ver('Version A · Sweep entry',t.A)}${ver('Version B · Wall entry',t.B)}</div>
+    <div class="mb-card"><b>Rules for both</b>${(t.rules||[]).map(r=>`<div>• ${esc(r)}</div>`).join('')}<p style="margin:8px 0 0"><b>Day invalidation:</b> <span style="color:var(--amber)">${esc(t.invalidation)}</span></p></div>
+    <p class="sub" style="font-size:.8rem">${esc(t.disclaimer)}</p>`;
+  }
   function render(b){
     const dl=d=>d===b.days[0]?'Today':'Next session';
-    let h=`<p class="sub">Generated ${esc(b.generated.replace('T',' '))} ET. ${esc(b.note)}</p><h3>1 · 0DTE option walls</h3>`;
+    let h=(b.strategy&&b.strategy.plan?`<p style="margin:0 0 8px;font-weight:700;color:${b.strategy.bias==='PUT'?'var(--red)':b.strategy.bias==='CALL'?'var(--green)':'var(--amber)'}">${esc(b.strategy.plan)}</p>`:'')+`<p class="sub">Generated ${esc(b.generated.replace('T',' '))} ET. ${esc(b.note)}</p>`+stratCard(b.strategy)+`<h3>1 · 0DTE option walls</h3>`;
     h+=b.walls&&b.walls.length?`<div class="mb-grid">${b.walls.map(w=>wallsCard(w,b.nq_ratio)).join('')}</div>${b.nq_ratio?`<p class="sub">≈NQ = QQQ level × ${b.nq_ratio} (current ratio). Rough estimate only, not futures order-book walls.</p>`:''}`:na('Option walls');
     h+=`<h3>2 · Market calendar (ET)</h3>`;
     if(b.macro){h+=b.macro.length?`<table class="mb-t mb-cal"><tr><th>Day</th><th>Time</th><th>Event</th><th>Impact</th><th>Fcst / Prev</th></tr>${b.macro.map(e=>`<tr><td>${dl(e.date)}</td><td>${esc(e.time)}</td><td>${esc(e.title)}</td><td>${tag(e.impact)}</td><td>${esc(e.forecast)} / ${esc(e.previous)}</td></tr>`).join('')}</table>`:'<p class="sub">No US economic events scheduled.</p>';}else h+=na('Economic calendar');

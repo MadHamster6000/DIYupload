@@ -24,13 +24,13 @@ def bs_gamma(S, K, T, iv, r=0.04):
     return ncdf_pdf(d1) / (S * iv * math.sqrt(T))
 
 # ---------- 1) Walls ----------
-def walls(sym):
+def walls(sym, idx=0):
     t = yf.Ticker(sym)
     spot = num(t.fast_info.get('lastPrice'))
     exps = t.options
     if not exps: raise RuntimeError('no expiries')
     now = datetime.datetime.now(ET)
-    exp = exps[0]
+    exp = exps[min(idx, len(exps) - 1)]
     ch = t.option_chain(exp)
     expdt = datetime.datetime.fromisoformat(exp).replace(hour=16, tzinfo=ET)
     T = max((expdt - now).total_seconds(), 3600) / (365 * 86400)  # floor 1h so 0DTE gamma stays finite
@@ -40,6 +40,8 @@ def walls(sym):
             k = num(r['strike']); d = rows.setdefault(k, {'k': k, 'coi': 0, 'poi': 0, 'cv': 0, 'pv': 0, 'civ': 0, 'piv': 0})
             d[side + 'oi'] = int(num(r.get('openInterest'))); d[side + 'v'] = int(num(r.get('volume')))
             d[side + 'iv'] = num(r.get('impliedVolatility'))
+            b, a = num(r.get('bid')), num(r.get('ask'))
+            d[side + 'px'] = (b + a) / 2 if b > 0 and a > 0 else num(r.get('lastPrice'))
     strikes = sorted(rows)
     # keep strikes within ±10% of spot for wall/GEX stats
     near = [rows[k] for k in strikes if abs(k / spot - 1) <= 0.10] or [rows[k] for k in strikes]
@@ -82,6 +84,10 @@ def walls(sym):
         'top_calls': [{'k': d['k'], 'oi': d['coi'], 'vol': d['cv']} for d in sorted(near, key=lambda d: -d['coi'])[:5]],
         'top_puts': [{'k': d['k'], 'oi': d['poi'], 'vol': d['pv']} for d in sorted(near, key=lambda d: -d['poi'])[:5]],
     }
+    atm = min((rows[k] for k in strikes if rows[k].get('cpx') and rows[k].get('ppx')), key=lambda d: abs(d['k'] - spot), default=None)
+    if atm:
+        st = atm['cpx'] + atm['ppx']
+        res.update({'atm_strike': atm['k'], 'straddle': round(st, 2), 'range_lo': round(spot - st, 2), 'range_hi': round(spot + st, 2)})
     res['pcr_oi'] = round(res['total_put_oi'] / res['total_call_oi'], 2) if res['total_call_oi'] else None
     return res
 
@@ -197,6 +203,66 @@ def scan_one(sym):
             'short_pct': round(short, 1), 'float_m': round(flt / 1e6, 1), 'iv': round(iv, 0),
             'mom5': round(mom5, 1), 'mom20': round(mom20, 1), 'score': round(score, 1), 'why': why}
 
+def strategy(w0, w1=None):
+    """Mechanical 0DTE plan from the walls map. Not advice."""
+    spot, flip = w0['spot'], w0.get('gamma_flip')
+    if not flip: return None
+    neg = w0['net_gex_sign'] == 'negative'
+    ok = lambda k: k is not None and abs(k / spot - 1) <= 0.05
+    srcs = [w for w in (w1, w0) if w]  # prefer 1DTE when 0DTE walls are degenerate
+    def pick(keys, below):
+        for w in ([w0] + ([w1] if w1 else [])) if not degenerate else srcs:
+            for k in keys:
+                v = w.get(k)
+                if ok(v) and ((v < spot) if below else (v > spot)): return v
+        return None
+    degenerate = w0.get('put_wall_oi') == w0.get('call_wall_gamma') or not ok(w0.get('put_wall_oi')) or not ok(w0.get('call_wall_oi'))
+    put_wall = pick(('put_wall_oi', 'put_wall_gamma'), True)
+    call_wall = pick(('call_wall_gamma', 'call_wall_oi', 'max_pain'), False)
+    st = w0.get('straddle') or abs(flip - spot)
+    lo = (w1 or {}).get('range_lo') or w0.get('range_lo') or spot - 2 * st
+    hi = (w1 or {}).get('range_hi') or w0.get('range_hi') or spot + 2 * st
+    fz = f'{math.floor(flip)}–{math.floor(flip) + 1}'
+    if spot < flip:
+        bias = 'PUT'; strength = 'strong' if neg else 'weak (positive gamma, expect chop)'
+    elif spot > flip and not neg:
+        bias = 'CALL'; strength = 'strong'
+    else:
+        return {'plan': f'Today: NEUTRAL, stand aside; watch the flip {fz}.', 'bias': 'NEUTRAL', 'summary': f'Spot {spot} above flip {flip} but net gamma negative: mixed signals, stand aside or wait for a clean 5-min trend.',
+                'invalidation': fz, 'rules': RULES, 'disclaimer': DISCL}
+    R = round
+    if bias == 'PUT':
+        pw = put_wall or R(spot - st)
+        a_entry = R(min(spot + 0.35 * st, flip - 1))
+        A = {'entry': f'{a_entry}', 'setup': f'Open rallies to {a_entry - 1}–{a_entry}, liquidity gets swept, price snaps back down. Enter {a_entry} on the turn.',
+             'tp1': f'{R(spot)}–{R(spot) - 1}', 'tp2': f'{R(pw)}', 'stop': f'5-minute close back above {a_entry}'}
+        t2 = math.floor(lo)
+        B = {'entry': f'{R(pw) + 2}–{R(spot)}, or a 5-minute close under {R(pw)}', 'setup': 'Wall entry near spot or break-and-hold under the put wall.',
+             'tp1': f'{R(pw)}', 'tp2': f'{t2}–{t2 + 2}', 'stop': '3:30 PM ET hard stop'}
+        bench = f'Calls on the bench unless {fz} reclaims and holds'
+        why = f'Spot {spot} is under the gamma flip {flip}' + (' with negative net gamma (dealers chase moves).' if neg else ' (positive gamma, moves damped).')
+    else:
+        cw = call_wall or R(spot + st)
+        a_entry = R(max(spot - 0.35 * st, flip + 1))
+        A = {'entry': f'{a_entry}', 'setup': f'Open dips to {a_entry}–{a_entry + 1}, liquidity gets swept, price snaps back up. Enter {a_entry} on the turn.',
+             'tp1': f'{R(spot)}–{R(spot) + 1}', 'tp2': f'{R(cw)}', 'stop': f'5-minute close back below {a_entry}'}
+        t2 = math.ceil(hi)
+        B = {'entry': f'{R(spot)}–{R(cw) - 2}, or a 5-minute close over {R(cw)}', 'setup': 'Wall entry near spot or break-and-hold over the call wall.',
+             'tp1': f'{R(cw)}', 'tp2': f'{t2 - 2}–{t2}', 'stop': '3:30 PM ET hard stop'}
+        bench = f'Puts on the bench unless price loses {fz} and holds below'
+        why = f'Spot {spot} is above the gamma flip {flip} with positive net gamma (dealers dampen dips).'
+    rules = RULES + [bench]
+    plan = f"Today: {bias}, entry {B['entry'].split(',')[0]}, targets {B['tp1']} / {B['tp2']}, invalidation {fz}."
+    return {'plan': plan, 'bias': bias, 'strength': strength, 'summary': why, 'spot': spot, 'flip': flip, 'put_wall': put_wall, 'call_wall': call_wall,
+            'range': [R(lo, 1), R(hi, 1)], 'A': A, 'B': B, 'kite': 'Rest: kite until 3:30 PM ET', 'rules': rules,
+            'invalidation': f'If {fz} ' + ('reclaims and holds' if bias == 'PUT' else 'is lost and holds below') + f' before 10:00 AM ET, the {bias.lower()} bias is off: switch sides or stand down',
+            'disclaimer': DISCL}
+
+RULES = ['No trades 9:30–10:00 AM ET: wait for confirmation (5-minute close triggers)',
+         'Half-size entries; if it opens already through the wall, size half again',
+         'TP1 +100%, TP2 +300%, rest kite; hard stop 3:30 PM ET']
+DISCL = 'Mechanical output from delayed free data. Not financial advice.'
+
 def main():
     now = datetime.datetime.now(ET); today = now.date()
     nxt = today + datetime.timedelta(days=1)
@@ -209,6 +275,13 @@ def main():
         try: brief['walls'].append(walls(s))
         except Exception as e: errors.append(f'walls {s}: {e}'); traceback.print_exc()
         time.sleep(1)
+    try:
+        w0 = next((w for w in brief['walls'] if w['sym'] == 'QQQ'), None); w1 = None
+        try: w1 = walls('QQQ', 1)
+        except Exception as e: errors.append(f'walls QQQ 1DTE: {e}')
+        if w1: brief['qqq_1dte'] = {k: w1.get(k) for k in ('expiry', 'call_wall_oi', 'call_wall_gamma', 'put_wall_oi', 'put_wall_gamma', 'gamma_flip', 'max_pain', 'net_gex_sign', 'straddle', 'range_lo', 'range_hi')}
+        brief['strategy'] = strategy(w0, w1) if w0 else None
+    except Exception as e: errors.append(f'strategy: {e}'); traceback.print_exc()
     r = nq_ratio()
     if r: brief['nq_ratio'] = r
     brief['macro'] = macro(days)
@@ -230,6 +303,6 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     for f in ('latest.json', f'{today.isoformat()}.json'):
         json.dump(brief, open(os.path.join(OUT, f), 'w'), separators=(',', ':'))
-    print(json.dumps({k: brief[k] for k in ('walls', 'errors')}, indent=1)[:3000])
+    print(json.dumps({k: brief[k] for k in ('strategy', 'errors')}, indent=1)[:3000])
     print('elapsed', round(time.time() - T0), 's')
 main()
