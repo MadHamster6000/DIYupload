@@ -1,7 +1,8 @@
 name: Morning Brief
 on:
   schedule:
-    - cron: '30 12 * * 1-5'   # 12:30 UTC = 8:30 AM EDT / 7:30 AM EST
+    - cron: '35 10 * * 1-5'   # 6:35 AM EDT -> ready by 6:55 (summer)
+    - cron: '35 11 * * 1-5'   # 6:35 AM EST -> ready by 6:55 (winter); 7:35 refresh in summer
     - cron: '15 13 * * 1-5'   # 13:15 UTC = 9:15 AM EDT refresh
   workflow_dispatch:
 permissions:
