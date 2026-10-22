@@ -8,7 +8,7 @@
   function wallsCard(w,ratio){
     const nq=k=>(ratio&&w.sym==='QQQ')?` <small class="mb-nq">≈NQ ${f(k*ratio,0)}</small>`:'';
     const row=(l,k,c)=>`<tr><td>${l}</td><td style="color:${c}">${f(k)}${nq(k)}</td></tr>`;
-    return `<div class="mb-card"><h3>${esc(w.sym)} · spot ${f(w.spot)} · exp ${esc(w.expiry)}${w.is0dte?' (0DTE)':''}</h3>
+    return `<div class="mb-card"><h3>${esc(w.sym)} · spot ${f(w.spot)}${w.spot_ts?` <small>@ ${esc(w.spot_ts.slice(11,16))} ET</small>`:''} · exp ${esc(w.expiry)}${w.is0dte?' (0DTE)':''}</h3>
     <table class="mb-t">${row('Call wall (max OI)',w.call_wall_oi,'var(--green)')}${row('Call wall (max gamma)',w.call_wall_gamma,'var(--green)')}
     ${row('Gamma flip (zero-GEX est.)',w.gamma_flip,'var(--amber)')}${row('Max pain',w.max_pain,'var(--purple)')}
     ${row('Put wall (max gamma)',w.put_wall_gamma,'var(--red)')}${row('Put wall (max OI)',w.put_wall_oi,'var(--red)')}
@@ -22,7 +22,7 @@
     if(!t) return '';
     const col=t.bias==='PUT'?'var(--red)':t.bias==='CALL'?'var(--green)':'var(--amber)';
     const ver=(n,v)=>v?`<div class="mb-card"><h3>${n}</h3><table class="mb-t"><tr><td>Entry</td><td><b>${esc(v.entry)}</b></td></tr><tr><td>TP1 +100%</td><td style="color:var(--green)">${esc(v.tp1)}</td></tr><tr><td>TP2 +300%</td><td style="color:var(--green)">${esc(v.tp2)}</td></tr><tr><td>Rest</td><td>kite until 3:30 PM ET</td></tr><tr><td>Stop</td><td style="color:var(--red)">${esc(v.stop)}</td></tr></table><p class="sub" style="margin:6px 0 0">${esc(v.setup)}</p></div>`:'';
-    return `<h3>0 · Today's Strategy</h3><div class="mb-card" style="border-left:3px solid ${col}"><h3 style="color:${col}">${esc(t.bias)} bias${t.strength?' · '+esc(t.strength):''}</h3><p class="sub" style="margin:0">${esc(t.summary)}</p></div>
+    return `<h3>0 · Today's Strategy</h3><div class="mb-card" style="border-left:3px solid ${col}"><h3 style="color:${col}">${esc(t.bias)} bias${t.strength?' · '+esc(t.strength):''}</h3><p class="sub" style="margin:0">${esc(t.summary)}${t.spot_ts?` <small>(spot as of ${esc(t.spot_ts.replace('T',' '))} ET)</small>`:''}</p></div>
     <div class="mb-grid">${ver('Version A · Sweep entry',t.A)}${ver('Version B · Wall entry',t.B)}</div>
     <div class="mb-card"><b>Rules for both</b>${(t.rules||[]).map(r=>`<div>• ${esc(r)}</div>`).join('')}<p style="margin:8px 0 0"><b>Day invalidation:</b> <span style="color:var(--amber)">${esc(t.invalidation)}</span></p></div>
     <p class="sub" style="font-size:.8rem">${esc(t.disclaimer)}</p>`;

@@ -26,7 +26,13 @@ def bs_gamma(S, K, T, iv, r=0.04):
 # ---------- 1) Walls ----------
 def walls(sym, idx=0):
     t = yf.Ticker(sym)
-    spot = num(t.fast_info.get('lastPrice'))
+    spot, spot_ts, spot_src = 0.0, None, None
+    try:
+        h = t.history(period='2d', interval='1m', prepost=True)['Close'].dropna()
+        if len(h): spot, spot_ts, spot_src = float(h.iloc[-1]), h.index[-1].tz_convert(ET).isoformat(timespec='minutes'), '1m prepost bar'
+    except Exception as e: errors.append(f'spot 1m {sym}: {e}')
+    if not spot:
+        spot = num(t.fast_info.get('lastPrice')); spot_ts = datetime.datetime.now(ET).isoformat(timespec='minutes'); spot_src = 'fast_info lastPrice (fallback)'
     exps = t.options
     if not exps: raise RuntimeError('no expiries')
     now = datetime.datetime.now(ET)
@@ -73,7 +79,7 @@ def walls(sym, idx=0):
     calls_above = [d for d in near if d['k'] >= spot] or near
     puts_below = [d for d in near if d['k'] <= spot] or near
     res = {
-        'sym': sym, 'spot': round(spot, 2), 'expiry': exp, 'is0dte': exp == now.date().isoformat(),
+        'sym': sym, 'spot': round(spot, 2), 'spot_ts': spot_ts, 'spot_src': spot_src, 'expiry': exp, 'is0dte': exp == now.date().isoformat(),
         'call_wall_oi': max(calls_above, key=lambda d: d['coi'])['k'],
         'call_wall_gamma': max(near, key=lambda d: d['cg'])['k'],
         'put_wall_oi': max(puts_below, key=lambda d: d['poi'])['k'],
@@ -253,7 +259,7 @@ def strategy(w0, w1=None):
         why = f'Spot {spot} is above the gamma flip {flip} with positive net gamma (dealers dampen dips).'
     rules = RULES + [bench]
     plan = f"Today: {bias}, entry {B['entry'].split(',')[0]}, targets {B['tp1']} / {B['tp2']}, invalidation {fz}."
-    return {'plan': plan, 'bias': bias, 'strength': strength, 'summary': why, 'spot': spot, 'flip': flip, 'put_wall': put_wall, 'call_wall': call_wall,
+    return {'plan': plan, 'spot_ts': w0.get('spot_ts'), 'bias': bias, 'strength': strength, 'summary': why, 'spot': spot, 'flip': flip, 'put_wall': put_wall, 'call_wall': call_wall,
             'range': [R(lo, 1), R(hi, 1)], 'A': A, 'B': B, 'kite': 'Rest: kite until 3:30 PM ET', 'rules': rules,
             'invalidation': f'If {fz} ' + ('reclaims and holds' if bias == 'PUT' else 'is lost and holds below') + f' before 10:00 AM ET, the {bias.lower()} bias is off: switch sides or stand down',
             'disclaimer': DISCL}
