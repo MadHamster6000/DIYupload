@@ -74,6 +74,7 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
 .mb-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;font-size:.85rem}.mb-nq{color:var(--muted)}.mb-why{font-size:.8rem;color:var(--muted);min-width:220px}
 .mb-tag{padding:2px 8px;border-radius:999px;font-size:.75rem;font-weight:700;text-transform:uppercase}.mb-high{background:#ef444433;color:var(--red)}.mb-med{background:#f59e0b33;color:var(--amber)}.mb-low{background:#8a96ad22;color:var(--muted)}
 .pl-banner{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:10px 12px;border-radius:8px;margin-bottom:10px;font-weight:600}.pl-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}.pl-id{font-weight:800;font-size:1.2rem;width:28px;color:var(--accent)}.pl-f{flex:1;min-width:120px}.pl-w{flex:2}.pl-n{flex:0 0 110px;min-width:90px}.pl-act{display:flex;gap:6px;align-items:center}.pl-used{opacity:.5}.pl-used input{text-decoration:line-through}.pl-locked{opacity:.45;border-style:dashed}
+.ls-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}.ls-rules{margin:0 0 14px;padding-left:20px;font-size:.92rem}.ls-rules li{margin:3px 0}.ls-b{display:inline-block;font-size:.72rem;padding:2px 7px;border-radius:999px;margin-right:4px;border:1px solid}.ls-ok{color:var(--green);border-color:rgba(34,197,94,.4)}.ls-bad{color:var(--amber);border-color:rgba(245,158,11,.45)}
 </style>
 </head>
 <body>
@@ -84,6 +85,7 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
     <a href="#morning-brief">☀️ Morning Brief</a>
     <a href="#playbook">🎯 Playbook</a>
     <a href="#plan-ladder">🪜 Plan Ladder</a>
+    <a href="#late-scalp">⏱️ Late Scalp</a>
     <a href="#moonshot">Moonshot Ladder</a>
     <a href="#reference">Cash Table</a>
     <a href="#conviction-sizer">Conviction Sizer</a>
@@ -109,6 +111,19 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
   <h2>🪜 Plan Ladder</h2>
   <p class="sub">Before the open, write up to 3 plans in order. Saved only in this browser, never uploaded.</p>
   <div id="pl-body"></div>
+</section>
+<section class="card" id="late-scalp">
+  <h2>⏱️ Late Scalp Setup</h2>
+  <p class="sub">Separate from the morning playbook. Test period: ~10 trading days. Log saved only in this browser.</p>
+  <div class="pcard"><ul class="ls-rules">
+    <li><b>Entry:</b> after 3:15 PM ET only.</li>
+    <li><b>Strike:</b> within 1 point of the current price.</li>
+    <li><b>Premium:</b> about $0.20–$0.35.</li>
+    <li><b>Size:</b> 2–4 contracts.</li>
+    <li><b>Direction:</b> follow the day's map (puts when the map favors puts).</li>
+    <li><b>Exit:</b> before 4:00 PM ET (or at expiry if 0DTE).</li>
+  </ul></div>
+  <div id="ls-body"></div>
 </section>
 <!-- 1. Moonshot ladder -->
 <section class="card" id="moonshot">
@@ -368,5 +383,6 @@ window.addEventListener('DOMContentLoaded',()=>{
 </script>
 <script src="morning-brief.js"></script>
 <script src="plan-ladder.js"></script>
+<script src="late-scalp.js"></script>
 </body>
 </html>
