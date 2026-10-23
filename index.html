@@ -105,9 +105,9 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
 
 <section class="card pb" id="playbook">
   <div class="pb-head"><div><h1>🎯 My 0DTE Playbook</h1><p class="sub" style="margin:0">Check off each rule as you follow it today. Resets automatically every new trading day (ET).</p></div>
-  <div class="pb-meta"><span id="pbDate"></span><span id="pbCount" class="pb-count">0/6</span><button id="pbReset" title="Uncheck all for today">Reset</button></div></div>
-  <div class="pb-list"><label class="pb-item"><input type="checkbox" data-pb="0"><span><b>1.</b> Trade from 9:30 to 11:30 AM ET only, on SPY or QQQ.</span></label><label class="pb-item"><input type="checkbox" data-pb="1"><span><b>2.</b> Make 1 to 3 trades a day, and stop after your first loss.</span></label><label class="pb-item"><input type="checkbox" data-pb="2"><span><b>3.</b> Buy one cheap strike, about $0.30–0.40, and never add if it drops.</span></label><label class="pb-item"><input type="checkbox" data-pb="3"><span><b>4.</b> Sell half at +100%, more at +300%, and let one contract run with a 3:30 PM ET cutoff.</span></label><label class="pb-item"><input type="checkbox" data-pb="4"><span><b>5.</b> After a big green day, keep the next week's size flat.</span></label><label class="pb-item"><input type="checkbox" data-pb="5"><span><b>6.</b> Pyramiding (winners only): Add 2 contracts only when the position is up +50% from entry. Never add to a losing position. Added contract #1: take profit at +100%. Added contract #2: take profit at +300%. Last contract is kited (runner, no fixed target).</span></label></div>
-  <div class="note" style="margin-top:10px">📝 <b>Lesson (Oct 23, 2026):</b> Adding on a wrong day loses about twice the starting position, because the added contracts cost ~50% more. Example: Oct 12 744P adds lost $152 on top of the original −$171.</div>
+  <div class="pb-meta"><span id="pbDate"></span><span id="pbCount" class="pb-count">0/4</span><button id="pbReset" title="Uncheck all for today">Reset</button></div></div>
+  <div class="pb-list"><label class="pb-item"><input type="checkbox" data-pb="0"><span><b>1.</b> Only enter after a liquidity sweep with confirmation. No fixed time window after the sweep — I decide the entry from the tape.</span></label><label class="pb-item"><input type="checkbox" data-pb="1"><span><b>2.</b> No entries in the first 15 minutes after the 9:30 AM ET open.</span></label><label class="pb-item"><input type="checkbox" data-pb="2"><span><b>3.</b> Stop after 2 losing trades.</span></label><label class="pb-item"><input type="checkbox" data-pb="3"><span><b>4.</b> Only add to positions that are moving in my favor, using the 4-contract structure: 1 contract TP at +100%, 1 contract TP at +300%, 2 contracts kited with no target.</span></label></div>
+  <div class="note" style="margin-top:10px">📝 <b>Lesson (Oct 23, 2026):</b> Overexposed on a reversal day and lost ~$600. The stop-after-2-losses rule helps on bad days like Oct 9, 16 and 23.</div>
 </section>
 <section class="card" id="plan-ladder">
   <h2>🪜 Plan Ladder</h2>
@@ -369,7 +369,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 (function(){
   const etDay=()=>new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
   const boxes=[...document.querySelectorAll('[data-pb]')]; let day=etDay();
-  const key=()=>'mh_playbook_'+day;
+  const key=()=>'mh_playbook_v4_'+day; // v4: 4-rule list, old per-index ticks no longer apply
   function load(){ day=etDay(); let st=[]; try{ st=JSON.parse(localStorage.getItem(key()))||[]; }catch(e){}
     boxes.forEach((b,i)=>b.checked=!!st[i]);
     try{ Object.keys(localStorage).filter(k=>k.startsWith('mh_playbook_')&&k!==key()).forEach(k=>localStorage.removeItem(k)); }catch(e){}
