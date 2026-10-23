@@ -303,7 +303,7 @@ function hydrateImages(root=document){ root.querySelectorAll('img[data-img]').fo
 
 // ---------- entries ----------
 // WHITELIST of fields ever written for executions (no account id, description, raw text, etc.)
-const cleanExec=e=>({kind:'exec',id:String(e.id),ts:+e.ts,ticker:String(e.ticker||'').toUpperCase().slice(0,12),expiry:/^\d{4}-\d{2}-\d{2}$/.test(e.expiry||'')?e.expiry:'',strike:+e.strike||0,right:['C','P','S'].includes(e.right)?e.right:'',side:e.side==='sell'?'sell':'buy',qty:+e.qty,price:+e.price,fee:+e.fee||0,tag:String(e.tag||'').slice(0,24),stag:(window.SetupCompare&&SetupCompare.TAGS.includes(e.stag))?e.stag:'',group:String(e.group||'').slice(0,80),batch:String(e.batch||'').slice(0,20)});
+const cleanExec=e=>({kind:'exec',id:String(e.id),ts:+e.ts,ticker:String(e.ticker||'').toUpperCase().slice(0,12),expiry:/^\d{4}-\d{2}-\d{2}$/.test(e.expiry||'')?e.expiry:'',strike:+e.strike||0,right:['C','P','S'].includes(e.right)?e.right:'',side:e.side==='sell'?'sell':'buy',qty:+e.qty,price:+e.price,fee:+e.fee||0,tag:String(e.tag||'').slice(0,24),placed:+e.placed>0?+e.placed:0,stag:(window.SetupCompare&&SetupCompare.TAGS.includes(e.stag))?e.stag:'',group:String(e.group||'').slice(0,80),batch:String(e.batch||'').slice(0,20)});
 const clean=e=>e.kind==='exec'?cleanExec(e):({id:e.id,ts:e.ts,note:e.note||'',ticker:e.ticker||'',result:e.result||'',pl:e.pl??'',checks:(e.checks||[]).filter(c=>CHECKS.includes(c)),enc:!!e.enc,hasImage:!!e.hasImage});
 async function addDraft(file){
   if(!token) return;
@@ -378,7 +378,7 @@ function groupCard(g,rows){ const pl=g.pl;
     <b class="${g.netPl>0?'pos':g.netPl<0?'neg':'muted'}">P/L ${money(g.netPl)}</b>${g.fee?`<span class="muted">(fees ${money(g.fee)})</span>`:''}
     <span class="edit-only" style="display:contents"><button data-gedit>Edit</button><button class="danger" data-gdel>Delete</button></span></div>
     <div class="tbl"><table><thead><tr><th>Time (ET)</th><th>Side</th><th>Tag</th><th>Qty</th><th>Price</th><th>Value</th></tr></thead><tbody>
-    ${rows.sort((a,b)=>a.ts-b.ts).map(r=>`<tr><td>${tIme(r.ts)}</td><td class="${r.side==='buy'?'pos':'neg'}">${r.side.toUpperCase()}</td><td><span class="tag ${tagClass(r.tag)}">${esc(r.tag)}</span></td><td>${r.qty}</td><td>${px(r.price)}</td><td>${money(r.qty*r.price*TradeParser.mult(r))}</td></tr>`).join('')}
+    ${rows.sort((a,b)=>a.ts-b.ts).map(r=>`<tr><td>${tIme(r.ts)}</td><td class="${r.side==='buy'?'pos':'neg'}">${r.side.toUpperCase()}</td><td><span class="tag ${tagClass(r.tag)}">${esc(r.tag)}</span></td><td>${r.qty}</td><td>${px(r.price)}${(r.side==='buy'&&(r.right==='C'||r.right==='P')&&+r.price<0.30?' <span class="sc-b sc-bad" title="Entry fill under $0.30">possible passive bid</span>':'')}</td><td>${money(r.qty*r.price*TradeParser.mult(r))}</td></tr>`).join('')}
     </tbody></table></div></div>`; }
 // ---- day gallery: charts[day] = {pics:[{id,label,enc,ts}]}; legacy {ts,enc} (single 'day-<date>' image) is read as a 1-picture gallery
 function picsOf(c,day){ const x=c[day]; if(!x) return []; if(Array.isArray(x.pics)) return x.pics; return [{id:'day-'+day,label:'QQQ chart',enc:!!x.enc,ts:x.ts||0}]; }
@@ -610,12 +610,12 @@ $('tlParse').addEventListener('click',()=>parseTL());
 $('tlFile').addEventListener('change',async e=>{ const f=e.target.files[0]; e.target.value=''; if(f) parseTL(await f.text()); });
 $('pvRange').addEventListener('change',ev=>{ const t=ev.target; if(!pv) return; if(t.id==='pvDay'){ pv.from=pv.to=t.value; } if(t.id==='pvFrom') pv.from=t.value; if(t.id==='pvTo') pv.to=t.value; if(pv.from>pv.to) pv.to=pv.from; if(pv.from) $('tlDate').value=pv.from; applyRange(); });
 $('tlAdd').addEventListener('click',()=>{ pv=pv||{rows:[],ignored:[],format:'manual',replaceIds:[],prior:[]}; const d=$('tlDate').value;
-  pv.rows.push({raw:'',ts:TP.parseETString(d+' 09:30:00'),ticker:$('tlTicker').value.trim().toUpperCase(),strike:NaN,right:'C',expiry:d,side:'buy',qty:1,price:NaN}); renderPV(); });
+  pv.rows.push({raw:'',ts:TP.parseETString(d+' 09:30:00'),ticker:$('tlTicker').value.trim().toUpperCase(),strike:NaN,right:'C',expiry:d,side:'buy',qty:1,price:NaN,placed:Date.now()}); renderPV(); });
 $('tlReverse').addEventListener('click',()=>{ if(!pv) return; const ts=pv.rows.map(r=>r.ts).sort((a,b)=>a-b); pv.rows.reverse(); pv.rows.forEach((r,i)=>r.ts=ts[i]); renderPV(); });
 $('tlDiscard').addEventListener('click',()=>{ if(pvDirty()&&!confirm('Discard the parsed preview?')) return; pv=null; renderPV(); });
 document.addEventListener('click',async ev=>{ if(ev.target.id!=='scSaveTags'||!token) return; const b=ev.target; b.disabled=true;
   try{ status('Saving setup tags (one commit)…'); const tm=SetupCompare.tagMap(); let n=0;
-    const next=await commitEntries(l=>l.map(x=>{ if(x.kind!=='exec') return x; const k=SetupCompare.fk(x); if(k in tm){ n++; return cleanExec({...x,stag:tm[k]}); } return x; }),'journal: setup tags');
+    const next=await commitEntries(l=>l.map(x=>{ if(x.kind!=='exec') return x; const k=SetupCompare.fk(x); if(k in tm){ n++; return cleanExec({...x,...tm[k]}); } return x; }),'journal: setup tags / placed times');
     if(pv&&pv.rows.length){ status('Saved tags for saved trades ✓ — tags on the unsaved preview are kept until you click Save executions.','ok'); merge(next); return; }
     SetupCompare.clearPending(); merge(next); renderSC(); status(`Saved setup tags ✓ (${n} fills updated)`,'ok'); toast('Setup tags saved');
   }catch(e){ status(e.message,'err'); b.disabled=false; } });
@@ -629,7 +629,7 @@ function renderPV(){ renderSC(); const w=$('pvWrap');
   TP.tagRows((pv.prior||[]).concat(pv.rows)); const bad=pv.rows.filter(r=>!TP.valid(r)).length;
   $('pvInfo').innerHTML=`Parsed as <b>${esc(pv.format)}</b>: ${pv.rows.length} executions${bad?`, <span class="neg">${bad} need fixing</span>`:''}${pv.ignored.length?`, ${pv.ignored.length} lines skipped`:''}. ${pv.replaceIds.length?`<span class="warn">Editing a saved group — saving replaces ${pv.replaceIds.length} fills.</span> `:''}${esc(pv.note)} <span class="draftTag">UNSAVED PREVIEW</span>${pv.rows.length>400?' <span class="warn">Large range — table may be slow; pick fewer days.</span>':''}`;
   const opt=(v,list)=>list.map(([k,l])=>`<option value="${k}" ${v===k?'selected':''}>${l}</option>`).join('');
-  let h=`<div class="tbl"><table id="pvTable"><thead><tr><th>Time (ET)</th><th>Ticker</th><th>Expiry</th><th>Strike</th><th>C/P</th><th>Side</th><th>Qty</th><th>Price</th><th>Fee</th><th>Tag</th><th></th></tr></thead><tbody>`;
+  let h=`<div class="tbl"><table id="pvTable"><thead><tr><th>Time (ET)</th><th>Ticker</th><th>Expiry</th><th>Strike</th><th>C/P</th><th>Side</th><th>Qty</th><th>Price</th><th>Fee</th><th>Placed (ET)</th><th>Tag</th><th></th></tr></thead><tbody>`;
   pv.rows.forEach((r,i)=>{ const ok=TP.valid(r);
     h+=`<tr class="${ok?'':'bad'}" data-i="${i}"><td><input class="w-time" data-k="ts" value="${isFinite(r.ts)?TP.fmtET(r.ts):''}" placeholder="YYYY-MM-DD HH:MM:SS"></td>
     <td><input data-k="ticker" value="${esc(r.ticker)}" size="5"></td><td><input class="w-exp" data-k="expiry" value="${esc(r.expiry)}" placeholder="YYYY-MM-DD"></td>
@@ -638,10 +638,11 @@ function renderPV(){ renderSC(); const w=$('pvWrap');
     <td><select data-k="side"><option value=""></option>${opt(r.side,[['buy','Buy'],['sell','Sell']])}</select></td>
     <td><input data-k="qty" type="number" step="1" min="0" value="${isFinite(r.qty)?r.qty:''}"></td>
     <td><input data-k="price" type="number" step="any" min="0" value="${isFinite(r.price)?r.price:''}"></td>
-    <td><input data-k="fee" type="number" step="any" min="0" value="${+r.fee||0}" style="min-width:50px"></td>
+    <td><input data-k="fee" type="number" step="any" min="0" value="${+r.fee||0}" style="min-width:50px">${(r.side==='buy'&&(r.right==='C'||r.right==='P')&&+r.price<0.30?' <span class="sc-b sc-bad" title="Entry fill under $0.30">possible passive bid</span>':'')}</td>
+    <td>${r.side==='buy'?`<input data-k="placed" type="time" value="${r.placed?TP.fmtET(r.placed).slice(11,16):''}" title="Optional: when you placed the order. Blank = same as fill time (gap 0).">${r.placed&&isFinite(r.ts)?` <span class="muted">${Math.round((r.ts-r.placed)/60000)}m</span>`:''}`:''}</td>
     <td>${r.tag?`<span class="tag ${tagClass(r.tag)}">${esc(r.tag)}</span>`:'<span class="neg">incomplete</span>'}</td>
     <td><button class="x" data-rm="${i}" title="Delete row">✕</button></td></tr>`;
-    if(!ok&&r.raw) h+=`<tr class="rawrow"><td colspan="11">raw: ${esc(r.raw)}</td></tr>`; });
+    if(!ok&&r.raw) h+=`<tr class="rawrow"><td colspan="12">raw: ${esc(r.raw)}</td></tr>`; });
   h+='</tbody></table></div>';
   const gs=TP.summarize(pv.rows);
   if(gs.length){ const tot=gs.reduce((a,g)=>a+g.pl,0);
@@ -654,7 +655,7 @@ function renderPV(){ renderSC(); const w=$('pvWrap');
   if(pv.ignored.length) h+=`<h3 style="margin:14px 0 6px">Skipped lines — fix in the table if they were real fills</h3>`+pv.ignored.map((g,i)=>`<div class="ign"><span>${esc(g.raw)}<br><span class="muted">(${esc(g.why)})</span></span><span><button data-mk="${i}">Make row</button> <button class="x" data-ig="${i}">✕</button></span></div>`).join('');
   w.innerHTML=h; }
 $('pvWrap').addEventListener('change',ev=>{ const t=ev.target, tr=t.closest('tr[data-i]'); if(!tr||!t.dataset.k) return; const r=pv.rows[+tr.dataset.i], k=t.dataset.k; let v=t.value.trim();
-  if(k==='ts') r.ts=TP.parseETString(v); else if(['strike','qty','price','fee'].includes(k)) r[k]=v===''?NaN:+v; else if(k==='ticker') r[k]=v.toUpperCase(); else r[k]=v;
+  if(k==='placed') r.placed=v&&isFinite(r.ts)?TP.parseETString(TP.fmtET(r.ts).slice(0,10)+' '+v+':00'):0; else if(k==='ts') r.ts=TP.parseETString(v); else if(['strike','qty','price','fee'].includes(k)) r[k]=v===''?NaN:+v; else if(k==='ticker') r[k]=v.toUpperCase(); else r[k]=v;
   renderPV(); });
 $('pvWrap').addEventListener('click',ev=>{ const t=ev.target;
   if(t.dataset.rm!==undefined){ pv.rows.splice(+t.dataset.rm,1); renderPV(); }
@@ -671,7 +672,7 @@ $('tlSave').addEventListener('click',async()=>{ if(!pv||!pv.rows.length){ status
       const existing=keep.filter(x=>x.kind==='exec'&&days.has(dayKey(x.ts)));
       const fresh=pv.rows.filter(r=>{ if(existing.some(x=>sameFill(x,r))){ dup++; return false; } return true; })
         .map((r,i)=>({...r,kind:'exec',id:'x'+Date.now().toString(36)+i.toString(36)+Math.random().toString(36).slice(2,5),batch}));
-      const all=existing.concat(fresh); TP.tagRows((pv.prior||[]).concat(all)); const tm=window.SetupCompare?SetupCompare.tagMap():{}; all.forEach(x=>{ const k=SetupCompare.fk(x); if(k in tm) x.stag=tm[k]; }); const ids=new Set(all.map(x=>x.id));
+      const all=existing.concat(fresh); TP.tagRows((pv.prior||[]).concat(all)); const tm=window.SetupCompare?SetupCompare.tagMap():{}; all.forEach(x=>{ const k=SetupCompare.fk(x); if(k in tm) Object.assign(x,tm[k]); }); const ids=new Set(all.map(x=>x.id));
       return keep.filter(x=>!ids.has(x.id)).concat(all.map(cleanExec)); },`journal: trade list ${$('tlDate').value} (${pv.rows.length} fills)`);
     const n=pv.rows.length-dup; pv=null; $('tlText').value=''; SetupCompare.clearPending(); renderPV(); merge(next); status(`Saved ${n} executions in one commit ✓${dup?` (${dup} duplicates already saved were skipped)`:''}`,'ok'); toast('Trade list saved');
   }catch(e){ status(e.message,'err'); } finally{ btn.disabled=false; } });
