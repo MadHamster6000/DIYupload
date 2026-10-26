@@ -75,6 +75,7 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
 .mb-tag{padding:2px 8px;border-radius:999px;font-size:.75rem;font-weight:700;text-transform:uppercase}.mb-high{background:#ef444433;color:var(--red)}.mb-med{background:#f59e0b33;color:var(--amber)}.mb-low{background:#8a96ad22;color:var(--muted)}
 .pl-banner{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:10px 12px;border-radius:8px;margin-bottom:10px;font-weight:600}.pl-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}.pl-id{font-weight:800;font-size:1.2rem;width:28px;color:var(--accent)}.pl-f{flex:1;min-width:120px}.pl-w{flex:2}.pl-n{flex:0 0 110px;min-width:90px}.pl-act{display:flex;gap:6px;align-items:center}.pl-used{opacity:.5}.pl-used input{text-decoration:line-through}.pl-locked{opacity:.45;border-style:dashed}
 .ls-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}.ls-rules{margin:0 0 14px;padding-left:20px;font-size:.92rem}.ls-rules li{margin:3px 0}.ls-b{display:inline-block;font-size:.72rem;padding:2px 7px;border-radius:999px;margin-right:4px;border:1px solid}.ls-ok{color:var(--green);border-color:rgba(34,197,94,.4)}.ls-bad{color:var(--amber);border-color:rgba(245,158,11,.45)}
+details.pcard>summary::-webkit-details-marker{display:none}details.pcard>summary::marker{content:""}
 
 /* Trading Subway Line */
 .sw-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 0 4px;margin:0 -4px}
@@ -179,6 +180,31 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
     <li><b>Direction:</b> follow the day's map (puts when the map favors puts).</li>
     <li><b>Pin-risk:</b> after 3:00 PM ET, an open 0DTE kite within 1 pt of strike may get pinned into the close — see the <a href="journal.html" style="color:var(--accent);font-weight:600">Trade Journal</a> pin-risk banner (unlock required).</li>
   </ul></div>
+  <details class="pcard" id="scrub-2026-10-26" open style="margin-top:12px">
+    <summary style="cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+      <span>📝 Logged scrub · Oct 26, 2026 — QQQ 712P ×4</span>
+      <span class="pos" style="font-variant-numeric:tabular-nums">+$101 on $60</span>
+    </summary>
+    <div style="margin-top:10px;font-size:.9rem">
+      <p style="margin:0 0 8px"><b>Entry</b> 15:40:39 ET — BUY <b>4</b> × QQQ <b>712P</b> 0DTE (exp 2026-10-26) @ <b>$0.15</b> · cost <b>$60</b></p>
+      <p style="margin:0 0 8px"><b>Exits</b> — 2 @ <b>$0.45</b> (15:53) · 1 @ <b>$0.41</b> (15:58) · 1 @ <b>$0.30</b> (15:59:57) · flat by 4:00 PM ET</p>
+      <p style="margin:0 0 10px"><b>Package P&amp;L</b> <span class="pos">+$101</span> on $60 risk · status: flat</p>
+      <h4 style="margin:12px 0 6px;font-size:.95rem">Decision process (user narrative)</h4>
+      <ul class="ls-rules" style="margin-bottom:10px">
+        <li>Kites all closed at 3:30 PM ET → judgment cleared for a fresh read.</li>
+        <li>3:34: small rapid upward move.</li>
+        <li>3:37: large spike up then retracement candle (“jump with candle”).</li>
+        <li>3:40–3:41: entered the put seeing a reversal; bias flipped call→put in ~4 minutes.</li>
+        <li>Held ~3:40–3:46; at 3:46 saw a “wake candle” up, got scared; then saw a liquidity grab + bearish engulfing and took profit.</li>
+        <li>Self-assessment: some luck component; unsure if luck or skill.</li>
+        <li>Theory: when a stock rises a lot then goes sideways near the close, a pullback often follows as traders take profit → sell momentum.</li>
+      </ul>
+      <h4 style="margin:12px 0 6px;font-size:.95rem">Late Scalp flags (notes, not judgment)</h4>
+      <p style="margin:0 0 6px"><span class="ls-b ls-bad">premium</span> Paid <b>$0.15</b> — below the $0.20–$0.35 band.</p>
+      <p style="margin:0 0 6px"><span class="ls-b ls-ok">map flip</span> Direction was <b>puts</b> while morning brief was <b>CALL</b> — user's own call / map flip (not framed as a hard rule break).</p>
+      <p class="muted" style="margin:10px 0 0;font-size:.8rem">Archive: <code>data/late-scalp/2026-10-26.json</code> · fills from Wealthsimple Activity + call narrative. Manual browser log above is separate (localStorage only).</p>
+    </div>
+  </details>
   <div id="ls-body"></div>
 </section>
 <section class="card" id="kite-mgmt">

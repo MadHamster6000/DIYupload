@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-26",
+  "label": "Logged scrub \u00b7 Oct 26, 2026",
+  "setup": "Late Scalp / scrub (after kite hard stop)",
+  "timezone": "America/Toronto (ET)",
+  "entry": {
+    "time_et": "15:40:39",
+    "action": "BUY",
+    "qty": 4,
+    "underlying": "QQQ",
+    "strike": 712,
+    "side": "Put",
+    "expiry": "2026-10-26",
+    "dte": 0,
+    "premium": 0.15,
+    "cost_usd": 60
+  },
+  "exits": [
+    {
+      "qty": 2,
+      "price": 0.45,
+      "time_et": "15:53"
+    },
+    {
+      "qty": 1,
+      "price": 0.41,
+      "time_et": "15:58"
+    },
+    {
+      "qty": 1,
+      "price": 0.3,
+      "time_et": "15:59:57"
+    }
+  ],
+  "pnl_usd": 101,
+  "risk_usd": 60,
+  "status": "flat by 16:00 ET",
+  "narrative": [
+    "Kites all closed at 3:30 PM ET \u2192 judgment cleared for a fresh read.",
+    "3:34: small rapid upward move.",
+    "3:37: large spike up then retracement candle (\"jump with candle\").",
+    "3:40\u20133:41: entered the put seeing a reversal; bias flipped call\u2192put in ~4 minutes.",
+    "Held ~3:40\u20133:46; at 3:46 saw a \"wake candle\" up, got scared; then saw a liquidity grab + bearish engulfing and took profit.",
+    "Self-assessment: some luck component; unsure if luck or skill.",
+    "Theory: when a stock rises a lot then goes sideways near the close, a pullback often follows as traders take profit \u2192 sell momentum."
+  ],
+  "flags": [
+    {
+      "rule": "Premium $0.20\u2013$0.35",
+      "note": "Paid $0.15 \u2014 below Late Scalp band"
+    },
+    {
+      "rule": "Direction follows day's map",
+      "note": "Puts while morning brief was CALL \u2014 user's own call / map flip (not framed as a hard rule break)"
+    }
+  ],
+  "source": "Wealthsimple Activity CSV + user narrative (call)"
+}
