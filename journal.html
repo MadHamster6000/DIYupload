@@ -114,6 +114,10 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
 .pin-banner .pin-warn{margin:0 0 8px;font-size:.88rem;color:#fde68a;line-height:1.45}
 .pin-banner .pin-list{margin:0;padding-left:18px;font-size:.88rem}.pin-banner .pin-list li{margin:3px 0}
 .pin-loading{padding:8px 0;font-size:.85rem}
+.ls-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}.ls-rules{margin:0 0 14px;padding-left:20px;font-size:.92rem}.ls-rules li{margin:3px 0}.ls-b{display:inline-block;font-size:.72rem;padding:2px 7px;border-radius:999px;margin-right:4px;border:1px solid}.ls-ok{color:var(--green);border-color:rgba(34,197,94,.4)}.ls-bad{color:var(--amber);border-color:rgba(245,158,11,.45)}
+.pcard{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:.86rem}
+label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+.warn{color:var(--amber)}.x{background:none;border:none;color:var(--muted);padding:2px 6px;font-size:1rem;cursor:pointer}.x:hover{color:var(--red)}
 </style>
 
 </head>
@@ -121,6 +125,8 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
 <header class="top"><div class="top-inner">
   <div class="brand">🐹 MadHamster <span>Trade Journal</span></div>
   <a href="index.html">← Back to Toolkit</a>
+  <a href="index.html#kite-mgmt">🪁 Kite Mgmt</a>
+  <a href="#kite-mgmt">Journal kite log</a>
 </div></header>
 <main>
 <section class="card">
@@ -183,6 +189,19 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
   <div id="sc-body"></div>
 </section>
 
+<section class="card edit-only" id="kite-mgmt">
+  <h1 style="font-size:1.3rem">🪁 Kite Management</h1>
+  <p class="sub">Protective trail log for remaining runner contracts. Same browser-local store as the toolkit page (<code>apex-kite-trail-log</code>). Cross-check <a href="index.html#kite-mgmt" style="color:var(--accent);font-weight:600">toolkit rules</a>, Late Scalp 3:30 hard stop, and the pin-risk banner above when unlocked.</p>
+  <div class="pcard"><ul class="ls-rules">
+    <li><b>Initial floor:</b> after partial profits, manual protective limit sell on the kite at ~50% of current mark.</li>
+    <li><b>Trail up:</b> when the kite doubles, cancel old order → new limit at ~50% of the new mark.</li>
+    <li><b>Runner:</b> keep to 1 contract per position.</li>
+    <li><b>Hard stop:</b> flat all kites by 3:30 PM ET.</li>
+    <li><b>Log:</b> every trail action (mark, floor, time ET) goes in the table below.</li>
+  </ul></div>
+  <div id="kite-body"></div>
+</section>
+
 <details class="card edit-only" id="moreTools"><summary>⚙️ More tools (paste text, screenshots, export/import, filters, settings, encryption, lock)</summary><div id="moreBody"></div></details>
 
 <section class="card edit-only">
@@ -206,6 +225,7 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
 <script src="journal-report.js"></script>
 <script src="setup-compare.js"></script>
 <script src="pin-risk.js"></script>
+<script src="kite-mgmt.js"></script>
 <script src="qqq-chart.js"></script>
 <script>
 const OWNER='MadHamster6000', REPO='DIYupload', BRANCH='Madhamster-Stock';

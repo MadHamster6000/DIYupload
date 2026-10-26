@@ -119,6 +119,7 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
     <a href="#plan-ladder">🪜 Plan Ladder</a>
     <a href="#subway">🚇 Subway Line</a>
     <a href="#late-scalp">⏱️ Late Scalp</a>
+    <a href="#kite-mgmt">🪁 Kite Mgmt</a>
     <a href="journal.html#setup-compare">📊 Setup Compare</a>
     <a href="#moonshot">Moonshot Ladder</a>
     <a href="#reference">Cash Table</a>
@@ -140,6 +141,7 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
   <div class="pb-head"><div><h1>🎯 My 0DTE Playbook</h1><p class="sub" style="margin:0">Check off each rule as you follow it today. Resets automatically every new trading day (ET).</p></div>
   <div class="pb-meta"><span id="pbDate"></span><span id="pbCount" class="pb-count">0/4</span><button id="pbReset" title="Uncheck all for today">Reset</button></div></div>
   <div class="pb-list"><label class="pb-item"><input type="checkbox" data-pb="0"><span><b>1.</b> Only enter after a liquidity sweep with confirmation. No fixed time window after the sweep — I decide the entry from the tape.</span></label><label class="pb-item"><input type="checkbox" data-pb="1"><span><b>2.</b> No entries in the first 15 minutes after the 9:30 AM ET open.</span></label><label class="pb-item"><input type="checkbox" data-pb="2"><span><b>3.</b> Stop after 2 losing trades.</span></label><label class="pb-item"><input type="checkbox" data-pb="3"><span><b>4.</b> Only add to positions that are moving in my favor, using the 4-contract structure: 1 contract TP at +100%, 1 contract TP at +300%, 2 contracts kited with no target.</span></label></div>
+  <p class="sub" style="margin:8px 0 0">🪁 How to manage those kited contracts → <a href="#kite-mgmt" style="color:var(--accent);font-weight:600">Kite Management</a>.</p>
   <div class="note" style="margin-top:10px">📝 <b>“Never add to losers”</b> applies to adding to the same plan/thesis. A separate pre-committed plan with its own trigger, entry, and stop is a fresh trade, not an add-on.</div>
   <div class="note" style="margin-top:10px">📝 <b>Lesson (Oct 23, 2026):</b> Overexposed on a reversal day and lost ~$600. The stop-after-2-losses rule helps on bad days like Oct 9, 16 and 23.</div>
   <div class="pcard" style="margin-top:12px">
@@ -178,6 +180,19 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
     <li><b>Pin-risk:</b> after 3:00 PM ET, an open 0DTE kite within 1 pt of strike may get pinned into the close — see the <a href="journal.html" style="color:var(--accent);font-weight:600">Trade Journal</a> pin-risk banner (unlock required).</li>
   </ul></div>
   <div id="ls-body"></div>
+</section>
+<section class="card" id="kite-mgmt">
+  <h2>🪁 Kite Management</h2>
+  <p class="sub">Protective floor on remaining runner contracts after partial profits. Trail log saved only in this browser. Same rules apply on the <a href="journal.html#kite-mgmt" style="color:var(--accent);font-weight:600">Trade Journal</a>.</p>
+  <div class="pcard"><ul class="ls-rules">
+    <li><b>Initial floor:</b> after taking partial profits, place a manual protective limit sell on the remaining kite at ~50% of the current kite mark.</li>
+    <li><b>Trail up:</b> every time the kite doubles, cancel the old limit and place a new one at ~50% of the new mark.</li>
+    <li><b>Runner size:</b> keep the runner to <b>1 contract</b> per position.</li>
+    <li><b>Hard stop:</b> all kites closed by <b>3:30 PM ET</b> (same hard stop as <a href="#late-scalp" style="color:var(--accent);font-weight:600">Late Scalp</a> / Playbook).</li>
+    <li><b>Log every trail:</b> record mark, new floor, time (ET), and action in the journal below.</li>
+    <li><b>Pin-risk:</b> after 3:00 PM ET, an open 0DTE kite within 1 pt of strike may get pinned — see the <a href="journal.html" style="color:var(--accent);font-weight:600">Trade Journal</a> pin-risk banner (unlock required).</li>
+  </ul></div>
+  <div id="kite-body"></div>
 </section>
 <!-- 1. Moonshot ladder -->
 <section class="card" id="moonshot">
@@ -439,5 +454,6 @@ window.addEventListener('DOMContentLoaded',()=>{
 <script src="plan-ladder.js"></script>
 <script src="subway-line.js"></script>
 <script src="late-scalp.js"></script>
+<script src="kite-mgmt.js"></script>
 </body>
 </html>
