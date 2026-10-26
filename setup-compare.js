@@ -3,7 +3,7 @@
    Nothing new is stored: no CSV, no account data. Underlying QQQ price comes from public data/qqq/<day>.json 1m bars. */
 (function(root){
 const TP=()=>root.TradeParser, JR=()=>root.JournalReport;
-const LATE=15*60+15, AM0=9*60+30, AM1=11*60+30, CLOSE=16*60;
+const LATE0=15*60+15, LATE1=15*60+30, AM0=9*60+30, AM1=11*60+30, CLOSE=16*60;
 const etMin=ts=>{ const s=TP().fmtET(ts); return +s.slice(11,13)*60+ +s.slice(14,16); };
 const hhmm=ts=>TP().fmtET(ts).slice(11,16), dayOf=ts=>TP().fmtET(ts).slice(0,10);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -17,12 +17,14 @@ function under(r){ if(r.ticker!=='QQQ') return NaN; const b=bars[r.day]; if(!b||
 function rounds(execs){ const T=TP(); const ex=execs.filter(e=>e.right==='C'||e.right==='P').filter(e=>e.ticker==='QQQ'||e.ticker==='SPY').map(e=>({...e}));
   T.tagRows(ex); return T.summarize(ex).map(s=>{ const fills=ex.filter(x=>x.group===s.group).sort((a,b)=>a.ts-b.ts); const f0=fills.find(f=>f.side==='buy')||fills[0];
     const m=etMin(f0.ts); return {...s,fills,ticker:f0.ticker,strike:f0.strike,right:f0.right,first:f0.ts,day:dayOf(f0.ts),entryPx:f0.price,
-      pnl:s.hasCash?s.cash:s.netPl,stag:(fills.find(f=>f.stag)||{}).stag||'',placed:+f0.placed||0,pb:+f0.price<0.30,setup:m>=LATE?'late':(m>=AM0&&m<AM1)?'am':'out'}; }); }
-function lateFlags(r){ const f=[], u=under(r);
+      pnl:s.hasCash?s.cash:s.netPl,stag:(fills.find(f=>f.stag)||{}).stag||'',placed:+f0.placed||0,pb:+f0.price<0.30,setup:m>=LATE0&&m<=LATE1?'late':(m>=AM0&&m<AM1)?'am':'out'}; }); }
+function lateFlags(r){ const f=[], u=under(r), em=etMin(r.first), xm=etMin(r.last);
   if(!isFinite(u)) f.push(['price ?','na']); else f.push(Math.abs(r.strike-u)<=1?['≤1 pt','ok']:['too far ('+Math.abs(r.strike-u).toFixed(1)+')','bad']);
+  if(em<LATE0) f.push(['early','bad']);
+  if(em>LATE1) f.push(['after window','bad']);
   if(r.entryPx<0.20||r.entryPx>0.35) f.push(['premium','bad']);
   if(r.bq<2||r.bq>4) f.push(['size','bad']);
-  if(etMin(r.last)>CLOSE||r.open>0) f.push(['exit late','bad']);
+  if(xm>LATE1||r.open>0) f.push(['exit after 3:30','bad']);
   return f; }
 function amBroken(day,rs){ const ex=[].concat(...rs.map(r=>r.fills)); if(!ex.length) return [];
   let cfg={}; try{ cfg=JSON.parse(localStorage.getItem('mh_report_cfg')||'{}'); }catch(e){}
@@ -50,8 +52,8 @@ function render(execs,preview){ const el=document.getElementById('sc-body'); if(
   const row=(k,a,b,fa,fb,cmp)=>{ const c=cmp&&sL.n&&sA.n?better(cmp[0],cmp[1],true):['','']; return '<tr><td style="text-align:left">'+k+'</td><td'+c[0]+'>'+fa+'</td><td'+c[1]+'>'+fb+'</td></tr>'; };
   let h=note+'<div class="btns" style="justify-content:flex-start;margin:0 0 10px"><label style="display:flex;gap:6px;align-items:center;margin:0;text-transform:none"><input type="checkbox" id="sc10" style="width:auto"'+(last10?' checked':'')+'> Last 10 trading days only</label><span class="muted">'+shown.length+' day'+(shown.length===1?'':'s')+' shown · '+days.length+' stored</span></div>';
   if(!rs.length){ el.innerHTML=h+'<p class="sub">No QQQ/SPY option trades saved yet. Load a Wealthsimple CSV above and click <b>Save executions</b>.</p>'; return; }
-  h+='<div class="sc-cards">'+card('⏱️ Late Scalp (entry ≥ 3:15 PM)',sL,lateBreaks,'Trades w/ rule breaks')+card('🎯 Morning Playbook (9:30–11:30)',sA,amBreaks,'Rules broken (day total)')+'</div>';
-  h+='<p class="sub" style="margin:8px 0">Outside both setups (11:30–3:15 or pre-9:30): <b>'+sO.n+'</b> trade'+(sO.n===1?'':'s')+', net '+money(sO.net)+', expectancy '+avg(sO.exp)+'.</p>';
+  h+='<div class="sc-cards">'+card('⏱️ Late Scalp (entry 3:15–3:30 PM)',sL,lateBreaks,'Trades w/ rule breaks')+card('🎯 Morning Playbook (9:30–11:30)',sA,amBreaks,'Rules broken (day total)')+'</div>';
+  h+='<p class="sub" style="margin:8px 0">Outside both setups (11:30–3:15, 3:30–4:00 exit-only, or pre-9:30): <b>'+sO.n+'</b> trade'+(sO.n===1?'':'s')+', net '+money(sO.net)+', expectancy '+avg(sO.exp)+'.</p>';
   const mini=(t,s)=>'<div class="sc-card sc-mini"><h4 style="margin:0 0 6px">'+t+'</h4><div class="stats">'+[['Trades',s.n],['Win',pct(s.wr)],['Net',money(s.net)],['Avg',avg(s.avg)],['Expect.',avg(s.exp)]].map(x=>'<div class="stat"><div class="k">'+x[0]+'</div><div class="v">'+x[1]+'</div></div>').join('')+'</div></div>';
   const PBl=rs.filter(r=>r.pb), OTl=rs.filter(r=>!r.pb);
   h+='<h3>Passive bids <span class="muted" style="font-size:.8rem;font-weight:400">(entry fill under $0.30 per contract)</span></h3><div class="sc-cards sc-tags">'+mini('🪤 Possible passive bid',stat(PBl))+mini('Other trades',stat(OTl))+'</div>';

@@ -168,12 +168,14 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
   <p class="sub">Separate from the morning playbook. Test period: ~10 trading days. Log saved only in this browser.</p>
   <div class="note">📊 Easier: import your Wealthsimple CSV in the <a href="journal.html#setup-compare" style="color:var(--accent);font-weight:600">Trade Journal → Setup Compare</a> — it splits Late Scalp vs Morning automatically. This manual log is optional.</div>
   <div class="pcard"><ul class="ls-rules">
-    <li><b>Entry:</b> after 3:15 PM ET only.</li>
+    <li><b>Entry:</b> only 3:15–3:30 PM ET (scrub / Late Scalp window).</li>
+    <li><b>Out by:</b> 3:30 PM ET — flat before the last half hour.</li>
+    <li><b>After 3:30:</b> no new positions (exit-only until the close).</li>
     <li><b>Strike:</b> within 1 point of the current price.</li>
     <li><b>Premium:</b> about $0.20–$0.35.</li>
     <li><b>Size:</b> 2–4 contracts.</li>
     <li><b>Direction:</b> follow the day's map (puts when the map favors puts).</li>
-    <li><b>Exit:</b> before 4:00 PM ET (or at expiry if 0DTE).</li>
+    <li><b>Pin-risk:</b> after 3:00 PM ET, an open 0DTE kite within 1 pt of strike may get pinned into the close — see the <a href="journal.html" style="color:var(--accent);font-weight:600">Trade Journal</a> pin-risk banner (unlock required).</li>
   </ul></div>
   <div id="ls-body"></div>
 </section>

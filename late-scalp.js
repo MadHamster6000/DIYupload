@@ -14,11 +14,12 @@
   function flags(r){var f=[];
     f.push(Math.abs(r.strike-r.under)<=1?['≤1 pt','ok']:['too far','bad']);
     if(r.entry&&r.entry<'15:15') f.push(['early','bad']);
+    if(r.entry&&r.entry>'15:30') f.push(['after window','bad']);
     if(r.prem<0.20||r.prem>0.35) f.push(['premium','bad']);
     if(r.prem<0.30) f.push(['possible passive bid','bad']);
     if(gap(r)>1) f.push(['waited bid ('+gap(r)+'m)','bad']);
     if(r.qty<2||r.qty>4) f.push(['size','bad']);
-    if(r.exit&&r.exit>'16:00') f.push(['exit late','bad']);
+    if(r.exit&&r.exit>'15:30') f.push(['exit after 3:30','bad']);
     return f;}
   function clean(r){return flags(r).every(function(x){return x[1]==='ok';});}
   function stats(list){var n=list.length,w=0,net=0,d={};list.forEach(function(r){var p=pnl(r);net+=p;if(p>0)w++;d[r.date]=1;});

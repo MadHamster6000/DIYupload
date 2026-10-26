@@ -108,6 +108,12 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
 .chartslot{border:1px dashed var(--line);border-radius:8px;padding:10px 14px;color:var(--muted);font-size:.88rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .chartslot.armed{border-color:var(--accent);color:var(--text);background:rgba(79,140,255,.08)}
 .sc-tags{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))!important}.sc-mini .stat{padding:6px}.sc-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}.sc-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px}.sc-card .stat{background:var(--panel)}.sc-win{background:rgba(34,197,94,.12);font-weight:700}.sc-b{display:inline-block;font-size:.72rem;padding:2px 7px;border-radius:999px;margin:1px 4px 1px 0;border:1px solid}.sc-ok{color:var(--green);border-color:rgba(34,197,94,.4)}.sc-bad{color:var(--amber);border-color:rgba(245,158,11,.45)}.sc-na{color:var(--muted);border-color:var(--line)}
+.pin-banner{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.5);border-radius:12px;padding:12px 14px;margin:0 0 12px;color:#fcd34d}
+.pin-banner .pin-title{font-weight:800;font-size:1rem;margin:0 0 6px;color:var(--amber);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pin-banner .pin-live{font-size:.7rem;padding:2px 8px;border-radius:999px;background:rgba(239,68,68,.25);border:1px solid rgba(239,68,68,.5);color:#fca5a5;font-weight:700;letter-spacing:.4px}
+.pin-banner .pin-warn{margin:0 0 8px;font-size:.88rem;color:#fde68a;line-height:1.45}
+.pin-banner .pin-list{margin:0;padding-left:18px;font-size:.88rem}.pin-banner .pin-list li{margin:3px 0}
+.pin-loading{padding:8px 0;font-size:.85rem}
 </style>
 
 </head>
@@ -173,7 +179,7 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
 
 <section class="card edit-only" id="setup-compare">
   <h1 style="font-size:1.3rem">📊 Setup Compare</h1>
-  <p class="sub">Late Scalp (entry ≥ 3:15 PM ET) vs Morning Playbook (9:30–11:30 AM ET), built from your saved executions — import the Wealthsimple CSV after close and click <b>Save executions</b>. Everything stays inside the encrypted journal.</p>
+  <p class="sub">Late Scalp (entry 3:15–3:30 PM ET, out by 3:30, no new entries after 3:30) vs Morning Playbook (9:30–11:30 AM ET), built from your saved executions — import the Wealthsimple CSV after close and click <b>Save executions</b>. Everything stays inside the encrypted journal.</p>
   <div id="sc-body"></div>
 </section>
 
@@ -199,6 +205,7 @@ tr.bad td{background:rgba(239,68,68,.10)} tr.rawrow td{color:#fca5a5;font-family
 <script src="trade-parser.js"></script>
 <script src="journal-report.js"></script>
 <script src="setup-compare.js"></script>
+<script src="pin-risk.js"></script>
 <script src="qqq-chart.js"></script>
 <script>
 const OWNER='MadHamster6000', REPO='DIYupload', BRANCH='Madhamster-Stock';
@@ -417,6 +424,7 @@ document.addEventListener('click',ev=>{ const t=ev.target.closest('[data-go],[da
 document.addEventListener('change',ev=>{ if(ev.target.id==='dnDate'&&ev.target.value){ selDay=ev.target.value; calMonth=null; render(); } });
 function dayHTML(d,list,ex,dis){ const es=list.filter(e=>dayKey(e.ts)===d), xs=ex.filter(e=>dayKey(e.ts)===d), gs=TradeParser.summarize(xs), dpl=gs.reduce((a,g)=>a+g.netPl,0);
   let h=`<div class="day"><span>${dLabel(d)}</span><span>${es.length?es.length+' entr'+(es.length>1?'ies':'y'):''}${gs.length?` ${es.length?'· ':''}${xs.length} fills in ${gs.length} contract round${gs.length>1?'s':''} · <span class="${dpl>0?'pos':dpl<0?'neg':''}">${money(dpl)}</span>`:''}</span></div>`;
+  if(token) h+=`<div data-pinrisk="${d}"></div>`;
   h+=galleryBlock(d,true)+(token?`<div class="qc" data-qc="${d}"></div>`:'');
   gs.forEach(g=>h+=groupCard(g,xs.filter(x=>x.group===g.group))); es.forEach(e=>h+=entryCard(e,dis)); return h; }
 function render(){
@@ -432,6 +440,7 @@ function render(){
     const od=drafts.filter(e=>dayKey(e.ts)!==selDay); if(od.length){ html+='<div class="day"><span>Unsaved drafts</span></div>'; od.forEach(e=>html+=entryCard(e,dis)); } }
   box.innerHTML=html;
   hydrateImages(box); box.querySelectorAll('[data-qc]').forEach(el=>QC.mount(el,el.dataset.qc));
+  if(token&&window.PinRisk) box.querySelectorAll('[data-pinrisk]').forEach(el=>PinRisk.mount(el,el.dataset.pinrisk,journalExecs(el.dataset.pinrisk)));
 }
 $('list').addEventListener('input',ev=>{ if(!token) return; const t=ev.target, card=t.closest('.entry'); if(!card) return; const e=entries.find(x=>x.id===card.dataset.id);
   if(t.dataset.f){ let v=t.value; if(t.dataset.f==='ticker') v=v.toUpperCase(); if(t.dataset.f==='result') t.className='res '+v; e[t.dataset.f]=v; }
