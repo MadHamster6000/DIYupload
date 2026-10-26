@@ -237,28 +237,62 @@ def strategy(w0, w1=None):
         return {'plan': f'Today: NEUTRAL, stand aside; watch the flip {fz}.', 'bias': 'NEUTRAL', 'summary': f'Spot {spot} above flip {flip} but net gamma negative: mixed signals, stand aside or wait for a clean 5-min trend.',
                 'invalidation': fz, 'rules': RULES, 'disclaimer': DISCL}
     R = round
+    a_skip = False
     if bias == 'PUT':
         pw = put_wall or R(spot - st)
-        a_entry = R(min(spot + 0.35 * st, flip - 1))
-        A = {'entry': f'{a_entry}', 'setup': f'Open rallies to {a_entry - 1}–{a_entry}, liquidity gets swept, price snaps back down. Enter {a_entry} on the turn.',
-             'tp1': f'{R(spot)}–{R(spot) - 1}', 'tp2': f'{R(pw)}', 'stop': f'5-minute close back above {a_entry}'}
+        # Sweep = rally into liquidity above spot, capped under the flip.
+        # Skip when the flip-1 cap would crush the ideal rally (spot too close to flip).
+        ideal_a = spot + 0.35 * st
+        flip_cap = flip - 1
         t2 = math.floor(lo)
         B = {'entry': f'{R(pw) + 2}–{R(spot)}, or a 5-minute close under {R(pw)}', 'setup': 'Wall entry near spot or break-and-hold under the put wall.',
              'tp1': f'{R(pw)}', 'tp2': f'{t2}–{t2 + 2}', 'stop': '3:30 PM ET hard stop'}
+        if ideal_a > flip_cap:
+            a_skip = True
+            A = {'entry': 'n/a', 'setup': 'Sweep entry skipped: spot too close to the gamma flip (ideal rally sits above flip−1). Use Version B (wall entry) only.',
+                 'tp1': '—', 'tp2': '—', 'stop': '—'}
+        else:
+            a_entry = R(min(ideal_a, flip_cap))
+            # Rally must be at/above spot (mirror of call dip ≤ spot).
+            if a_entry < spot:
+                a_skip = True
+                A = {'entry': 'n/a', 'setup': 'Sweep entry skipped: clamped level is below spot (not a valid rally). Use Version B (wall entry) only.',
+                     'tp1': '—', 'tp2': '—', 'stop': '—'}
+            else:
+                A = {'entry': f'{a_entry}', 'setup': f'Open rallies to {a_entry - 1}–{a_entry}, liquidity gets swept, price snaps back down. Enter {a_entry} on the turn.',
+                     'tp1': f'{R(spot)}–{R(spot) - 1}', 'tp2': f'{R(pw)}', 'stop': f'5-minute close back above {a_entry}'}
         bench = f'Calls on the bench unless {fz} reclaims and holds'
         why = f'Spot {spot} is under the gamma flip {flip}' + (' with negative net gamma (dealers chase moves).' if neg else ' (positive gamma, moves damped).')
     else:
         cw = call_wall or R(spot + st)
-        a_entry = R(max(spot - 0.35 * st, flip + 1))
-        A = {'entry': f'{a_entry}', 'setup': f'Open dips to {a_entry}–{a_entry + 1}, liquidity gets swept, price snaps back up. Enter {a_entry} on the turn.',
-             'tp1': f'{R(spot)}–{R(spot) + 1}', 'tp2': f'{R(cw)}', 'stop': f'5-minute close back below {a_entry}'}
+        # Sweep = dip into liquidity below spot, floored above the flip.
+        # Skip when the flip+1 floor would lift the ideal dip (spot too close to flip).
+        ideal_a = spot - 0.35 * st
+        flip_floor = flip + 1
         t2 = math.ceil(hi)
         B = {'entry': f'{R(spot)}–{R(cw) - 2}, or a 5-minute close over {R(cw)}', 'setup': 'Wall entry near spot or break-and-hold over the call wall.',
              'tp1': f'{R(cw)}', 'tp2': f'{t2 - 2}–{t2}', 'stop': '3:30 PM ET hard stop'}
+        if ideal_a < flip_floor:
+            a_skip = True
+            A = {'entry': 'n/a', 'setup': 'Sweep entry skipped: spot too close to the gamma flip (ideal dip sits below flip+1). Use Version B (wall entry) only.',
+                 'tp1': '—', 'tp2': '—', 'stop': '—'}
+        else:
+            a_entry = R(max(ideal_a, flip_floor))
+            # Dip must be at/below spot.
+            if a_entry > spot:
+                a_skip = True
+                A = {'entry': 'n/a', 'setup': 'Sweep entry skipped: clamped level is above spot (not a valid dip). Use Version B (wall entry) only.',
+                     'tp1': '—', 'tp2': '—', 'stop': '—'}
+            else:
+                A = {'entry': f'{a_entry}', 'setup': f'Open dips to {a_entry}–{a_entry + 1}, liquidity gets swept, price snaps back up. Enter {a_entry} on the turn.',
+                     'tp1': f'{R(spot)}–{R(spot) + 1}', 'tp2': f'{R(cw)}', 'stop': f'5-minute close back below {a_entry}'}
         bench = f'Puts on the bench unless price loses {fz} and holds below'
         why = f'Spot {spot} is above the gamma flip {flip} with positive net gamma (dealers dampen dips).'
     rules = RULES + [bench]
-    plan = f"Today: {bias}, entry {B['entry'].split(',')[0]}, targets {B['tp1']} / {B['tp2']}, invalidation {fz}."
+    if a_skip:
+        plan = f"Today: {bias}, wall entry only (sweep skipped — spot too close to flip), entry {B['entry'].split(',')[0]}, targets {B['tp1']} / {B['tp2']}, invalidation {fz}."
+    else:
+        plan = f"Today: {bias}, entry {B['entry'].split(',')[0]}, targets {B['tp1']} / {B['tp2']}, invalidation {fz}."
     return {'plan': plan, 'spot_ts': w0.get('spot_ts'), 'bias': bias, 'strength': strength, 'summary': why, 'spot': spot, 'flip': flip, 'put_wall': put_wall, 'call_wall': call_wall,
             'range': [R(lo, 1), R(hi, 1)], 'A': A, 'B': B, 'kite': 'Rest: kite until 3:30 PM ET', 'rules': rules,
             'invalidation': f'If {fz} ' + ('reclaims and holds' if bias == 'PUT' else 'is lost and holds below') + f' before 10:00 AM ET, the {bias.lower()} bias is off: switch sides or stand down',
