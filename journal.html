@@ -628,7 +628,13 @@ document.addEventListener('dragend',()=>{ document.querySelectorAll('.pic.over,.
 document.addEventListener('drop',ev=>{ if(!dragPic) return; const f=ev.target.closest&&ev.target.closest('.pic'); ev.preventDefault(); ev.stopImmediatePropagation(); const from=dragPic.dataset.pic, day=dragPic.dataset.day; dragPic=null;
   if(!f||f.dataset.pic===from||f.dataset.day!==day) return render(); const to=f.dataset.pic;
   editPics(day,ps=>{ const a=ps.findIndex(p=>p.id===from); const [m]=ps.splice(a,1); ps.splice(ps.findIndex(p=>p.id===to),0,m); return ps; },`journal: reorder pictures ${day}`); },true);
-function renderTLChart(){ $('tlChart').innerHTML=''; }
+function renderTLChart(){
+  const el=$('tlChart'), d=$('tlDate').value;
+  if(!el) return;
+  if(!d||!token||!window.QC){ el.innerHTML=''; return; }
+  el.innerHTML=`<div class="qc" data-qc="${esc(d)}"></div>`;
+  QC.mount(el.firstElementChild, d);
+}
 
 // ---------- trade list (paste & parse) ----------
 const TP=window.TradeParser;
@@ -646,7 +652,7 @@ function applyRange(){ if(!pv||!pv.all) return; const f=pv.from||'0000', t=pv.to
   pv.rows=pv.all.filter(r=>{ const d=dayKey(r.ts); return d>=f&&d<=t; });
   const keys=new Set(pv.rows.map(r=>`${r.ticker}|${r.expiry}|${r.strike}|${r.right}`));
   pv.prior=pv.all.filter(r=>dayKey(r.ts)<f&&keys.has(`${r.ticker}|${r.expiry}|${r.strike}|${r.right}`)); // context so carried positions tag correctly
-  renderPV(); }
+  renderPV(); renderTLChart(); }
 $('tlParse').addEventListener('click',()=>parseTL());
 $('tlFile').addEventListener('change',async e=>{ const f=e.target.files[0]; e.target.value=''; if(f) parseTL(await f.text()); });
 $('pvRange').addEventListener('change',ev=>{ const t=ev.target; if(!pv) return; if(t.id==='pvDay'){ pv.from=pv.to=t.value; } if(t.id==='pvFrom') pv.from=t.value; if(t.id==='pvTo') pv.to=t.value; if(pv.from>pv.to) pv.to=pv.from; if(pv.from) $('tlDate').value=pv.from; applyRange(); });
