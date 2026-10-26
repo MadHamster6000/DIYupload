@@ -107,7 +107,18 @@ footer{text-align:center;color:var(--muted);font-size:.82rem;padding:20px}
   <div class="pb-head"><div><h1>🎯 My 0DTE Playbook</h1><p class="sub" style="margin:0">Check off each rule as you follow it today. Resets automatically every new trading day (ET).</p></div>
   <div class="pb-meta"><span id="pbDate"></span><span id="pbCount" class="pb-count">0/4</span><button id="pbReset" title="Uncheck all for today">Reset</button></div></div>
   <div class="pb-list"><label class="pb-item"><input type="checkbox" data-pb="0"><span><b>1.</b> Only enter after a liquidity sweep with confirmation. No fixed time window after the sweep — I decide the entry from the tape.</span></label><label class="pb-item"><input type="checkbox" data-pb="1"><span><b>2.</b> No entries in the first 15 minutes after the 9:30 AM ET open.</span></label><label class="pb-item"><input type="checkbox" data-pb="2"><span><b>3.</b> Stop after 2 losing trades.</span></label><label class="pb-item"><input type="checkbox" data-pb="3"><span><b>4.</b> Only add to positions that are moving in my favor, using the 4-contract structure: 1 contract TP at +100%, 1 contract TP at +300%, 2 contracts kited with no target.</span></label></div>
+  <div class="note" style="margin-top:10px">📝 <b>“Never add to losers”</b> applies to adding to the same plan/thesis. A separate pre-committed plan with its own trigger, entry, and stop is a fresh trade, not an add-on.</div>
   <div class="note" style="margin-top:10px">📝 <b>Lesson (Oct 23, 2026):</b> Overexposed on a reversal day and lost ~$600. The stop-after-2-losses rule helps on bad days like Oct 9, 16 and 23.</div>
+  <div class="pcard" style="margin-top:12px">
+    <div class="ph"><h4>Plan B · Liquidity Sweep</h4><span class="muted">Pre-commit before the open</span></div>
+    <ul class="ls-rules">
+      <li><b>Trigger:</b> Plan A’s breakout fails; price sweeps a prior low (e.g. 707) and reclaims it on a 5-minute close. Enter on the reclaim, not during the sweep.</li>
+      <li><b>Entry:</b> pick the strike whose premium is in the $0.25–$0.40 mid-range at the time of the trigger — the strike number is <b>not</b> fixed (a sweep at 10:30 might be a 712 call; one at 2:00 PM might be a 711 call). Direction follows the day’s map (call on a call day).</li>
+      <li><b>Stop:</b> tight, just below the sweep low.</li>
+      <li><b>Targets:</b> +100% take half, move stop to breakeven on the rest, runner to +300%.</li>
+      <li><b>Rules:</b> Plan B at most once per day. If Plan A loses, Plan B is the last plan for the day (stop-after-first-loss still applies). Define Plan B before the open alongside Plan A — improvising it mid-session after Plan A is bleeding counts as chasing, not executing.</li>
+    </ul>
+  </div>
 </section>
 <section class="card" id="plan-ladder">
   <h2>🪜 Plan Ladder</h2>

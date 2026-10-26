@@ -1,7 +1,7 @@
 /* Plan Ladder — private, stored only in this browser's localStorage, keyed by ET date. */
 (function(){
   var root=document.getElementById('pl-body'); if(!root) return;
-  var IDS=['A','B','C'], PH={A:'702–706 zone',B:'707 swipe',C:'e.g. 700 break & hold'};
+  var IDS=['A','B','C'], PH={A:'wall entry / 5m close over wall',B:'A fails → sweep & reclaim',C:'e.g. 700 break & hold'};
   function etDay(){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}).format(new Date());}
   var day, st;
   function key(){return 'apex-plan-ladder-'+day;}
