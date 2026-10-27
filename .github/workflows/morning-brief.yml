@@ -26,4 +26,10 @@ jobs:
           git add data/brief data/updated.json
           git diff --cached --quiet && exit 0
           git commit -m "data: morning brief $(date -u +%F)"
-          git pull --rebase origin Madhamster-Stock && git push origin HEAD:Madhamster-Stock
+          STASH=0
+          if [ -n "$(git status --porcelain -- data)" ]; then
+            git stash push -u -m "actions-pre-rebase" -- data && STASH=1
+          fi
+          git pull --rebase origin Madhamster-Stock
+          [ "$STASH" = 1 ] && git stash pop || true
+          git push origin HEAD:Madhamster-Stock
