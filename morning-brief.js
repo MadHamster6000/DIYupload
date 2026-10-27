@@ -42,6 +42,22 @@
     if(b.errors&&b.errors.length) h+=`<p class="sub" style="font-size:.8rem">Source notes: ${b.errors.map(esc).join('; ')}</p>`;
     el.innerHTML=h;
   }
-  fetch('data/brief/latest.json?t='+Date.now()).then(r=>{if(!r.ok)throw 0;return r.json()}).then(render)
-    .catch(()=>{el.innerHTML='<p class="sub">Morning Brief not generated yet. It runs weekdays at 8:30 AM ET.</p>'});
+  function showStamp(u){
+    const s=document.getElementById('site-updated'); if(!s||!u) return;
+    const label=u.label||(u.iso?('Updated '+u.iso.replace('T',' · ').replace(/-0?(\d+)-0?/,(m,d)=>d)+' ET'):'');
+    if(label) s.textContent=label;
+  }
+  fetch('data/updated.json?t='+Date.now()).then(r=>r.ok?r.json():null).then(showStamp).catch(()=>{});
+  fetch('data/brief/latest.json?t='+Date.now()).then(r=>{if(!r.ok)throw 0;return r.json()}).then(b=>{
+    render(b);
+    // Fallback stamp from brief.generated if updated.json missing
+    if(!document.getElementById('site-updated')?.textContent && b.generated){
+      const d=new Date(b.generated);
+      if(!isNaN(d)){
+        const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const h=d.getHours(), ampm=h<12?'AM':'PM', h12=h%12||12;
+        showStamp({label:`Updated ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${h12}:${String(d.getMinutes()).padStart(2,'0')} ${ampm} ET`});
+      }
+    }
+  }).catch(()=>{el.innerHTML='<p class="sub">Morning Brief not generated yet. It runs weekdays at 6:55 AM ET.</p>'});
 })();

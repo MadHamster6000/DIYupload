@@ -63,4 +63,19 @@ def main():
          'days': idx, 'legend': '1=1m f=15m h=1h', 'source': 'Yahoo Finance chart API (public market data, delayed)'})
     print('daily', len(dk), dk[0], '→', dk[-1], '| day files updated', changed,
           '| 1m days', sum('1' in v for v in idx.values()), '| 15m days', sum('f' in v for v in idx.values()), '| 1h days', sum('h' in v for v in idx.values()))
+    # Bump site last-updated stamp when QQQ data changes
+    if changed:
+        now_et = datetime.datetime.now(ET)
+        months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+        ampm = 'AM' if now_et.hour < 12 else 'PM'
+        h12 = now_et.hour % 12 or 12
+        stamp = {
+            'iso': now_et.isoformat(timespec='minutes'),
+            'label': f'Updated {months[now_et.month-1]} {now_et.day}, {now_et.year} · {h12}:{now_et.minute:02d} {ampm} ET',
+            'source': 'qqq-data',
+            'date': now_et.date().isoformat(),
+        }
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+        save(os.path.join(root, 'data', 'updated.json'), stamp)
+        print('updated', stamp['label'])
 if __name__ == '__main__': main()

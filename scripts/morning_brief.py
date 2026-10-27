@@ -343,6 +343,18 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     for f in ('latest.json', f'{today.isoformat()}.json'):
         json.dump(brief, open(os.path.join(OUT, f), 'w'), separators=(',', ':'))
+    # Site-wide last-updated stamp (America/Toronto / ET display)
+    months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    ampm = 'AM' if now.hour < 12 else 'PM'
+    h12 = now.hour % 12 or 12
+    stamp = {
+        'iso': now.isoformat(timespec='minutes'),
+        'label': f'Updated {months[now.month-1]} {now.day}, {now.year} · {h12}:{now.minute:02d} {ampm} ET',
+        'source': 'morning-brief',
+        'date': today.isoformat(),
+    }
+    json.dump(stamp, open(os.path.join(ROOT, 'data', 'updated.json'), 'w'), separators=(',', ':'))
     print(json.dumps({k: brief[k] for k in ('strategy', 'errors')}, indent=1)[:3000])
     print('elapsed', round(time.time() - T0), 's')
+    print('updated', stamp['label'])
 main()
