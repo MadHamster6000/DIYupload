@@ -4,7 +4,8 @@
   var root=document.getElementById('sw-body'); if(!root) return;
 
   var STATIONS=[1000,2000,4000,8000,16000,32000,64000,128000,256000,512000,1000000];
-  var CONTRACTS={1000:4,2000:4,4000:6,8000:8,16000:10,32000:20,64000:40,128000:60,256000:80,512000:100,1000000:100};
+  var CONTRACTS={1000:4,2000:8,4000:16,8000:32,16000:64,32000:128,64000:256,128000:512,256000:1024,512000:2048,1000000:4096};
+  var AVG_PREM=0.30; // $/share average premium for TP panel (×100 = $30 per contract)
   var GOAL=1000000, DEFAULT=2000, BASE_CT=4;
   var SK='mh_subway_station', EK='mh_subway_expectancy';
   var TRADING_DAYS_PER_MONTH=21, TRADING_DAYS_PER_YEAR=252;
@@ -24,7 +25,7 @@
     if(cap>=1000) return '$'+(cap/1000)+'k';
     return fmt(cap);
   }
-  function ct(cap){return CONTRACTS[cap]||Math.min(100,Math.max(1,Math.round(cap/500)));}
+  function ct(cap){return CONTRACTS[cap]||Math.max(1,Math.round(4*cap/1000));} // doubling scale: 4 × (capital ÷ 1000), no cap
 
   function loadStation(){
     try{var v=Number(localStorage.getItem(SK)); if(STATIONS.indexOf(v)>=0) return v;}catch(e){}
@@ -62,6 +63,8 @@
         '<div><label for="sw-loss">Today\'s loss ($)</label><input type="number" id="sw-loss" min="0" step="1" inputmode="decimal"></div>'+
       '</div>'+
       '<div class="stats" id="sw-stats" style="margin-top:12px"></div>'+
+      '<h3 style="margin-top:18px;color:var(--text)">🎯 Size &amp; take-profit at this station <span class="sw-zh">· avg premium $0.30</span></h3>'+
+      '<div class="stats" id="sw-tp" style="margin-top:8px"></div>'+
       '<div class="sw-loss" id="sw-loss-out" hidden></div>'+
 
       '<h3 style="margin-top:22px;color:var(--text)">⏱️ Time invested to $1M <span class="sw-zh">· 唔係利潤</span></h3>'+
@@ -77,7 +80,7 @@
       '<div id="sw-eta-msg"></div>'+
       '<div class="sw-hop" id="sw-hop" hidden><table><thead><tr><th>Hop</th><th>Contracts</th><th>Daily return</th><th>Trading days</th></tr></thead><tbody id="sw-hop-body"></tbody></table></div>'+
 
-      '<div class="note" style="margin-top:14px">📝 <b>Exit structure:</b> 50% at +100%, 25% at +300%, 25% kite — matches the playbook. Position sizes on the map are the station caps (never beyond). Avg win/loss scale with contracts from the 4-contract baseline.</div>';
+      '<div class="note" style="margin-top:14px">📝 <b>Exit structure:</b> 50% at +100%, 25% at +300%, 25% kite — matches the playbook. Position sizes on the map follow the doubling scale (4 contracts per $1,000, no ceiling). Avg win/loss scale with contracts from the 4-contract baseline.</div>';
   }
 
   function buildMap(){
@@ -280,6 +283,14 @@
       '<div class="stat"><div class="k">To next station</div><div class="v">'+toNext$+(next?' <span style="font-size:.85rem;font-weight:600;color:var(--muted)">('+toNextPct+')</span>':'')+'</div></div>'+
       '<div class="stat"><div class="k">Stations to $1M</div><div class="v">'+remaining+'</div></div>'+
       '<div class="stat"><div class="k">Max contracts here</div><div class="v">'+maxCt+'</div></div>';
+
+    var unit=AVG_PREM*100;
+    document.getElementById('sw-tp').innerHTML=
+      '<div class="stat"><div class="k">Suggested size</div><div class="v">'+maxCt+' cts</div><div class="k" style="margin-top:4px;text-transform:none">'+maxCt+' × $'+AVG_PREM.toFixed(2)+' premium</div></div>'+
+      '<div class="stat"><div class="k">Max loss</div><div class="v neg">-'+fmt(maxCt*unit)+'</div><div class="k" style="margin-top:4px;text-transform:none">'+maxCt+' × $'+unit.toFixed(0)+'</div></div>'+
+      '<div class="stat"><div class="k">TP +100%</div><div class="v pos">+'+fmt(maxCt*unit)+'</div><div class="k" style="margin-top:4px;text-transform:none">'+maxCt+' × $'+unit.toFixed(0)+'</div></div>'+
+      '<div class="stat"><div class="k">TP +300%</div><div class="v pos">+'+fmt(maxCt*unit*3)+'</div><div class="k" style="margin-top:4px;text-transform:none">'+maxCt+' × $'+(unit*3).toFixed(0)+'</div></div>'+
+      '<div class="stat"><div class="k">TP +1000%</div><div class="v pos">+'+fmt(maxCt*unit*10)+'</div><div class="k" style="margin-top:4px;text-transform:none">'+maxCt+' × $'+(unit*10).toFixed(0)+'</div></div>';
 
     renderLoss();
     renderEta();
