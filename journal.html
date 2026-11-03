@@ -238,6 +238,7 @@ label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;text-tr
 <script src="journal-report.js"></script>
 <script src="setup-compare.js"></script>
 <script src="pin-risk.js"></script>
+<script src="stale-position.js"></script>
 <script src="kite-mgmt.js"></script>
 <script src="qqq-chart.js"></script>
 <script>
@@ -457,7 +458,7 @@ document.addEventListener('click',ev=>{ const t=ev.target.closest('[data-go],[da
 document.addEventListener('change',ev=>{ if(ev.target.id==='dnDate'&&ev.target.value){ selDay=ev.target.value; calMonth=null; render(); } });
 function dayHTML(d,list,ex,dis){ const es=list.filter(e=>dayKey(e.ts)===d), xs=ex.filter(e=>dayKey(e.ts)===d), gs=TradeParser.summarize(xs), dpl=gs.reduce((a,g)=>a+g.netPl,0);
   let h=`<div class="day"><span>${dLabel(d)}</span><span>${es.length?es.length+' entr'+(es.length>1?'ies':'y'):''}${gs.length?` ${es.length?'· ':''}${xs.length} fills in ${gs.length} contract round${gs.length>1?'s':''} · <span class="${dpl>0?'pos':dpl<0?'neg':''}">${money(dpl)}</span>`:''}</span></div>`;
-  if(token) h+=`<div data-pinrisk="${d}"></div>`;
+  if(token) h+=`<div data-pinrisk="${d}"></div><div data-stalepos="${d}"></div>`;
   h+=galleryBlock(d,true)+(token?`<div class="qc" data-qc="${d}"></div>`:'');
   gs.forEach(g=>h+=groupCard(g,xs.filter(x=>x.group===g.group))); es.forEach(e=>h+=entryCard(e,dis)); return h; }
 function render(){
@@ -474,6 +475,7 @@ function render(){
   box.innerHTML=html;
   hydrateImages(box); box.querySelectorAll('[data-qc]').forEach(el=>QC.mount(el,el.dataset.qc));
   if(token&&window.PinRisk) box.querySelectorAll('[data-pinrisk]').forEach(el=>PinRisk.mount(el,el.dataset.pinrisk,journalExecs(el.dataset.pinrisk)));
+  if(token&&window.StalePosition) box.querySelectorAll('[data-stalepos]').forEach(el=>StalePosition.mount(el,el.dataset.stalepos,journalExecs(el.dataset.stalepos)));
 }
 $('list').addEventListener('input',ev=>{ if(!token) return; const t=ev.target, card=t.closest('.entry'); if(!card) return; const e=entries.find(x=>x.id===card.dataset.id);
   if(t.dataset.f){ let v=t.value; if(t.dataset.f==='ticker') v=v.toUpperCase(); if(t.dataset.f==='result') t.className='res '+v; e[t.dataset.f]=v; }
