@@ -386,12 +386,12 @@ def wall_b(bias, w0, w1, spot, st, wall, rng):
         if bot <= top: bot = top + 1
     side = 'under' if put else 'over'
     nm = 'put' if put else 'call'
-    # Break trigger: OI wall only if within 1 straddle of spot; else gamma-wall break if it is beyond the entry band; else none.
-    trig, tlab = None, None
-    if wall is not None and abs(wall - spot) <= st:
-        trig, tlab = R(wall), f'OI {nm} wall {R(wall)}'
-    elif g is not None and ((R(g) < bot) if put else (R(g) > bot)):
-        trig, tlab = R(g), f'gamma {nm} wall {R(g)} break'
+    # Break trigger: nearest wall (gamma or OI, within 1 straddle) beyond the entry band in the bias direction.
+    beyond = lambda k: (R(k) < bot) if put else (R(k) > bot)
+    tc = [(R(k), lab) for k, lab in ((g, f'gamma {nm} wall'), (wall, f'OI {nm} wall'))
+          if k is not None and beyond(k) and abs(k - spot) <= st]
+    tc.sort(key=lambda x: -x[0] if put else x[0])
+    trig, tlab = (tc[0][0], f'{tc[0][1]} {tc[0][0]}') if tc else (None, None)
     B = {'entry': f'{top}–{bot}' + (f', or a 5-minute close {side} {trig}' if trig is not None else ''),
          'setup': f"Wall entry at {f'gamma {nm} wall {R(g)}' if g is not None else 'spot'}" + (f" or break-and-hold {side} {tlab}." if trig is not None else f" only (OI {nm} wall {R(wall)} > 1 straddle away, no break trigger)."),
          'wall_entry_label': f'gamma {nm} wall {R(g)}' if g is not None else None, 'break_label': tlab, 'break_trigger': trig}
@@ -400,7 +400,9 @@ def wall_b(bias, w0, w1, spot, st, wall, rng):
     cands = [R(g) if g is not None else None, (m, m + 2) if put else (m - 2, m), R(wall)]
     key = lambda t: t[0] if isinstance(t, tuple) else t
     good = [t for t in cands if t is not None and ((key(t) < top) if put else (key(t) > top))]
-    # Break-trigger walls stay valid as targets for the wall entry (the break leg continues through them).
+    if trig is not None:  # targets must lie beyond the break trigger
+        past = [t for t in good if (((max(t) if isinstance(t, tuple) else t) < trig) if put else ((min(t) if isinstance(t, tuple) else t) > trig))]
+        good = past
     # Spacing: a TP closer than ~0.5 straddle to the entry can't pay a cheap OTM option; drop it so the next wall beyond is used.
     near_edge = min(top, bot) if put else max(top, bot)
     dist = lambda t: (near_edge - (max(t) if isinstance(t, tuple) else t)) if put else ((min(t) if isinstance(t, tuple) else t) - near_edge)
@@ -510,7 +512,7 @@ def strategy(w0, w1=None):
     else:
         btag = f"{bias} ({strength})"
     plan = f"Today: {btag}. {a_txt} · B: {b_txt}. Targets {tg}. Invalidation {fz}."
-    walls_lbl = ', '.join(x for x in (B.get('wall_entry_label'), B.get('break_label')) if x)
+    walls_lbl = ', '.join(dict.fromkeys(x for x in (B.get('wall_entry_label'), B.get('break_label')) if x))
     if walls_lbl: plan += f' ({walls_lbl}.)'
     return {'plan': plan, 'spot_ts': w0.get('spot_ts'), 'bias': bias, 'strength': strength, 'summary': why, 'spot': spot, 'flip': flip, 'put_wall': put_wall, 'call_wall': call_wall,
             'range': [R(lo, 1), R(hi, 1)], 'straddle': st, 'straddle_method': w0.get('straddle_method', 'quote'), 'A': A, 'B': B, 'kite': 'Rest: kite until 3:30 PM ET', 'rules': rules,
