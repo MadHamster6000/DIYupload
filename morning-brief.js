@@ -31,7 +31,7 @@
   }
   function render(b){
     const dl=d=>d===b.days[0]?'Today':'Next session';
-    let h=(b.strategy&&b.strategy.plan?`<p style="margin:0 0 8px;font-weight:700;color:${b.strategy.bias==='PUT'?'var(--red)':b.strategy.bias==='CALL'?'var(--green)':'var(--amber)'}">${esc(b.strategy.plan)}</p>`:'')+`<p class="sub">Generated ${esc(b.generated.replace('T',' '))} ET. ${esc(b.note)}</p>`+stratCard(b.strategy)+`<h3>1 · 0DTE option walls</h3>`;
+    let h=(b.strategy&&b.strategy.plan?`<p style="margin:0 0 8px;font-weight:700;color:${b.strategy.bias==='PUT'?'var(--red)':b.strategy.bias==='CALL'?'var(--green)':'var(--amber)'}">${esc(b.strategy.plan)}</p>`:'')+`<p class="sub">Generated ${esc(b.generated.replace('T',' '))} ET. ${esc(b.note)}${b.options_label?` <b>${esc(b.options_label)}</b>`:''}</p>`+stratCard(b.strategy)+`<h3>1 · 0DTE option walls</h3>`;
     h+=b.walls&&b.walls.length?`<div class="mb-grid">${b.walls.map(w=>wallsCard(w,b.nq_ratio)).join('')}</div>${b.nq_ratio?`<p class="sub">≈NQ = QQQ level × ${b.nq_ratio} (current ratio). Rough estimate only, not futures order-book walls.</p>`:''}`:na('Option walls');
     h+=`<h3>2 · Market calendar (ET)</h3>`;
     if(b.macro){h+=b.macro.length?`<table class="mb-t mb-cal"><tr><th>Day</th><th>Time</th><th>Event</th><th>Impact</th><th>Fcst / Prev</th></tr>${b.macro.map(e=>`<tr><td>${dl(e.date)}</td><td>${esc(e.time)}</td><td>${esc(e.title)}</td><td>${tag(e.impact)}</td><td>${esc(e.forecast)} / ${esc(e.previous)}</td></tr>`).join('')}</table>`:'<p class="sub">No US economic events scheduled.</p>';}else h+=na('Economic calendar');

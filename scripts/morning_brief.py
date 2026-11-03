@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Morning Brief: QQQ/SPY 0DTE option walls, macro + earnings calendar, gamma squeeze scanner.
-Free public data only (Yahoo via yfinance, ForexFactory weekly JSON, Nasdaq earnings API). No secrets.
+Free public data only (options: CBOE delayed -> Nasdaq -> Yahoo; prices Yahoo via yfinance, ForexFactory weekly JSON, Nasdaq earnings API). No secrets.
 Writes data/brief/latest.json and data/brief/YYYY-MM-DD.json. OI is prior-day; prices delayed."""
 import json, os, time, math, datetime, zoneinfo, urllib.request, traceback
 import yfinance as yf
@@ -97,16 +97,21 @@ def prev_walls(sym):
         return next((w for w in b.get('walls', []) if w.get('sym') == sym), None)
     except Exception: return None
 def fetch_checked(sym, prev, tries=3, backoff=(10, 30)):
-    """walls() with the quality gate; retry with backoff. Returns (walls, reasons-or-[])."""
-    w, bad = None, ['not fetched']
-    for i in range(tries):
-        try:
-            w = walls(sym); bad = quality_check(w, prev)
-        except Exception as e: bad = [f'walls {sym}: {e}']
-        if not bad: return w, []
-        print(f'quality gate {sym} try {i + 1}/{tries}:', bad)
-        if i < tries - 1: time.sleep(backoff[min(i, len(backoff) - 1)])
-    return w, bad
+    """walls() with the quality gate, trying CBOE -> Nasdaq -> Yahoo; first source that passes wins.
+    Yahoo (last resort) keeps the retry/backoff. Returns (walls, reasons-or-[]); reasons list every source's failure."""
+    w, allbad = None, []
+    for src in SOURCES:
+        n = tries if src == 'yahoo' else 1
+        for i in range(n):
+            try:
+                _TCACHE.pop((sym, src), None)
+                w1 = walls(sym, 0, src); bad = quality_check(w1, prev); w = w1
+            except Exception as e: bad = [f'walls {sym}: {e}']
+            if not bad: return w, []
+            print(f'quality gate {sym} [{src}] try {i + 1}/{n}:', bad)
+            if i < n - 1: time.sleep(backoff[min(i, len(backoff) - 1)])
+        allbad.append(f"{SRC_LABEL[src]}: " + '; '.join(bad))
+    return w, allbad
 
 def label_walls(w):
     if not w: return w
@@ -115,16 +120,71 @@ def label_walls(w):
                    'use': 'gamma walls = wall entry; OI walls = break trigger'}
     return w
 
+# ---------- Options chain sources: CBOE (primary) -> Nasdaq (backup) -> Yahoo (last) ----------
+import re, subprocess
+import pandas as pd
+SRC_LABEL = {'cboe': 'CBOE delayed 15-min', 'nasdaq': 'Nasdaq.com delayed', 'yahoo': 'Yahoo Finance (yfinance)'}
+SOURCES = ('cboe', 'nasdaq', 'yahoo')
+def curl_json(u):
+    out = subprocess.run(['curl', '-sL', '--max-time', '40', '-A', UA['User-Agent'], '-H', 'Accept: application/json', u],
+                         capture_output=True, check=True).stdout
+    return json.loads(out)
+class _Chain:
+    def __init__(s, c, p): s.calls, s.puts = pd.DataFrame(c), pd.DataFrame(p)
+class _SrcTicker:
+    """yfinance-like ticker: spot history from Yahoo, chain from another source."""
+    def __init__(s, sym, by, last):
+        s.r = yf.Ticker(sym); s.by = by; s.fast_info = {'lastPrice': last}
+        today = datetime.datetime.now(ET).date().isoformat()
+        s.options = sorted(e for e in by if e >= today)
+    def history(s, **k): return s.r.history(**k)
+    def option_chain(s, e): return _Chain(s.by[e]['C'], s.by[e]['P'])
+def _cboe(sym):
+    d = curl_json(f'https://cdn.cboe.com/api/global/delayed_quotes/options/{sym}.json')['data']
+    rx = re.compile(sym + r'(\d{6})([CP])(\d{8})'); by = {}
+    for o in d['options']:
+        m = rx.match(o['option'])
+        if not m: continue
+        e = '20' + m[1][:2] + '-' + m[1][2:4] + '-' + m[1][4:]
+        ts = o.get('last_trade_time')
+        by.setdefault(e, {'C': [], 'P': []})[m[2]].append({'strike': int(m[3]) / 1000, 'openInterest': o.get('open_interest'), 'volume': o.get('volume'),
+            'impliedVolatility': o.get('iv'), 'bid': o.get('bid'), 'ask': o.get('ask'), 'lastPrice': o.get('last_trade_price'),
+            'lastTradeDate': pd.Timestamp(ts).tz_localize(ET) if ts else None})
+    return _SrcTicker(sym, by, d.get('current_price'))
+_MON = {m: i + 1 for i, m in enumerate(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'])}
+def _nasdaq(sym):
+    t0 = datetime.datetime.now(ET).date(); t1 = t0 + datetime.timedelta(days=7)
+    d = curl_json(f'https://api.nasdaq.com/api/quote/{sym}/option-chain?assetclass=etf&fromdate={t0}&todate={t1}&limit=5000')['data']
+    rx = re.compile(r'---(\d{6})c(\d{8})'); by = {}
+    f = lambda x: num(str(x).replace(',', '')) if x not in (None, '--', '') else None
+    for r in d['table']['rows']:
+        m = rx.search(r.get('drillDownURL') or '')
+        if not m or r.get('strike') is None: continue
+        e = '20' + m[1][:2] + '-' + m[1][2:4] + '-' + m[1][4:]; k = f(r['strike'])
+        g = by.setdefault(e, {'C': [], 'P': []})
+        for side, pre in (('C', 'c_'), ('P', 'p_')):
+            g[side].append({'strike': k, 'openInterest': f(r.get(pre + 'Openinterest')) or 0, 'volume': f(r.get(pre + 'Volume')) or 0,
+                            'impliedVolatility': 0, 'bid': f(r.get(pre + 'Bid')) or 0, 'ask': f(r.get(pre + 'Ask')) or 0,
+                            'lastPrice': f(r.get(pre + 'Last')) or 0, 'lastTradeDate': None})
+    if not by: raise RuntimeError('nasdaq: empty chain')
+    return _SrcTicker(sym, by, None)
+_TCACHE = {}
+def get_ticker(sym, src='yahoo'):
+    if src == 'yahoo': return yf.Ticker(sym)
+    k = (sym, src)
+    if k not in _TCACHE: _TCACHE[k] = _cboe(sym) if src == 'cboe' else _nasdaq(sym)
+    return _TCACHE[k]
+
 # ---------- 1) Walls ----------
-def walls(sym, idx=0):
-    t = yf.Ticker(sym)
+def walls(sym, idx=0, src='yahoo'):
+    t = get_ticker(sym, src)
     spot, spot_ts, spot_src = 0.0, None, None
     try:
         h = t.history(period='2d', interval='1m', prepost=True)['Close'].dropna()
         if len(h): spot, spot_ts, spot_src = float(h.iloc[-1]), h.index[-1].tz_convert(ET).isoformat(timespec='minutes'), '1m prepost bar'
     except Exception as e: errors.append(f'spot 1m {sym}: {e}')
     if not spot:
-        spot = num(t.fast_info.get('lastPrice')); spot_ts = datetime.datetime.now(ET).isoformat(timespec='minutes'); spot_src = 'fast_info lastPrice (fallback)'
+        spot = num((t.fast_info or {}).get('lastPrice')); spot_ts = datetime.datetime.now(ET).isoformat(timespec='minutes'); spot_src = 'fast_info lastPrice (fallback)'
     exps = t.options
     if not exps: raise RuntimeError('no expiries')
     now = datetime.datetime.now(ET)
@@ -173,7 +233,7 @@ def walls(sym, idx=0):
     calls_above = [d for d in near if d['k'] >= spot] or near
     puts_below = [d for d in near if d['k'] <= spot] or near
     res = {
-        'sym': sym, 'spot': round(spot, 2), 'spot_ts': spot_ts, 'spot_src': spot_src, 'expiry': exp, 'is0dte': exp == now.date().isoformat(),
+        'sym': sym, 'options_src': src, 'options_label': SRC_LABEL.get(src, src), 'spot': round(spot, 2), 'spot_ts': spot_ts, 'spot_src': spot_src, 'expiry': exp, 'is0dte': exp == now.date().isoformat(),
         'call_wall_oi': max(calls_above, key=lambda d: d['coi'])['k'],
         'call_wall_gamma': max(near, key=lambda d: d['cg'])['k'],
         'put_wall_oi': max(puts_below, key=lambda d: d['poi'])['k'],
@@ -340,13 +400,14 @@ def wall_b(bias, w0, w1, spot, st, wall, rng):
     cands = [R(g) if g is not None else None, (m, m + 2) if put else (m - 2, m), R(wall)]
     key = lambda t: t[0] if isinstance(t, tuple) else t
     good = [t for t in cands if t is not None and ((key(t) < top) if put else (key(t) > top))]
-    if trig is not None:  # targets are exits: drop any at or beyond the break trigger
-        far = lambda t: (min(t) if isinstance(t, tuple) else t) <= trig if put else (max(t) if isinstance(t, tuple) else t) >= trig
-        kept = [t for t in good if not far(t)]
-        if kept: good = kept
-        else:  # trigger sits on/inside every target: too close to the entry to be useful, drop it
-            trig = None; B['entry'] = f'{top}–{bot}'; B['break_label'] = None; B['break_trigger'] = None
-            B['setup'] = f"Wall entry at {f'gamma {nm} wall {R(g)}' if g is not None else 'spot'} only (break level overlaps targets)."
+    # Break-trigger walls stay valid as targets for the wall entry (the break leg continues through them).
+    # Spacing: a TP closer than ~0.5 straddle to the entry can't pay a cheap OTM option; drop it so the next wall beyond is used.
+    near_edge = min(top, bot) if put else max(top, bot)
+    dist = lambda t: (near_edge - (max(t) if isinstance(t, tuple) else t)) if put else ((min(t) if isinstance(t, tuple) else t) - near_edge)
+    spaced = [t for t in good if dist(t) >= 0.45 * st]  # ~0.5 straddle, small tolerance
+    if not spaced:  # nothing far enough: project 1 and 1.5 straddles beyond the entry
+        spaced = [R(near_edge - st), R(near_edge - 1.5 * st)] if put else [R(near_edge + st), R(near_edge + 1.5 * st)]
+    good = spaced
     good.sort(key=key, reverse=put)
     tg = []
     for t in good:
@@ -375,8 +436,8 @@ def strategy(w0, w1=None):
     put_wall = pick(('put_wall_oi', 'put_wall_gamma'), True)
     call_wall = pick(('call_wall_oi', 'call_wall_gamma'), False)
     st = w0.get('straddle') or abs(flip - spot)
-    lo = (w1 or {}).get('range_lo') or w0.get('range_lo') or spot - 2 * st
-    hi = (w1 or {}).get('range_hi') or w0.get('range_hi') or spot + 2 * st
+    lo = w0.get('range_lo') or spot - st  # same-day (0DTE) range only
+    hi = w0.get('range_hi') or spot + st
     fz = f'{math.floor(flip)}–{math.floor(flip) + 1}'
     d_flip = abs(spot - flip)
     strength = 'weak' if d_flip < 0.5 * st else ('moderate' if d_flip < st else 'strong')
@@ -476,16 +537,20 @@ def main():
     brief['walls'] = []; gate = {}
     for s in ('QQQ', 'SPY'):
         w, bad = fetch_checked(s, prev_walls(s))
+        if w and not bad: brief.setdefault('options_source', {})[s] = w.get('options_label')
         if w: brief['walls'].append(label_walls(w))
         if w and not bad:
             wn = quality_warnings(w)
             if wn: brief.setdefault('data_warnings', {})[s] = wn
         if bad: gate[s] = bad; errors.append(f'DATA INCOMPLETE {s}: ' + '; '.join(bad))
         time.sleep(1)
+    srcq = (brief.get('options_source') or {}).get('QQQ')
+    brief['options_label'] = f'Options: {srcq}' if srcq else 'Options: none passed the data check'
+    brief['note'] = brief['note'].replace('delayed Yahoo prices', f'delayed prices ({srcq or "no source passed"})')
     brief['data_quality'] = {s: ('FAIL: ' + '; '.join(gate[s]) if s in gate else 'ok') for s in ('QQQ', 'SPY')}
     try:
         w0 = next((w for w in brief['walls'] if w['sym'] == 'QQQ'), None); w1 = None
-        try: w1 = walls('QQQ', 1)
+        try: w1 = walls('QQQ', 1, (w0 or {}).get('options_src', 'yahoo'))
         except Exception as e: errors.append(f'walls QQQ 1DTE: {e}')
         if w1: brief['qqq_1dte'] = {k: w1.get(k) for k in ('expiry', 'call_wall_oi', 'call_wall_gamma', 'put_wall_oi', 'put_wall_gamma', 'gamma_flip', 'max_pain', 'net_gex_sign', 'straddle', 'range_lo', 'range_hi')}
         brief['strategy'] = incomplete_plan(gate['QQQ']) if 'QQQ' in gate else (strategy(w0, w1) if w0 else None)
