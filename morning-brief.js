@@ -23,6 +23,8 @@
     const col=t.bias==='PUT'?'var(--red)':t.bias==='CALL'?'var(--green)':'var(--amber)';
     const ver=(n,v)=>v?`<div class="mb-card"><h3>${n}</h3><table class="mb-t"><tr><td>Entry</td><td><b>${esc(v.entry)}</b></td></tr><tr><td>TP1 +100%</td><td style="color:var(--green)">${esc(v.tp1)}</td></tr><tr><td>TP2 +300%</td><td style="color:var(--green)">${esc(v.tp2)}</td></tr><tr><td>Rest</td><td>kite until 3:30 PM ET</td></tr><tr><td>Stop</td><td style="color:var(--red)">${esc(v.stop)}</td></tr></table><p class="sub" style="margin:6px 0 0">${esc(v.setup)}</p></div>`:'';
     return `<h3>0 · Today's Strategy</h3><div class="mb-card" style="border-left:3px solid ${col}"><h3 style="color:${col}">${esc(t.bias)} bias${t.strength?' · '+esc(t.strength):''}</h3><p class="sub" style="margin:0">${esc(t.summary)}${t.spot_ts?` <small>(spot as of ${esc(t.spot_ts.replace('T',' '))} ET)</small>`:''}</p></div>
+    ${t.notice?`<div class="mb-card" style="border-left:3px solid var(--amber)"><b>Notice</b><p class="sub" style="margin:4px 0 0">${esc(t.notice)}</p>${t.source?`<p class="sub" style="margin:4px 0 0"><small>Source: ${esc(t.source)}</small></p>`:''}</div>`:''}
+    ${t.context&&t.context.length?`<div class="mb-card"><b>Price context</b>${t.context.map(r=>`<div>• ${esc(r)}</div>`).join('')}</div>`:''}
     <div class="mb-grid">${ver('Version A · Sweep entry',t.A)}${ver('Version B · Wall entry',t.B)}</div>
     <div class="mb-card"><b>Rules for both</b>${(t.rules||[]).map(r=>`<div>• ${esc(r)}</div>`).join('')}<p style="margin:8px 0 0"><b>Day invalidation:</b> <span style="color:var(--amber)">${esc(t.invalidation)}</span></p></div>
     <p class="sub" style="font-size:.8rem">${esc(t.disclaimer)}</p>`;
