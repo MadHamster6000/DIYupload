@@ -13,7 +13,7 @@
   function pnl(r){return Math.round((r.exitPx-r.prem)*r.qty*100*100)/100;}
   function flags(r){var f=[];
     f.push(Math.abs(r.strike-r.under)<=1?['≤1 pt','ok']:['too far','bad']);
-    if(r.entry&&r.entry<'15:15') f.push(['early','bad']);
+    if(r.entry&&r.entry<'15:00') f.push(['early','bad']);
     if(r.entry&&r.entry>'15:30') f.push(['after window','bad']);
     if(r.prem<0.20||r.prem>0.35) f.push(['premium','bad']);
     if(r.prem<0.30) f.push(['possible passive bid','bad']);
