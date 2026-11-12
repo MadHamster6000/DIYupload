@@ -144,7 +144,7 @@ details.pcard>summary::-webkit-details-marker{display:none}details.pcard>summary
 <section class="card pb" id="playbook">
   <div class="pb-head"><div><h1>🎯 My 0DTE Playbook</h1><p class="sub" style="margin:0">Check off each rule as you follow it today. Resets automatically every new trading day (ET).</p></div>
   <div class="pb-meta"><span id="pbDate"></span><span id="pbCount" class="pb-count">0/4</span><button id="pbReset" title="Uncheck all for today">Reset</button></div></div>
-  <div class="pb-list"><label class="pb-item"><input type="checkbox" data-pb="0"><span><b>1.</b> Only enter after a liquidity sweep with confirmation. No fixed time window after the sweep — I decide the entry from the tape.</span></label><label class="pb-item"><input type="checkbox" data-pb="1"><span><b>2.</b> No entries in the first 15 minutes after the 9:30 AM ET open.</span></label><label class="pb-item"><input type="checkbox" data-pb="2"><span><b>3.</b> Stop after 2 losing trades.</span></label><label class="pb-item"><input type="checkbox" data-pb="3"><span><b>4.</b> Only add to positions that are moving in my favor, using the 4-contract structure: 1 contract TP at +100%, 1 contract TP at +300%, 2 contracts kited with no target.</span></label></div>
+  <div class="pb-list"><label class="pb-item"><input type="checkbox" data-pb="0"><span><b>1.</b> Only enter after a liquidity sweep with confirmation. No fixed time window after the sweep — I decide the entry from the tape.</span></label><label class="pb-item"><input type="checkbox" data-pb="1"><span><b>2.</b> No entries in the first 15 minutes after the 9:30 AM ET open.</span></label><label class="pb-item"><input type="checkbox" data-pb="2"><span><b>3.</b> Max 2 trades a day (Nov 12). If the first loses, the second is still allowed; no third. Profit-funded pyramids don't count toward the 2 — see Pyramid below.</span></label><label class="pb-item"><input type="checkbox" data-pb="3"><span><b>4.</b> Only add to positions that are moving in my favor, using the 4-contract structure: 1 contract TP at +100%, 1 contract TP at +300%, 2 contracts kited with no target.</span></label></div>
   <p class="sub" style="margin:8px 0 0">🪁 How to manage those kited contracts → <a href="#kite-mgmt" style="color:var(--accent);font-weight:600">Kite Management</a>.</p>
   <div class="note" style="margin-top:10px">📝 <b>“Never add to losers”</b> applies to adding to the same plan/thesis. A separate pre-committed plan with its own trigger, entry, and stop is a fresh trade, not an add-on.</div>
   <div class="note" style="margin-top:10px">📝 <b>Lesson (Oct 23, 2026):</b> Overexposed on a reversal day and lost ~$600. The stop-after-2-losses rule helps on bad days like Oct 9, 16 and 23.</div>
@@ -155,7 +155,20 @@ details.pcard>summary::-webkit-details-marker{display:none}details.pcard>summary
       <li><b>Entry:</b> pick the strike whose premium is in the $0.25–$0.40 mid-range at the time of the trigger — the strike number is <b>not</b> fixed (a sweep at 10:30 might be a 712 call; one at 2:00 PM might be a 711 call). Direction follows the day’s map (call on a call day).</li>
       <li><b>Stop:</b> tight, just below the sweep low.</li>
       <li><b>Targets:</b> +100% take half, move stop to breakeven on the rest, runner to +300%.</li>
-      <li><b>Rules:</b> Plan B at most once per day. If Plan A loses, Plan B is the last plan for the day (stop-after-first-loss still applies). Define Plan B before the open alongside Plan A — improvising it mid-session after Plan A is bleeding counts as chasing, not executing.</li>
+      <li><b>Rules:</b> Plan B at most once per day. If Plan A loses, Plan B is the last plan for the day (the 2-trades-a-day max still applies). Define Plan B before the open alongside Plan A — improvising it mid-session after Plan A is bleeding counts as chasing, not executing.</li>
+    </ul>
+  </div>
+  <div class="pcard" style="margin-top:12px" id="pyramid">
+    <div class="ph"><h4>🔺 Pyramid · Free-money chain</h4><span class="muted">Added Nov 12, 2026</span></div>
+    <ul class="ls-rules">
+      <li><b>Size:</b> 4–6 contracts per trade until the next subway station.</li>
+      <li><b>Start:</b> a pyramid can only start after one of the day's 2 trades hits +100% and 50% is taken off. Fund it only with that realized profit — no new risk.</li>
+      <li><b>Chain:</b> each pyramid is a new trade (call or put, 0DTE or 1DTE), with no time or price rule and not tied to older trades. Every pyramid that hits +100% (50% off) can fund the next one with its own profit. No limit on the chain, and pyramids don't count toward the 2-trade max.</li>
+      <li><b>End:</b> the chain stops the moment one pyramid loses. Anti-FOMO: no new pyramid after a losing pyramid.</li>
+      <li><b>Directional, not vega:</b> every pyramid has a defined stop and target. Example (Nov 11): 689 put at 0.27 × 6, stop 0.16 (≈ −40%), target 0.56.</li>
+      <li><b>Call + put together:</b> the put is the main directional position, the call is insurance. Never stop out both at once; if the call stops, keep the put. Set the call's stop higher so it works as insurance.</li>
+      <li><b>Kites:</b> after +100% on the put, the leftover put is a kite, closed before 3:30 PM ET, never overnight. For a call kite, raise the stop after the partial to lock gains but leave room to run (e.g. 1.25 → 1.57 on the 692 0DTE call).</li>
+      <li><b>Order discipline:</b> lock the stop and target orders in place; don't move them by hand.</li>
     </ul>
   </div>
 </section>
