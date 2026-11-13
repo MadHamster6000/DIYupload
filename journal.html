@@ -129,6 +129,41 @@ label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;text-tr
   <a href="#kite-mgmt">Journal kite log</a>
 </div></header>
 <main>
+<section class="card edit-only">
+  <div id="dayNav"></div>
+  <div class="stats" id="stats"></div>
+  <div class="filters">
+    <input id="q" placeholder="Search notes or ticker…">
+    <select id="fCheck"><option value="">Any checklist item</option></select>
+    <select id="fRes"><option value="">Any result</option><option>W</option><option>L</option><option>BE</option></select>
+  </div>
+  <div id="list"></div>
+</section>
+
+<section class="card edit-only" id="tradeList">
+  <h1 style="font-size:1.3rem">📋 Paste today's trade list</h1>
+  <p class="sub">Paste Wealthsimple order history (copied text, Activity CSV export, or tab-separated). The parser finds ticker, strike, expiry, call/put, buy/sell, qty, price and time (ET), then tags each fill as entry / add / exit. Review and fix the preview, then save — one commit for the whole list.</p>
+  <div class="tl-grid">
+    <div><label for="tlDate">Trade date (used when a line has no date)</label><input type="date" id="tlDate"></div>
+    <div><label for="tlTicker">Default ticker (if missing)</label><input id="tlTicker" value="QQQ"></div>
+    <div><label><input type="checkbox" id="tlStocks" style="width:auto"> Include stock trades</label></div>
+  </div>
+  <p class="sub" style="margin:0 0 8px">Best: Wealthsimple → Activity → export CSV, then <b>Load CSV file</b> (or paste its text). Only ticker, strike, expiry, call/put, side, qty, price, commission and time are kept — account ID, account type, settlement date, description and name are dropped while parsing, and the pasted text is cleared right away.</p>
+  <textarea id="tlText" placeholder="e.g.&#10;QQQ 715C 10/20 Buy 5 @ 1.20 9:35 AM&#10;QQQ Oct 20 2026 $715 Call · Sell to close · Filled 5 of 5 · Avg price $1.85 · 10:02 AM&#10;or paste the Wealthsimple activities-export CSV"></textarea>
+  <div class="btns" style="justify-content:flex-start">
+    <button class="primary" id="tlParse">Parse</button>
+    <label class="btn">Load CSV file<input type="file" id="tlFile" accept=".csv,.tsv,.txt,text/*" hidden></label>
+    <button id="tlAdd">+ Add row</button>
+    <button id="tlReverse">⇅ Reverse order</button>
+    <button id="tlDiscard" class="danger">Discard preview</button>
+    <button id="tlSave" class="primary">Save executions</button>
+  </div>
+  <div id="tlChart"></div>
+  <div id="pvRange" class="tl-grid" style="margin-top:10px"></div>
+  <div id="pvInfo" class="sub" style="margin:8px 0 0"></div>
+  <div id="pvWrap"></div>
+</section>
+
 <section class="card">
   <h1>📸 Screenshot Trade Journal</h1>
   <p class="sub" style="margin:4px 0 8px;font-weight:600;color:var(--accent)">🎯 Break-even stop at +100% — push the stop up once a position doubles, then let the runner chase +300%.</p>
@@ -159,30 +194,6 @@ label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;text-tr
 </section>
 <section class="card ro-only"><div class="private"><b>🔒 This journal is private.</b>Entries are encrypted. Unlock with the owner's token and passphrase to view.</div></section>
 <section class="card edit-only" id="tally"></section>
-
-<section class="card edit-only" id="tradeList">
-  <h1 style="font-size:1.3rem">📋 Paste today's trade list</h1>
-  <p class="sub">Paste Wealthsimple order history (copied text, Activity CSV export, or tab-separated). The parser finds ticker, strike, expiry, call/put, buy/sell, qty, price and time (ET), then tags each fill as entry / add / exit. Review and fix the preview, then save — one commit for the whole list.</p>
-  <div class="tl-grid">
-    <div><label for="tlDate">Trade date (used when a line has no date)</label><input type="date" id="tlDate"></div>
-    <div><label for="tlTicker">Default ticker (if missing)</label><input id="tlTicker" value="QQQ"></div>
-    <div><label><input type="checkbox" id="tlStocks" style="width:auto"> Include stock trades</label></div>
-  </div>
-  <p class="sub" style="margin:0 0 8px">Best: Wealthsimple → Activity → export CSV, then <b>Load CSV file</b> (or paste its text). Only ticker, strike, expiry, call/put, side, qty, price, commission and time are kept — account ID, account type, settlement date, description and name are dropped while parsing, and the pasted text is cleared right away.</p>
-  <textarea id="tlText" placeholder="e.g.&#10;QQQ 715C 10/20 Buy 5 @ 1.20 9:35 AM&#10;QQQ Oct 20 2026 $715 Call · Sell to close · Filled 5 of 5 · Avg price $1.85 · 10:02 AM&#10;or paste the Wealthsimple activities-export CSV"></textarea>
-  <div class="btns" style="justify-content:flex-start">
-    <button class="primary" id="tlParse">Parse</button>
-    <label class="btn">Load CSV file<input type="file" id="tlFile" accept=".csv,.tsv,.txt,text/*" hidden></label>
-    <button id="tlAdd">+ Add row</button>
-    <button id="tlReverse">⇅ Reverse order</button>
-    <button id="tlDiscard" class="danger">Discard preview</button>
-    <button id="tlSave" class="primary">Save executions</button>
-  </div>
-  <div id="tlChart"></div>
-  <div id="pvRange" class="tl-grid" style="margin-top:10px"></div>
-  <div id="pvInfo" class="sub" style="margin:8px 0 0"></div>
-  <div id="pvWrap"></div>
-</section>
 
 <section class="card edit-only" id="setup-compare">
   <h1 style="font-size:1.3rem">📊 Setup Compare</h1>
@@ -216,17 +227,6 @@ label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;text-tr
 </section>
 
 <details class="card edit-only" id="moreTools"><summary>⚙️ More tools (paste text, screenshots, export/import, filters, settings, encryption, lock)</summary><div id="moreBody"></div></details>
-
-<section class="card edit-only">
-  <div id="dayNav"></div>
-  <div class="stats" id="stats"></div>
-  <div class="filters">
-    <input id="q" placeholder="Search notes or ticker…">
-    <select id="fCheck"><option value="">Any checklist item</option></select>
-    <select id="fRes"><option value="">Any result</option><option>W</option><option>L</option><option>BE</option></select>
-  </div>
-  <div id="list"></div>
-</section>
 <div class="note">⚠️ Educational tool only — not financial advice.</div>
 </main>
 <datalist id="picLabels"><option>Day chart</option><option>15m</option><option>1m</option><option>5m</option><option>Entry</option><option>Exit</option><option>Other</option></datalist>
