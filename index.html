@@ -115,6 +115,7 @@ details.pcard>summary::-webkit-details-marker{display:none}details.pcard>summary
   <div class="brand">🐹 MadHamster <span>Options Toolkit</span></div>
   <nav id="nav">
     <a href="journal.html" style="background:var(--accent);color:#fff;font-weight:600">📸 Trade Journal</a>
+    <a href="#am-checklist">☑️ 晨早清單</a>
     <a href="#morning-brief">☀️ Morning Brief</a>
     <a href="#playbook">🎯 Playbook</a>
     <a href="#plan-ladder">🪜 Plan Ladder</a>
@@ -132,6 +133,23 @@ details.pcard>summary::-webkit-details-marker{display:none}details.pcard>summary
 </div></header>
 
 <main>
+<!-- 0. Daily Morning Checklist -->
+<section class="card" id="am-checklist">
+  <div class="pb-head"><div><h2 style="margin:0">每日晨早清單 (Daily Morning Checklist)</h2><p class="sub" style="margin:0">今日逐項剔走。每天（美東時間）自動重置，只儲喺呢個瀏覽器。</p></div>
+  <div class="pb-meta"><span id="amcDate"></span><span id="amcCount" class="pb-count">0/9</span><button id="amcReset" title="Uncheck all for today">Reset</button></div></div>
+  <div class="pb-list">
+    <label class="pb-item"><input type="checkbox" data-amc="0"><span><b>1.</b> 6:30 前：檢查 Grok Bot 用量，唔夠就即刻加。</span></label>
+    <label class="pb-item"><input type="checkbox" data-amc="1"><span><b>2.</b> 6:55 後：確認今日嘅 Morning Brief 出咗，日期同更新時間啱。</span></label>
+    <label class="pb-item"><input type="checkbox" data-amc="2"><span><b>3.</b> 做運動。</span></label>
+    <label class="pb-item"><input type="checkbox" data-amc="3"><span><b>4.</b> 沖涼。</span></label>
+    <label class="pb-item"><input type="checkbox" data-amc="4"><span><b>5.</b> 做功課：讀 brief 嘅方向同作廢位，寫低今日自己嘅方向。</span></label>
+    <label class="pb-item"><input type="checkbox" data-amc="5"><span><b>6.</b> 寫低今日最多 2 單，每單嘅 stop 喺邊。</span></label>
+    <label class="pb-item"><input type="checkbox" data-amc="6"><span><b>7.</b> 開市前檢查狀態：攰、嬲、或者急住要贏，就唔做或者只做半注。</span></label>
+    <label class="pb-item"><input type="checkbox" data-amc="7"><span><b>8.</b> 9:30 到 10:00 唔入市。</span></label>
+    <label class="pb-item"><input type="checkbox" data-amc="8"><span><b>9.</b> 每次入市前問三條：方向同 brief 一致？stop 落咗未？狀態 OK 未？三條都係先落單。收穿作廢位就即刻走。</span></label>
+  </div>
+</section>
+
 <!-- 0. Playbook -->
 <section class="card" id="morning-brief">
   <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:4px">
@@ -472,6 +490,26 @@ window.addEventListener('DOMContentLoaded',()=>{
   const obs=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id)); }),{rootMargin:'-40% 0px -55% 0px'});
   document.querySelectorAll('section.card').forEach(s=>obs.observe(s));
 });
+
+
+// ---------- Daily Morning Checklist (state per ET day) ----------
+(function(){
+  const etDay=()=>new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  const boxes=[...document.querySelectorAll('[data-amc]')]; let day=etDay();
+  const key=()=>'mh_am_checklist_'+day;
+  function load(){ day=etDay(); let st=[]; try{ st=JSON.parse(localStorage.getItem(key()))||[]; }catch(e){}
+    boxes.forEach((b,i)=>b.checked=!!st[i]);
+    try{ Object.keys(localStorage).filter(k=>k.startsWith('mh_am_checklist_')&&k!==key()).forEach(k=>localStorage.removeItem(k)); }catch(e){}
+    show(); }
+  function save(){ try{ localStorage.setItem(key(),JSON.stringify(boxes.map(b=>b.checked))); }catch(e){} show(); }
+  function show(){ const n=boxes.filter(b=>b.checked).length; const c=document.getElementById('amcCount'); c.textContent=`${n}/${boxes.length}`; c.classList.toggle('done',n===boxes.length);
+    document.getElementById('amcDate').textContent=new Date().toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'short',month:'short',day:'numeric',year:'numeric'})+' ET'; }
+  boxes.forEach(b=>b.addEventListener('change',()=>{ if(etDay()!==day) load(); save(); }));
+  document.getElementById('amcReset').addEventListener('click',()=>{ boxes.forEach(b=>b.checked=false); save(); });
+  setInterval(()=>{ if(etDay()!==day) load(); },60000);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&etDay()!==day) load(); });
+  load();
+})();
 
 // ---------- 0. Playbook (state per ET day) ----------
 (function(){
