@@ -2,17 +2,33 @@
 """Morning Brief: QQQ/SPY 0DTE option walls, macro + earnings calendar, gamma squeeze scanner.
 Free public data only (options: CBOE delayed -> Nasdaq -> Yahoo; prices Yahoo via yfinance, ForexFactory weekly JSON, Nasdaq earnings API). No secrets.
 Writes data/brief/latest.json and data/brief/YYYY-MM-DD.json. OI is prior-day; prices delayed."""
-import json, os, time, math, datetime, zoneinfo, urllib.request, traceback
+import json, os, sys, time, math, datetime, zoneinfo, urllib.request, traceback, socket
 import yfinance as yf
+socket.setdefaulttimeout(30)
 ET = zoneinfo.ZoneInfo('America/New_York')
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 OUT = os.path.join(ROOT, 'data', 'brief')
-T0 = time.time(); BUDGET = 9 * 60
+T0 = time.time(); HARD = 10 * 60; BUDGET = 8 * 60  # scanner cap; whole run should stay under ~10 min
 UA = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36',
       'Accept': 'application/json, text/plain, */*'}
 errors = []
-def get_json(u, h=UA):
-    return json.load(urllib.request.urlopen(urllib.request.Request(u, headers=h), timeout=30))
+BACKOFF = (5, 10, 20, 30)
+def is_forbidden(e):
+    s = f'{getattr(e, "code", "")} {e}'.lower()
+    return '403' in s or 'forbidden' in s or 'http error 401' in s
+def retry(fn, tries=5, backoff=BACKOFF, what='fetch'):
+    last = None
+    for i in range(tries):
+        try:
+            return fn()
+        except Exception as e:
+            last = e
+            print(f'{what} try {i + 1}/{tries}: {e}')
+            if is_forbidden(e): raise
+            if i < tries - 1: time.sleep(backoff[min(i, len(backoff) - 1)])
+    raise last
+def get_json(u, h=UA, tries=3):
+    return retry(lambda: json.load(urllib.request.urlopen(urllib.request.Request(u, headers=h), timeout=30)), tries=tries, what=u.split('/')[2] if '://' in u else 'get_json')
 def num(x, d=0.0):
     try:
         x = float(x); return d if math.isnan(x) else x
@@ -65,53 +81,77 @@ def scale_straddle(st, quote_ts, now, expdt, spot=None, k=None, iv=None):
     if dq <= 0: return st, 'quote'
     return st * math.sqrt(left / dq), f'estimate: quote x sqrt({left:.2f}/{dq:.2f}) variance-days'
 
-# ---------- Data-quality gate ----------
-# A partial Yahoo chain looks like a real one but shifts every level. Trip when any of:
-OI_DROP_MAX = 0.50        # total OI down more than 50% vs the previous run
-PCR_MAX = 3.0             # put/call OI ratio above 3
-FLIP_WARN_STRADDLES = 1.0  # > 1 straddle: warning only, plan still emitted
-FLIP_MAX_STRADDLES = 2.0  # > 2 straddles: hard fail / retry
-def quality_check(w, prev=None):
-    bad = []
+# ---------- Data-quality checks ----------
+# A partial Yahoo chain can look real but shift every level. Those cases are retried / de-prioritised.
+# A far or missing gamma flip is NOT a hard fail: the plan is built from other real levels instead.
+OI_DROP_MAX = 0.50        # total OI down more than 50% vs the previous same-expiry run
+PCR_MAX = 3.0             # put/call OI ratio above 3 (often a truncated chain)
+FLIP_WARN_STRADDLES = 1.0  # > 1 straddle: warning, flip still used if within the max
+FLIP_MAX_STRADDLES = 2.0  # > 2 straddles: flip is treated as unreliable; bias comes from other real data
+def chain_fatal(w):
+    """True gaps: cannot publish a plan from this chain. Never invent a spot or walls."""
     if not w: return ['no walls']
+    if not w.get('spot'): return ['no spot']
     tot = (w.get('total_call_oi') or 0) + (w.get('total_put_oi') or 0)
-    # Only compare like with like: OI differs hugely between expiries (e.g. Fri monthly vs Mon weekly),
-    # so the drop rule applies when the previous run was for the same expiry (a same-day rerun).
+    if tot <= 0: return ['no option OI on chain']
+    if not any(w.get(k) for k in ('put_wall_oi', 'call_wall_oi', 'put_wall_gamma', 'call_wall_gamma')):
+        return ['no OI/gamma walls']
+    return []
+def chain_soft(w, prev=None):
+    """Suspicious-but-usable chain: try the next source first, accept if nothing cleaner arrives."""
+    if not w: return []
+    soft = []
+    tot = (w.get('total_call_oi') or 0) + (w.get('total_put_oi') or 0)
     same = prev and prev.get('expiry') == w.get('expiry')
     ptot = ((prev.get('total_call_oi') or 0) + (prev.get('total_put_oi') or 0)) if same else 0
-    if ptot and tot < (1 - OI_DROP_MAX) * ptot: bad.append(f'total OI {tot:,} is down {100 * (1 - tot / ptot):.0f}% vs last run ({ptot:,})')
-    if (w.get('pcr_oi') or 0) > PCR_MAX: bad.append(f"put/call OI ratio {w['pcr_oi']} > {PCR_MAX}")
-    st, f = w.get('straddle'), w.get('gamma_flip')
-    if st and f is not None and abs(f - w['spot']) > FLIP_MAX_STRADDLES * st:
-        bad.append(f"gamma flip {f} is {abs(f - w['spot']):.1f} pts from spot {w['spot']} (> {FLIP_MAX_STRADDLES:g} x straddle {st})")
-    return bad
+    if ptot and tot < (1 - OI_DROP_MAX) * ptot: soft.append(f'total OI {tot:,} is down {100 * (1 - tot / ptot):.0f}% vs last run ({ptot:,})')
+    if (w.get('pcr_oi') or 0) > PCR_MAX: soft.append(f"put/call OI ratio {w['pcr_oi']} > {PCR_MAX}")
+    return soft
 def quality_warnings(w):
     """Soft checks: shown in the brief, plan still emitted."""
-    st, f = (w or {}).get('straddle'), (w or {}).get('gamma_flip')
-    if st and f is not None and FLIP_WARN_STRADDLES * st < abs(f - w['spot']) <= FLIP_MAX_STRADDLES * st:
-        return [f"WARNING: gamma flip {f} is {abs(f - w['spot']) / st:.1f}x straddle from spot {w['spot']} (straddle {st}); flip-based bias less reliable"]
-    return []
+    out = []
+    st, f, spot = (w or {}).get('straddle'), (w or {}).get('gamma_flip'), (w or {}).get('spot')
+    if st and f is not None and spot is not None and abs(f - spot) > FLIP_WARN_STRADDLES * st:
+        out.append(f"WARNING: gamma flip {f} is {abs(f - spot) / st:.1f}x straddle from spot {spot} (straddle {st}); flip-based bias less reliable" +
+                   ('' if abs(f - spot) <= FLIP_MAX_STRADDLES * st else f' — flip ignored for bias (>{FLIP_MAX_STRADDLES:g}x)'))
+    return out
 def prev_walls(sym):
     try:
         b = json.load(open(os.path.join(OUT, 'latest.json')))
         return next((w for w in b.get('walls', []) if w.get('sym') == sym), None)
     except Exception: return None
-def fetch_checked(sym, prev, tries=3, backoff=(10, 30)):
-    """walls() with the quality gate, trying CBOE -> Nasdaq -> Yahoo; first source that passes wins.
-    Yahoo (last resort) keeps the retry/backoff. Returns (walls, reasons-or-[]); reasons list every source's failure."""
-    w, allbad = None, []
+def fetch_checked(sym, prev, tries=5, backoff=BACKOFF):
+    """walls() with retries (CBOE -> Nasdaq -> Yahoo). First clean source wins.
+    Far/missing flip is allowed through. Returns (walls, fatal-reasons-or-[]).
+    A 403/forbidden on a source skips the rest of that source's retries."""
+    usable, allbad, soft_keep = None, [], None
     for src in SOURCES:
-        n = tries if src == 'yahoo' else 1
-        for i in range(n):
+        last_bad = []
+        for i in range(tries):
             try:
                 _TCACHE.pop((sym, src), None)
-                w1 = walls(sym, 0, src); bad = quality_check(w1, prev); w = w1
-            except Exception as e: bad = [f'walls {sym}: {e}']
-            if not bad: return w, []
-            print(f'quality gate {sym} [{src}] try {i + 1}/{n}:', bad)
-            if i < n - 1: time.sleep(backoff[min(i, len(backoff) - 1)])
-        allbad.append(f"{SRC_LABEL[src]}: " + '; '.join(bad))
-    return w, allbad
+                w1 = walls(sym, 0, src)
+                fatal = chain_fatal(w1)
+                if not fatal:
+                    soft = chain_soft(w1, prev)
+                    if not soft:
+                        return w1, []
+                    usable = w1; soft_keep = soft
+                    print(f'{sym} [{src}] usable with warnings:', soft)
+                    last_bad = soft
+                    break  # don't hammer a stable soft-issue chain
+                last_bad = fatal
+            except Exception as e:
+                last_bad = [f'walls {sym}: {e}']
+                if is_forbidden(e):
+                    print(f'{sym} [{src}] skipped (forbidden):', e)
+                    break
+            print(f'{sym} [{src}] try {i + 1}/{tries}:', last_bad)
+            if i < tries - 1: time.sleep(backoff[min(i, len(backoff) - 1)])
+        allbad.append(f"{SRC_LABEL[src]}: " + '; '.join(last_bad or ['failed']))
+    if usable and not chain_fatal(usable):
+        return usable, []
+    return usable, allbad
 
 def label_walls(w):
     if not w: return w
@@ -126,9 +166,17 @@ import pandas as pd
 SRC_LABEL = {'cboe': 'CBOE delayed 15-min', 'nasdaq': 'Nasdaq.com delayed', 'yahoo': 'Yahoo Finance (yfinance)'}
 SOURCES = ('cboe', 'nasdaq', 'yahoo')
 def curl_json(u):
-    out = subprocess.run(['curl', '-sL', '--max-time', '40', '-A', UA['User-Agent'], '-H', 'Accept: application/json', u],
-                         capture_output=True, check=True).stdout
-    return json.loads(out)
+    r = subprocess.run(['curl', '-sL', '--fail', '--max-time', '30', '-A', UA['User-Agent'], '-H', 'Accept: application/json',
+                        '-w', '\nHTTP_CODE:%{http_code}', u], capture_output=True)
+    raw = (r.stdout or b'').decode('utf-8', 'replace')
+    err = (r.stderr or b'').decode('utf-8', 'replace')[:200]
+    code, body = None, raw
+    if 'HTTP_CODE:' in raw:
+        body, _, tail = raw.rpartition('HTTP_CODE:')
+        code = tail.strip()
+    if r.returncode != 0:
+        raise RuntimeError(f'curl {u} exit {r.returncode} HTTP {code or "?"} {err}'.strip())
+    return json.loads(body)
 class _Chain:
     def __init__(s, c, p): s.calls, s.puts = pd.DataFrame(c), pd.DataFrame(p)
 class _SrcTicker:
@@ -176,12 +224,51 @@ def get_ticker(sym, src='yahoo'):
     return _TCACHE[k]
 
 # ---------- 1) Walls ----------
+def attach_session_levels(res, hist):
+    """Prior session OHLC, VWAP, and today's premarket high/low from real 1m bars. Omit a field if it is not in the bars."""
+    if hist is None or getattr(hist, 'empty', True): return res
+    h = hist.copy()
+    if h.index.tz is None: h.index = h.index.tz_localize(ET)
+    else: h.index = h.index.tz_convert(ET)
+    idx = h.index
+    rth = h[(idx.weekday < 5) & ((idx.hour > 9) | ((idx.hour == 9) & (idx.minute >= 30))) & (idx.hour < 16)]
+    if rth.empty: return res
+    now = datetime.datetime.now(ET); today = now.date()
+    days = sorted(set(rth.index.date))
+    completed = [d for d in days if d < today or (d == today and (now.hour > 16 or (now.hour == 16 and now.minute >= 0)))]
+    if completed:
+        dprev = completed[-1]
+        rp = rth[rth.index.date == dprev]
+        if len(rp):
+            res['prev_close'] = round(float(rp['Close'].iloc[-1]), 2)
+            res['prev_high'] = round(float(rp['High'].max()), 2)
+            res['prev_low'] = round(float(rp['Low'].min()), 2)
+            res['prev_session'] = dprev.isoformat()
+            vol = rp['Volume'].fillna(0); typ = (rp['High'] + rp['Low'] + rp['Close']) / 3
+            if float(vol.sum()) > 0: res['vwap'] = round(float((typ * vol).sum() / vol.sum()), 2)
+    if today.weekday() < 5:
+        pm = h[(idx.date == today) & ((idx.hour > 4) | ((idx.hour == 4) & (idx.minute >= 0))) & ((idx.hour < 9) | ((idx.hour == 9) & (idx.minute < 30)))]
+        if len(pm):
+            res['pm_high'] = round(float(pm['High'].max()), 2)
+            res['pm_low'] = round(float(pm['Low'].min()), 2)
+        rt = rth[rth.index.date == today]
+        if len(rt):
+            vol = rt['Volume'].fillna(0); typ = (rt['High'] + rt['Low'] + rt['Close']) / 3
+            if float(vol.sum()) > 0: res['vwap'] = round(float((typ * vol).sum() / vol.sum()), 2)
+            res['sess_high'] = round(float(rt['High'].max()), 2)
+            res['sess_low'] = round(float(rt['Low'].min()), 2)
+    return res
+
 def walls(sym, idx=0, src='yahoo'):
     t = get_ticker(sym, src)
-    spot, spot_ts, spot_src = 0.0, None, None
+    spot, spot_ts, spot_src, hist = 0.0, None, None, None
     try:
-        h = t.history(period='2d', interval='1m', prepost=True)['Close'].dropna()
-        if len(h): spot, spot_ts, spot_src = float(h.iloc[-1]), h.index[-1].tz_convert(ET).isoformat(timespec='minutes'), '1m prepost bar'
+        hist = t.history(period='5d', interval='1m', prepost=True)
+        close = hist['Close'].dropna() if hist is not None and not hist.empty else None
+        if close is not None and len(close):
+            last = close.index[-1]
+            last = last.tz_convert(ET) if getattr(last, 'tzinfo', None) else last
+            spot, spot_ts, spot_src = float(close.iloc[-1]), last.isoformat(timespec='minutes'), '1m prepost bar'
     except Exception as e: errors.append(f'spot 1m {sym}: {e}')
     if not spot:
         spot = num((t.fast_info or {}).get('lastPrice')); spot_ts = datetime.datetime.now(ET).isoformat(timespec='minutes'); spot_src = 'fast_info lastPrice (fallback)'
@@ -254,12 +341,16 @@ def walls(sym, idx=0, src='yahoo'):
                     'straddle_quote_ts': qts.isoformat(timespec='minutes') if qts else None,
                     'range_lo': round(spot - st, 2), 'range_hi': round(spot + st, 2)})
     res['pcr_oi'] = round(res['total_put_oi'] / res['total_call_oi'], 2) if res['total_call_oi'] else None
+    attach_session_levels(res, hist)
     return res
 
 def nq_ratio():
     try:
-        nq = yf.Ticker('NQ=F').fast_info.get('lastPrice'); q = yf.Ticker('QQQ').fast_info.get('lastPrice')
-        if nq and q: return round(float(nq) / float(q), 4)
+        def _r():
+            nq = yf.Ticker('NQ=F').fast_info.get('lastPrice'); q = yf.Ticker('QQQ').fast_info.get('lastPrice')
+            if nq and q: return round(float(nq) / float(q), 4)
+            raise RuntimeError('NQ or QQQ lastPrice missing')
+        return retry(_r, tries=3, what='NQ ratio')
     except Exception as e: errors.append(f'NQ ratio: {e}')
     return None
 
@@ -420,114 +511,261 @@ def wall_b(bias, w0, w1, spot, st, wall, rng):
     B['stop'] = '3:30 PM ET hard stop'
     return B, tg
 
+def zone(level):
+    if level is None: return None
+    f = math.floor(level)
+    return f'{f}–{f + 1}'
+
+def realized_width(w0, spot, flip):
+    """A real range width from fetched fields only. Prefer the quoted/estimated straddle."""
+    if w0.get('straddle'): return w0['straddle']
+    cands = []
+    if w0.get('range_hi') is not None and w0.get('range_lo') is not None:
+        cands.append(abs(w0['range_hi'] - w0['range_lo']) / 2)
+    pw, cw = w0.get('put_wall_oi'), w0.get('call_wall_oi')
+    if pw is not None and cw is not None and cw > pw:
+        cands.append((cw - pw) / 2)
+    ph, pl = w0.get('prev_high'), w0.get('prev_low')
+    if ph is not None and pl is not None and ph > pl:
+        cands.append(ph - pl)
+    # far flip is not used as a width — it was the unreliable signal
+    return next((c for c in cands if c and c > 0), None)
+
+def flip_usable(w0, spot, st):
+    f = w0.get('gamma_flip')
+    return f is not None and st and abs(f - spot) <= FLIP_MAX_STRADDLES * st
+
+def context_bias(w0, spot, st):
+    """Directional lean from prior close, VWAP/premarket, and OI-wall placement. All inputs are fetched."""
+    votes, reasons = [], []
+    thr = 0.25 * st if st else None
+    def add(side, wgt, why):
+        votes.append((side, wgt)); reasons.append(why)
+    pc = w0.get('prev_close')
+    if pc is not None and thr:
+        d = spot - pc
+        if d >= thr: add('CALL', 2, f'spot {spot} is {d:.2f} above prior close {pc}')
+        elif d <= -thr: add('PUT', 2, f'spot {spot} is {-d:.2f} below prior close {pc}')
+        else: add('NEUTRAL', 1, f'spot {spot} is within {abs(d):.2f} of prior close {pc}')
+    pmh, pml = w0.get('pm_high'), w0.get('pm_low')
+    if pc is not None and pmh is not None and pml is not None and thr:
+        mid = (pmh + pml) / 2
+        if mid >= pc + thr: add('CALL', 1, f'premarket mid {round(mid, 2)} is above prior close {pc}')
+        elif mid <= pc - thr: add('PUT', 1, f'premarket mid {round(mid, 2)} is below prior close {pc}')
+    vwap = w0.get('vwap')
+    if vwap is not None and thr:
+        d = spot - vwap
+        if d >= thr: add('CALL', 1, f'spot is {d:.2f} above session VWAP {vwap}')
+        elif d <= -thr: add('PUT', 1, f'spot is {-d:.2f} below session VWAP {vwap}')
+    pw, cw = w0.get('put_wall_oi'), w0.get('call_wall_oi')
+    if pw is not None and cw is not None and cw > pw:
+        pos = (spot - pw) / (cw - pw)
+        if pos >= 0.7: add('CALL', 1, f'spot sits in the upper part of the OI wall range {pw}–{cw}')
+        elif pos <= 0.3: add('PUT', 1, f'spot sits in the lower part of the OI wall range {pw}–{cw}')
+        else: add('NEUTRAL', 1, f'spot is mid-range between put wall {pw} and call wall {cw}')
+    cs = sum(w for s, w in votes if s == 'CALL')
+    ps = sum(w for s, w in votes if s == 'PUT')
+    margin = abs(cs - ps)
+    if cs - ps >= 2: bias = 'CALL'
+    elif ps - cs >= 2: bias = 'PUT'
+    else: bias = 'NEUTRAL'
+    if bias == 'NEUTRAL':
+        strength = 'weak'
+    else:
+        strength = 'strong' if margin >= 4 else ('moderate' if margin >= 2 else 'weak')
+    why = ('; '.join(reasons) + f' (call {cs} vs put {ps}).') if reasons else 'No prior-close or wall-placement lean available; treat as a range day.'
+    return bias, strength, why, reasons
+
+def nearest_real(levels, spot, above):
+    xs = [x for x in levels if x is not None and ((x > spot) if above else (x < spot))]
+    return min(xs, key=lambda x: abs(x - spot)) if xs else None
+
+def fallback_sweep(bias, w0, spot, st, flip, flip_ok):
+    """A real liquidity level on the correct side of spot; never n/a."""
+    R = round
+    if bias == 'PUT':
+        ideal = spot + 0.35 * st
+        cands = [w0.get('pm_high'), w0.get('prev_high'), w0.get('sess_high'), w0.get('call_wall_oi'), w0.get('call_wall_gamma'), R(ideal)]
+        cands = [x for x in cands if x is not None and x >= spot and x <= spot + st]
+        if flip_ok: cands = [x for x in cands if x <= flip - 1]
+        return R(min(cands, key=lambda x: abs(x - ideal))) if cands else R(spot)
+    ideal = spot - 0.35 * st
+    cands = [w0.get('pm_low'), w0.get('prev_low'), w0.get('sess_low'), w0.get('put_wall_oi'), w0.get('put_wall_gamma'), R(ideal)]
+    cands = [x for x in cands if x is not None and x <= spot and x >= spot - st]
+    if flip_ok: cands = [x for x in cands if x >= flip + 1]
+    return R(max(cands, key=lambda x: -abs(x - ideal))) if cands else R(spot)
+
+def build_range_plan(w0, w1, spot, st, lo, hi, put_wall, call_wall, strength, why, caveats):
+    """NEUTRAL bias with a concrete fade-the-range A and a break B. Levels are fetched walls/range only."""
+    R = round
+    pw = put_wall if put_wall is not None else (R(lo) if lo < spot else R(spot - st))
+    cw = call_wall if call_wall is not None else (R(hi) if hi > spot else R(spot + st))
+    if pw >= spot: pw = R(spot - max(1, 0.35 * st))
+    if cw <= spot: cw = R(spot + max(1, 0.35 * st))
+    mid = R((pw + cw) / 2)
+    fade_put = (spot - pw) <= (cw - spot)  # nearer edge is support → fade the dip (long)
+    if fade_put:
+        a_entry = R(pw)
+        A = {'entry': f'{a_entry}',
+             'setup': f'Range trade: first sweep of support {a_entry} (nearer edge of {R(pw)}–{R(cw)}). Enter on the reclaim/turn. Fade only; this is not a breakout.',
+             'tp1': f'{mid}', 'tp2': f'{R(cw)}', 'stop': f'5-minute close back below {a_entry}'}
+    else:
+        a_entry = R(cw)
+        A = {'entry': f'{a_entry}',
+             'setup': f'Range trade: first sweep of resistance {a_entry} (nearer edge of {R(pw)}–{R(cw)}). Enter on the reject/turn. Fade only; this is not a breakout.',
+             'tp1': f'{mid}', 'tp2': f'{R(pw)}', 'stop': f'5-minute close back above {a_entry}'}
+    down1, down2 = R(pw - st), R(pw - 1.5 * st)
+    up1, up2 = R(cw + st), R(cw + 1.5 * st)
+    B = {'entry': f'5-minute close under {R(pw)}, or 5-minute close over {R(cw)}',
+         'setup': f'Range break: follow a 5-minute hold outside the put wall/range edge {R(pw)} or the call wall/range edge {R(cw)}.',
+         'tp1': f'{down1} if broken down, or {up1} if broken up',
+         'tp2': f'{down2} if broken down, or {up2} if broken up',
+         'stop': '3:30 PM ET hard stop',
+         'wall_entry_label': None, 'break_label': f'put {R(pw)} / call {R(cw)}', 'break_trigger': None}
+    inv = (f'Range {R(pw)}–{R(cw)}: if a 5-minute close outside the range is reversed back through the opposite edge '
+           f'before 10:00 AM ET, the range plan is off: stand down')
+    tg = f'{A["tp1"]} / {A["tp2"]} (fade) · {B["tp1"]}'
+    btag = f'NEUTRAL ({strength})'
+    plan = f"Today: {btag}. A: {A['entry']} fade of the nearer edge · B: {B['entry']}. Targets {tg}. Invalidation {R(pw)}–{R(cw)}."
+    if caveats: plan += ' ⚠ ' + caveats[0]
+    rules = RULES + ['Range day: fade first, follow only after a 5-minute hold outside the range']
+    return {'plan': plan, 'spot_ts': w0.get('spot_ts'), 'bias': 'NEUTRAL', 'strength': strength, 'summary': why,
+            'spot': spot, 'flip': w0.get('gamma_flip'), 'put_wall': put_wall, 'call_wall': call_wall,
+            'range': [R(lo, 1), R(hi, 1)], 'straddle': st, 'straddle_method': w0.get('straddle_method', 'quote'),
+            'A': A, 'B': B, 'kite': 'Rest: kite until 3:30 PM ET', 'rules': rules, 'invalidation': inv,
+            'warnings': caveats or None, 'disclaimer': DISCL}
+
 def strategy(w0, w1=None):
-    """Mechanical 0DTE plan from the walls map. Not advice."""
+    """Mechanical 0DTE plan from the walls map. Always returns bias + A/B + targets + invalidation when spot exists. Not advice."""
+    if not w0 or not w0.get('spot'):
+        return None
     spot, flip = w0['spot'], w0.get('gamma_flip')
-    if not flip: return None
-    neg = w0['net_gex_sign'] == 'negative'
+    st = realized_width(w0, spot, flip)
+    if not st or st <= 0:
+        return None
+    neg = w0.get('net_gex_sign') == 'negative'
     ok = lambda k: k is not None and abs(k / spot - 1) <= 0.05
     srcs = [w for w in (w1, w0) if w]  # prefer 1DTE when 0DTE walls are degenerate
+    degenerate = w0.get('put_wall_oi') == w0.get('call_wall_gamma') or not ok(w0.get('put_wall_oi')) or not ok(w0.get('call_wall_oi'))
     def pick(keys, below):
         for w in ([w0] + ([w1] if w1 else [])) if not degenerate else srcs:
             for k in keys:
                 v = w.get(k)
                 if ok(v) and ((v < spot) if below else (v > spot)): return v
         return None
-    degenerate = w0.get('put_wall_oi') == w0.get('call_wall_gamma') or not ok(w0.get('put_wall_oi')) or not ok(w0.get('call_wall_oi'))
-    # Break trigger = OI walls (both sides); wall entry = gamma walls (see wall_b).
     put_wall = pick(('put_wall_oi', 'put_wall_gamma'), True)
     call_wall = pick(('call_wall_oi', 'call_wall_gamma'), False)
-    st = w0.get('straddle') or abs(flip - spot)
-    lo = w0.get('range_lo') or spot - st  # same-day (0DTE) range only
+    lo = w0.get('range_lo') or spot - st
     hi = w0.get('range_hi') or spot + st
-    fz = f'{math.floor(flip)}–{math.floor(flip) + 1}'
-    d_flip = abs(spot - flip)
-    strength = 'weak' if d_flip < 0.5 * st else ('moderate' if d_flip < st else 'strong')
-    if spot < flip:
-        bias = 'PUT'
-        if not neg and strength == 'strong': strength = 'moderate'  # positive gamma damps moves
-    elif spot > flip and not neg:
-        bias = 'CALL'
+    use_flip = flip_usable(w0, spot, st)
+    caveats = quality_warnings(w0)
+    ctx_bias, ctx_strength, ctx_why, _ = context_bias(w0, spot, st)
+
+    if use_flip:
+        d_flip = abs(spot - flip)
+        strength = 'weak' if d_flip < 0.5 * st else ('moderate' if d_flip < st else 'strong')
+        if spot < flip:
+            bias = 'PUT'
+            if not neg and strength == 'strong': strength = 'moderate'
+            why = f'Spot {spot} is under the gamma flip {flip}' + (' with negative net gamma (dealers chase moves).' if neg else ' (positive gamma, moves damped).')
+        elif spot > flip and not neg:
+            bias = 'CALL'
+            why = f'Spot {spot} is above the gamma flip {flip} with positive net gamma (dealers dampen dips).'
+        else:
+            # Mixed dealer signal (spot above flip, negative GEX): keep a full plan.
+            if ctx_bias in ('CALL', 'PUT'):
+                bias, strength, why = ctx_bias, ctx_strength, (
+                    f'Spot {spot} is above the gamma flip {flip} but net gamma is negative (mixed dealer signals). '
+                    f'Bias from other real levels: {ctx_why}')
+                caveats = caveats + ['Mixed gamma signal: spot above flip with negative net GEX. Flip not used as the sole bias.']
+            else:
+                why = (f'Spot {spot} is above the gamma flip {flip} but net gamma is negative (mixed dealer signals). '
+                       f'Treat as a range day. {ctx_why}')
+                caveats = caveats + ['Mixed gamma signal: publishing a NEUTRAL range plan with concrete entries, not a stand-aside.']
+                return build_range_plan(w0, w1, spot, st, lo, hi, put_wall, call_wall, ctx_strength or 'weak', why, caveats)
     else:
-        return {'plan': f'Today: NEUTRAL, stand aside; watch the flip {fz}.', 'bias': 'NEUTRAL', 'summary': f'Spot {spot} above flip {flip} but net gamma negative: mixed signals, stand aside or wait for a clean 5-min trend.',
-                'invalidation': fz, 'rules': RULES, 'disclaimer': DISCL}
+        bias, strength, why = ctx_bias, ctx_strength, ctx_why
+        if flip is None:
+            caveats = caveats + ['No gamma flip in the ±5% scan (GEX did not change sign). Bias from prior close / VWAP / OI walls / straddle range.']
+        else:
+            caveats = caveats + [f'Gamma flip {flip} is {abs(flip - spot):.1f} pts from spot {spot} (>{FLIP_MAX_STRADDLES:g}x straddle {st}); flip ignored for bias.']
+        why = (('No usable gamma flip. ' if flip is None else 'Unreliable gamma flip. ') + why)
+        if bias == 'NEUTRAL':
+            return build_range_plan(w0, w1, spot, st, lo, hi, put_wall, call_wall, strength, why, caveats)
+
     R = round
-    a_skip = False
     if bias == 'PUT':
         pw = put_wall or R(spot - st)
-        # Sweep = rally into liquidity above spot, capped under the flip.
-        # Skip when the flip-1 cap would crush the ideal rally (spot too close to flip).
-        ideal_a = spot + 0.35 * st
-        flip_cap = flip - 1
         B, tgts = wall_b('PUT', w0, w1, spot, st, pw, w0.get('range_lo') or lo)
-        if ideal_a > flip_cap:
-            a_skip = True
-            A = {'entry': 'n/a', 'setup': 'Sweep entry skipped: spot too close to the gamma flip (ideal rally sits above flip−1). Use Version B (wall entry) only.',
-                 'tp1': '—', 'tp2': '—', 'stop': '—'}
+        ideal_a = spot + 0.35 * st
+        a_skip = use_flip and (ideal_a > flip - 1)
+        if a_skip:
+            a_entry = fallback_sweep('PUT', w0, spot, st, flip, use_flip)
+            A = {'entry': f'{a_entry}',
+                 'setup': f'Sweep at {a_entry} (ideal rally sat past flip−1; used the nearest real liquidity/spot-side level instead). Enter {a_entry} on the turn.',
+                 'tp1': fmt_t(tgts[0]) if tgts else '—', 'tp2': fmt_t(tgts[-1]) if tgts else '—',
+                 'stop': f'5-minute close back above {a_entry}'}
         else:
-            a_entry = R(min(ideal_a, flip_cap))
-            # Rally must be at/above spot (mirror of call dip ≤ spot).
+            cap = (flip - 1) if use_flip else (spot + st)
+            a_entry = R(min(ideal_a, cap))
             if a_entry < spot:
-                a_skip = True
-                A = {'entry': 'n/a', 'setup': 'Sweep entry skipped: clamped level is below spot (not a valid rally). Use Version B (wall entry) only.',
-                     'tp1': '—', 'tp2': '—', 'stop': '—'}
-            else:
-                A = {'entry': f'{a_entry}', 'setup': f'Open rallies to {a_entry - 1}–{a_entry}, liquidity gets swept, price snaps back down. Enter {a_entry} on the turn.',
-                     'tp1': fmt_t(tgts[0]) if tgts else '—', 'tp2': fmt_t(tgts[-1]) if tgts else '—', 'stop': f'5-minute close back above {a_entry}'}
-        bench = f'Calls on the bench unless {fz} reclaims and holds'
-        why = f'Spot {spot} is under the gamma flip {flip}' + (' with negative net gamma (dealers chase moves).' if neg else ' (positive gamma, moves damped).')
+                a_entry = fallback_sweep('PUT', w0, spot, st, flip, use_flip)
+            A = {'entry': f'{a_entry}',
+                 'setup': f'Open rallies to {a_entry - 1}–{a_entry}, liquidity gets swept, price snaps back down. Enter {a_entry} on the turn.',
+                 'tp1': fmt_t(tgts[0]) if tgts else '—', 'tp2': fmt_t(tgts[-1]) if tgts else '—',
+                 'stop': f'5-minute close back above {a_entry}'}
+        inv_lvl = flip if use_flip else nearest_real([call_wall, w0.get('call_wall_oi'), w0.get('prev_high'), w0.get('pm_high'), w0.get('max_pain'), spot + st], spot, True)
+        bench = f'Calls on the bench unless {zone(inv_lvl) or "resistance"} reclaims and holds'
     else:
         cw = call_wall or R(spot + st)
-        # Sweep = dip into liquidity below spot, floored above the flip.
-        # Skip when the flip+1 floor would lift the ideal dip (spot too close to flip).
-        ideal_a = spot - 0.35 * st
-        flip_floor = flip + 1
         B, tgts = wall_b('CALL', w0, w1, spot, st, cw, w0.get('range_hi') or hi)
-        if ideal_a < flip_floor:
-            a_skip = True
-            A = {'entry': 'n/a', 'setup': 'Sweep entry skipped: spot too close to the gamma flip (ideal dip sits below flip+1). Use Version B (wall entry) only.',
-                 'tp1': '—', 'tp2': '—', 'stop': '—'}
+        ideal_a = spot - 0.35 * st
+        a_skip = use_flip and (ideal_a < flip + 1)
+        if a_skip:
+            a_entry = fallback_sweep('CALL', w0, spot, st, flip, use_flip)
+            A = {'entry': f'{a_entry}',
+                 'setup': f'Sweep at {a_entry} (ideal dip sat past flip+1; used the nearest real liquidity/spot-side level instead). Enter {a_entry} on the turn.',
+                 'tp1': fmt_t(tgts[0]) if tgts else '—', 'tp2': fmt_t(tgts[-1]) if tgts else '—',
+                 'stop': f'5-minute close back below {a_entry}'}
         else:
-            a_entry = R(max(ideal_a, flip_floor))
-            # Dip must be at/below spot.
+            floor = (flip + 1) if use_flip else (spot - st)
+            a_entry = R(max(ideal_a, floor))
             if a_entry > spot:
-                a_skip = True
-                A = {'entry': 'n/a', 'setup': 'Sweep entry skipped: clamped level is above spot (not a valid dip). Use Version B (wall entry) only.',
-                     'tp1': '—', 'tp2': '—', 'stop': '—'}
-            else:
-                A = {'entry': f'{a_entry}', 'setup': f'Open dips to {a_entry}–{a_entry + 1}, liquidity gets swept, price snaps back up. Enter {a_entry} on the turn.',
-                     'tp1': fmt_t(tgts[0]) if tgts else '—', 'tp2': fmt_t(tgts[-1]) if tgts else '—', 'stop': f'5-minute close back below {a_entry}'}
-        bench = f'Puts on the bench unless price loses {fz} and holds below'
-        why = f'Spot {spot} is above the gamma flip {flip} with positive net gamma (dealers dampen dips).'
+                a_entry = fallback_sweep('CALL', w0, spot, st, flip, use_flip)
+            A = {'entry': f'{a_entry}',
+                 'setup': f'Open dips to {a_entry}–{a_entry + 1}, liquidity gets swept, price snaps back up. Enter {a_entry} on the turn.',
+                 'tp1': fmt_t(tgts[0]) if tgts else '—', 'tp2': fmt_t(tgts[-1]) if tgts else '—',
+                 'stop': f'5-minute close back below {a_entry}'}
+        inv_lvl = flip if use_flip else nearest_real([put_wall, w0.get('put_wall_oi'), w0.get('prev_low'), w0.get('pm_low'), w0.get('max_pain'), spot - st], spot, False)
+        bench = f'Puts on the bench unless price loses {zone(inv_lvl) or "support"} and holds below'
     rules = RULES + [bench]
     trig = B['entry'].split(', or ')
     b_txt = trig[0] + (f" or {trig[1]}" if len(trig) > 1 else '')
-    a_txt = 'A skipped (spot too close to flip)' if a_skip else f"A: {A['entry']} on the turn"
+    a_txt = f"A: {A['entry']} on the turn"
     tg = ' / '.join(fmt_t(t) for t in tgts) or '—'
+    fz = zone(inv_lvl) or zone(spot)
     if strength == 'weak':
         f2 = lambda k: f' {w0[k]}' if w0.get(k) is not None else ''
         liq = (f"prior-day high{f2('prev_high')} / pre-market high{f2('pm_high')}" if bias == 'CALL'
                else f"prior-day low{f2('prev_low')} / pre-market low{f2('pm_low')}")
-        btag = f"{bias}, weak bias (spot {abs(spot - flip):.1f} pts from flip, under 0.5x straddle): wait for a sweep/reject of the {liq} first"
+        btag = f"{bias}, weak bias" + (f" (spot {abs(spot - flip):.1f} pts from flip, under 0.5x straddle)" if use_flip else '') + f": wait for a sweep/reject of the {liq} first"
     else:
         btag = f"{bias} ({strength})"
     plan = f"Today: {btag}. {a_txt} · B: {b_txt}. Targets {tg}. Invalidation {fz}."
     walls_lbl = ', '.join(dict.fromkeys(x for x in (B.get('wall_entry_label'), B.get('break_label')) if x))
     if walls_lbl: plan += f' ({walls_lbl}.)'
-    return {'plan': plan, 'spot_ts': w0.get('spot_ts'), 'bias': bias, 'strength': strength, 'summary': why, 'spot': spot, 'flip': flip, 'put_wall': put_wall, 'call_wall': call_wall,
-            'range': [R(lo, 1), R(hi, 1)], 'straddle': st, 'straddle_method': w0.get('straddle_method', 'quote'), 'A': A, 'B': B, 'kite': 'Rest: kite until 3:30 PM ET', 'rules': rules,
-            'invalidation': f'If {fz} ' + ('reclaims and holds' if bias == 'PUT' else 'is lost and holds below') + f' before 10:00 AM ET, the {bias.lower()} bias is off: switch sides or stand down',
-            'disclaimer': DISCL}
+    if caveats: plan += ' ⚠ ' + caveats[0]
+    inv_txt = (f'If {fz} ' + ('reclaims and holds' if bias == 'PUT' else 'is lost and holds below') +
+               f' before 10:00 AM ET, the {bias.lower()} bias is off: switch sides or stand down')
+    return {'plan': plan, 'spot_ts': w0.get('spot_ts'), 'bias': bias, 'strength': strength, 'summary': why, 'spot': spot,
+            'flip': flip, 'put_wall': put_wall, 'call_wall': call_wall, 'range': [R(lo, 1), R(hi, 1)], 'straddle': st,
+            'straddle_method': w0.get('straddle_method', 'quote'), 'A': A, 'B': B, 'kite': 'Rest: kite until 3:30 PM ET',
+            'rules': rules, 'invalidation': inv_txt, 'warnings': caveats or None, 'disclaimer': DISCL}
 
 RULES = ['No trades 9:30–10:00 AM ET: wait for confirmation (5-minute close triggers)',
          'Half-size entries; if it opens already through the wall, size half again',
          'TP1 +100%, TP2 +300%, rest kite; hard stop 3:30 PM ET']
 DISCL = 'Mechanical output from delayed free data. Not financial advice.'
-
-def incomplete_plan(reasons):
-    return {'plan': 'DATA INCOMPLETE — levels unreliable. Today: NEUTRAL, no mechanical plan.', 'bias': 'NEUTRAL', 'strength': 'n/a',
-            'summary': 'Options chain failed the data-quality gate after retries: ' + '; '.join(reasons), 'data_incomplete': True,
-            'rules': RULES, 'disclaimer': DISCL}
 
 def main():
     now = datetime.datetime.now(ET); today = now.date()
@@ -537,28 +775,38 @@ def main():
     brief = {'generated': now.isoformat(timespec='minutes'), 'date': today.isoformat(), 'days': days,
              'note': 'Options levels use prior-day open interest and delayed Yahoo prices. Pre-market map, not live. Not futures order-book data.'}
     brief['walls'] = []; gate = {}
+    qqq_fatal = False
     for s in ('QQQ', 'SPY'):
-        w, bad = fetch_checked(s, prev_walls(s))
-        if w and not bad: brief.setdefault('options_source', {})[s] = w.get('options_label')
-        if w: brief['walls'].append(label_walls(w))
-        if w and not bad:
-            wn = quality_warnings(w)
+        prev = prev_walls(s)
+        w, bad = fetch_checked(s, prev)
+        usable = w and not chain_fatal(w)
+        if usable:
+            brief.setdefault('options_source', {})[s] = w.get('options_label')
+            brief['walls'].append(label_walls(w))
+            wn = quality_warnings(w) + chain_soft(w, prev)
             if wn: brief.setdefault('data_warnings', {})[s] = wn
-        if bad: gate[s] = bad; errors.append(f'DATA INCOMPLETE {s}: ' + '; '.join(bad))
+        else:
+            gate[s] = bad or chain_fatal(w)
+            errors.append(f'{s} unusable after retries: ' + '; '.join(gate[s]))
+            if s == 'QQQ': qqq_fatal = True
         time.sleep(1)
     srcq = (brief.get('options_source') or {}).get('QQQ')
-    brief['options_label'] = f'Options: {srcq}' if srcq else 'Options: none passed the data check'
+    brief['options_label'] = f'Options: {srcq}' if srcq else 'Options: no usable QQQ chain'
     brief['note'] = brief['note'].replace('delayed Yahoo prices', f'delayed prices ({srcq or "no source passed"})')
-    brief['data_quality'] = {s: ('FAIL: ' + '; '.join(gate[s]) if s in gate else 'ok') for s in ('QQQ', 'SPY')}
+    brief['data_quality'] = {s: ('FAIL: ' + '; '.join(gate[s]) if s in gate else ('ok with warnings: ' + '; '.join(brief.get('data_warnings', {}).get(s, [])) if brief.get('data_warnings', {}).get(s) else 'ok')) for s in ('QQQ', 'SPY')}
+    w0 = next((w for w in brief['walls'] if w['sym'] == 'QQQ'), None)
+    if qqq_fatal or not w0 or chain_fatal(w0):
+        print('Refusing to publish: QQQ spot or chain/OI still missing after retries.', file=sys.stderr)
+        print('errors:', errors, file=sys.stderr)
+        print('elapsed', round(time.time() - T0), 's')
+        sys.exit(1)
     try:
-        w0 = next((w for w in brief['walls'] if w['sym'] == 'QQQ'), None); w1 = None
-        try: w1 = walls('QQQ', 1, (w0 or {}).get('options_src', 'yahoo'))
+        w1 = None
+        try:
+            w1 = retry(lambda: walls('QQQ', 1, w0.get('options_src', 'yahoo')), tries=3, what='QQQ 1DTE')
         except Exception as e: errors.append(f'walls QQQ 1DTE: {e}')
         if w1: brief['qqq_1dte'] = {k: w1.get(k) for k in ('expiry', 'call_wall_oi', 'call_wall_gamma', 'put_wall_oi', 'put_wall_gamma', 'gamma_flip', 'max_pain', 'net_gex_sign', 'straddle', 'range_lo', 'range_hi')}
-        brief['strategy'] = incomplete_plan(gate['QQQ']) if 'QQQ' in gate else (strategy(w0, w1) if w0 else None)
-        wq = brief.get('data_warnings', {}).get('QQQ')
-        if wq and brief['strategy'] and 'plan' in brief['strategy']:
-            brief['strategy']['warnings'] = wq; brief['strategy']['plan'] += ' ⚠ ' + wq[0]
+        brief['strategy'] = strategy(w0, w1)
     except Exception as e: errors.append(f'strategy: {e}'); traceback.print_exc()
     r = nq_ratio()
     if r: brief['nq_ratio'] = r
@@ -569,7 +817,7 @@ def main():
         if s not in uni: uni.append(s)
     res = []; scanned = 0
     for s in uni:
-        if time.time() - T0 > BUDGET: errors.append(f'scanner stopped at time budget after {scanned} names'); break
+        if time.time() - T0 > min(BUDGET, HARD - 30): errors.append(f'scanner stopped at time budget after {scanned} names'); break
         try:
             x = scan_one(s); scanned += 1
             if x: res.append(x)
@@ -578,6 +826,16 @@ def main():
     res.sort(key=lambda x: -x['score'])
     brief['squeeze'] = {'scanned': scanned, 'universe': len(uni), 'top': res[:10]} if res else None
     brief['errors'] = errors
+    st = brief.get('strategy') or {}
+    a, b_ = st.get('A') or {}, st.get('B') or {}
+    plan_ok = (st.get('bias') in ('CALL', 'PUT', 'NEUTRAL') and a.get('entry') not in (None, '', 'n/a')
+               and b_.get('entry') not in (None, '', 'n/a') and st.get('invalidation') and st.get('plan')
+               and not st.get('data_incomplete') and 'DATA INCOMPLETE' not in str(st.get('plan') or ''))
+    if not plan_ok:
+        print('Refusing to publish incomplete strategy (no latest.json write).', file=sys.stderr)
+        print(json.dumps({'strategy': st, 'errors': errors}, default=str)[:2000], file=sys.stderr)
+        print('elapsed', round(time.time() - T0), 's')
+        sys.exit(1)
     os.makedirs(OUT, exist_ok=True)
     for f in ('latest.json', f'{today.isoformat()}.json'):
         json.dump(brief, open(os.path.join(OUT, f), 'w'), separators=(',', ':'))
