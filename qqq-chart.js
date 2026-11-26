@@ -35,7 +35,7 @@ function draw(el,day,D,st){ if(!el.isConnected) return;
     :`Shaded = pre-market (04:00–09:30) / after-hours (16:00–20:00, incl. the prior day's evening). ${st.tf==='d'?'Selected day marked.':'Arrows: ▲ buy (entry/add) · ▼ sell (exit). Times are ET.'} Source: Yahoo Finance public data, delayed.`;
   el.querySelectorAll('[data-tf]').forEach(b=>b.onclick=()=>{ st.tf=b.dataset.tf; draw(el,day,D,st); });
   const box=el.querySelector('.chartbox'); if(st.chart){ st.chart.remove(); st.chart=null; } box.innerHTML='';
-  const LC=LightweightCharts, chart=LC.createChart(box,{autoSize:true,layout:{background:{color:'#0b0f17'},textColor:'#9aa4b2'},grid:{vertLines:{color:'#1a2130'},horzLines:{color:'#1a2130'}},
+  const LC=LightweightCharts, chart=LC.createChart(box,{autoSize:true,layout:{background:{color:'#0e0f0c'},textColor:'#9aa4b2'},grid:{vertLines:{color:'#1a2130'},horzLines:{color:'#1a2130'}},
     timeScale:{timeVisible:st.tf!=='d',secondsVisible:false,borderColor:'#263042'},rightPriceScale:{borderColor:'#263042'},crosshair:{mode:0}});
   st.chart=chart;
   const shade=chart.addHistogramSeries({priceScaleId:'shade',priceLineVisible:false,lastValueVisible:false,base:0});

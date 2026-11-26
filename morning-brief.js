@@ -1,4 +1,4 @@
-// Morning Brief renderer: reads data/brief/latest.json (built by .github/workflows/morning-brief.yml)
+// Morning Brief renderer: reads data/brief/latest.json (written by the weekday routine)
 (function(){
   const el=document.getElementById('mb-body'); if(!el) return;
   const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -38,9 +38,10 @@
     if(b.earnings){h+=`<h3 style="font-size:.9rem">Major earnings</h3>`+(b.earnings.length?`<table class="mb-t mb-cal"><tr><th>Day</th><th>Ticker</th><th>When</th><th>Mkt cap</th><th>Impact</th></tr>${b.earnings.slice(0,30).map(e=>`<tr><td>${dl(e.date)}</td><td><b>${esc(e.sym)}</b>${e.qqq_top?' ⭐':''}</td><td>${esc(e.when)}</td><td>$${f(e.mcap_b,0)}B</td><td>${tag(e.impact)}</td></tr>`).join('')}</table><p class="sub">⭐ = QQQ / mega-cap mover.</p>`:'<p class="sub">No major earnings.</p>');}else h+=na('Earnings calendar');
     h+=`<h3>3 · Gamma squeeze scanner</h3>`;
     const s=b.squeeze;
-    h+=s?`<p class="sub">Scanned ${s.scanned} names (watchlist + Yahoo most-active / gainers / most-shorted). Edit <code>data/brief/watchlist.txt</code> to add tickers. Score is a heuristic, not a prediction.</p>
+    h+=s?`<details class="mb-scan"><summary>Show scanner · ${s.scanned} names (heuristic, not a prediction)</summary>
+    <p class="sub">Scanned ${s.scanned} names (watchlist + Yahoo most-active / gainers / most-shorted). Edit <code>data/brief/watchlist.txt</code> to add tickers. Score is a heuristic, not a prediction.</p>
     <div style="overflow-x:auto"><table class="mb-t mb-cal"><tr><th>#</th><th>Ticker</th><th>Price</th><th>Score</th><th>Short %</th><th>Float</th><th>Call/Put OI</th><th>Call vol/OI</th><th>IV</th><th>5d</th><th>Why</th></tr>
-    ${s.top.map((x,i)=>`<tr><td>${i+1}</td><td><b>${esc(x.sym)}</b>${x.penny?' 🪙':''}</td><td>${f(x.price)}</td><td><b>${f(x.score,0)}</b></td><td>${f(x.short_pct,0)}%</td><td>${f(x.float_m,0)}M</td><td>${f(x.cp_ratio,1)}</td><td>${f(x.cvol_oi)}</td><td>${f(x.iv,0)}%</td><td style="color:${x.mom5>=0?'var(--green)':'var(--red)'}">${f(x.mom5,1)}%</td><td class="mb-why">${x.why.map(esc).join(' · ')}</td></tr>`).join('')}</table></div>`:na('Squeeze scanner');
+    ${s.top.map((x,i)=>`<tr><td>${i+1}</td><td><b>${esc(x.sym)}</b>${x.penny?' 🪙':''}</td><td>${f(x.price)}</td><td><b>${f(x.score,0)}</b></td><td>${f(x.short_pct,0)}%</td><td>${f(x.float_m,0)}M</td><td>${f(x.cp_ratio,1)}</td><td>${f(x.cvol_oi)}</td><td>${f(x.iv,0)}%</td><td style="color:${x.mom5>=0?'var(--green)':'var(--red)'}">${f(x.mom5,1)}%</td><td class="mb-why">${x.why.map(esc).join(' · ')}</td></tr>`).join('')}</table></div></details>`:na('Squeeze scanner');
     if(b.errors&&b.errors.length) h+=`<p class="sub" style="font-size:.8rem">Source notes: ${b.errors.map(esc).join('; ')}</p>`;
     el.innerHTML=h;
   }
@@ -61,5 +62,5 @@
         showStamp({label:`Updated ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${h12}:${String(d.getMinutes()).padStart(2,'0')} ${ampm} ET`});
       }
     }
-  }).catch(()=>{el.innerHTML='<p class="sub">Morning Brief not generated yet. It runs weekdays at 6:55 AM ET.</p>'});
+  }).catch(()=>{el.innerHTML='<p class="sub">Morning Brief not generated yet. It runs on weekdays starting around 6:50 AM ET, with updates through the day.</p>'});
 })();

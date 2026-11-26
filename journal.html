@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trade Journal — MadHamster Options Toolkit</title>
+<title>Trade Journal — Apex Book</title>
 <style>
-:root{--bg:#0b0f17;--panel:#121826;--panel2:#182032;--line:#263048;--text:#e6ebf5;--muted:#8a96ad;--accent:#4f8cff;--green:#22c55e;--red:#ef4444;--amber:#f59e0b}
+:root{--bg:#0e0f0c;--panel:#121826;--panel2:#182032;--line:#263048;--text:#e6ebf5;--muted:#8a96ad;--accent:#4f8cff;--green:#22c55e;--red:#ef4444;--amber:#f59e0b}
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
-header.top{position:sticky;top:0;z-index:50;background:rgba(11,15,23,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+header.top{position:sticky;top:0;z-index:50;background:rgba(14,15,12,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .top-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:10px 16px;overflow-x:auto}
 .brand{font-weight:800;white-space:nowrap}.brand span{color:var(--accent)}
 .top-inner a{color:var(--muted);text-decoration:none;padding:7px 12px;border-radius:8px;white-space:nowrap;font-size:.92rem}
@@ -72,7 +72,7 @@ body.locked .edit-only{display:none!important}body:not(.locked) .ro-only{display
 .cal{display:inline-grid;grid-template-columns:repeat(7,34px);gap:3px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;font-size:.78rem;vertical-align:top}
 .cal .h{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-bottom:4px}.cal .h button{padding:2px 8px}
 .cal .wd{color:var(--muted);text-align:center}.cal .c{height:32px;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);border:1px solid transparent}
-.cal .c.has{color:var(--text);cursor:pointer;background:#0b0f17}.cal .c.has:hover{border-color:var(--accent)}.cal .c.sel{border-color:var(--accent);background:rgba(79,140,255,.2)}.cal .c.today{text-decoration:underline}
+.cal .c.has{color:var(--text);cursor:pointer;background:var(--bg)}.cal .c.has:hover{border-color:var(--accent)}.cal .c.sel{border-color:var(--accent);background:rgba(79,140,255,.2)}.cal .c.today{text-decoration:underline}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block}.dot.g{background:var(--green)}.dot.r{background:var(--red)}
 .daylist{display:inline-flex;flex-wrap:wrap;gap:4px;max-width:560px;vertical-align:top;margin-left:10px;max-height:150px;overflow:auto}
 .daylist button{padding:3px 8px;font-size:.78rem;display:flex;gap:5px;align-items:center}.daylist button.sel{border-color:var(--accent)}
@@ -81,13 +81,13 @@ body.locked .edit-only{display:none!important}body:not(.locked) .ro-only{display
 .pic figcaption{display:flex;gap:4px;margin-top:4px}.pic input{flex:1;min-width:0;padding:3px 6px;font-size:.8rem}.pic.dragging{opacity:.4}.pic.over{border-color:var(--accent)}
 .addpic{display:flex;flex-direction:column;gap:6px;justify-content:center;align-items:flex-start;padding:10px;border:1px dashed var(--line);border-radius:8px;min-height:120px;color:var(--muted);font-size:.85rem}
 .addpic.armed{border-color:var(--accent);color:var(--text)}
-#moreTools{padding:0}#moreTools>summary{cursor:pointer;padding:14px 20px;font-weight:700;color:var(--muted)}#moreTools[open]>summary{border-bottom:1px solid var(--line)}#moreBody{padding:16px 20px}
+#moreTools{padding:0}#moreTools>summary{cursor:pointer;padding:14px 20px;font-weight:700;color:var(--muted)}#moreTools[open]>summary{border-bottom:1px solid var(--line)}#moreBody{padding:16px 20px}#moreBody>h3{scroll-margin-top:70px}#moreBody .card,#moreBody details.card{padding:0;border:none;margin:0 0 12px;background:transparent;border-radius:0}#moreBody .card>h1{font-size:1.05rem}
 #moreBody h3{margin:16px 0 8px;font-size:.95rem;color:var(--muted)}
 .qc{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0 14px}.qc .tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .qc .tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}.qc .chartbox{height:380px;margin-top:8px}
 .qc .legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px;font-size:.8rem}.qc .legend label{display:flex;gap:5px;align-items:center;cursor:pointer}.qc .legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
 .qc .cov{font-size:.78rem;color:var(--muted);margin-top:6px}
-details.purge{margin-top:10px;font-size:.85rem}details.purge code{background:#0b0f17;padding:2px 5px;border-radius:4px}
+details.purge{margin-top:10px;font-size:.85rem}details.purge code{background:var(--bg);padding:2px 5px;border-radius:4px}
 .tl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:10px}
 .tl-grid label{display:block;font-size:.75rem;color:var(--muted);text-transform:uppercase;margin-bottom:3px}.tl-grid input{width:100%}
 #tlText{width:100%;min-height:140px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem}
@@ -125,9 +125,8 @@ label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;text-tr
 <body class="locked">
 <header class="top"><div class="top-inner">
   <div class="brand">🐹 MadHamster <span>Trade Journal</span></div>
-  <a href="index.html">← Back to Toolkit</a>
-  <a href="index.html#kite-mgmt">🪁 Kite Mgmt</a>
-  <a href="#kite-mgmt">Journal kite log</a>
+  <a href="index.html">← Back to Apex Book</a>
+  <a href="reference.html">📚 Reference</a>
 </div></header>
 <main>
 <section class="card edit-only">
@@ -168,12 +167,9 @@ label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;text-tr
 
 <section class="card">
   <h1>📸 Screenshot Trade Journal</h1>
-  <p class="sub" style="margin:4px 0 8px;font-weight:600;color:var(--accent)">🎯 Break-even stop at +100% — push the stop up once a position doubles, then let the runner chase +300%.</p>
-  <p class="sub">Moves are fast — capture the chart, then review your exit. Entries are stored in the GitHub repo, so every device sees the same journal.</p>
-  <div class="note">🔐 <b>Private &amp; encrypted:</b> entries, trade fills, notes, P/L and screenshots are encrypted in your browser (AES-256-GCM, key from your passphrase via PBKDF2 · 310,000 iterations) before they're saved to the public repo <code>MadHamster6000/DIYupload</code>. Without the passphrase the files are unreadable. Your token and passphrase are kept only in this browser. <b>If you forget the passphrase, the journal can't be recovered</b> — keep it safe and export backups.</div>
-
+  <p class="sub">Paste a chart screenshot (Ctrl+V / ⌘+V), or load a CSV above and click <b>Save executions</b>.</p>
   <div class="ro-only lockbar">
-    <span class="muted">🔒 Read-only.</span>
+    <span class="muted">🔒 Read-only. Unlock to view and save.</span>
     <input type="password" id="tokenInput" placeholder="GitHub token" autocomplete="off">
     <input type="password" id="passInput" placeholder="Journal passphrase (min 8 chars)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
     <button class="primary" id="unlockBtn">Unlock</button>
@@ -188,13 +184,13 @@ label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;text-tr
         <button id="lockBtn" class="danger">Lock / forget token &amp; passphrase</button>
       </div>
     </div>
-    <p class="sub" style="margin-top:8px">🔑 Your token is kept only in this browser's localStorage. It's never committed or sent anywhere except api.github.com.</p>
   </div>
   <div class="btns" style="justify-content:flex-start"><button id="exportBtn">Export backup (JSON)</button><button id="refreshBtn">↻ Refresh</button></div>
   <div id="status">Loading…</div>
   <div id="migrateBox" class="edit-only"></div>
 </section>
-<section class="card ro-only"><div class="private"><b>🔒 This journal is private.</b>Entries are encrypted. Unlock with the owner's token and passphrase to view.</div></section>
+<p class="sub" id="beBanner" hidden>🎯 Break-even stop at +100% — push the stop up once a position doubles, then let the runner chase +300%.</p>
+<div class="note" id="privacyEssay" hidden>🔐 <b>Private &amp; encrypted:</b> entries, trade fills, notes, P/L and screenshots are encrypted in your browser (AES-256-GCM, key from your passphrase via PBKDF2 · 310,000 iterations) before they're saved to the public repo <code>MadHamster6000/DIYupload</code>. Without the passphrase the files are unreadable. Your token and passphrase are kept only in this browser. <b>If you forget the passphrase, the journal can't be recovered</b> — keep it safe and export backups. 🔑 The token is kept only in this browser's localStorage. It's never committed or sent anywhere except api.github.com.</div>
 <section class="card edit-only" id="tally"></section>
 
 <section class="card edit-only" id="setup-compare">
@@ -204,20 +200,21 @@ label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;text-tr
 </section>
 
 
-<section class="card edit-only" id="scrub-2026-10-26">
+<details class="card edit-only" id="scrub-2026-10-26">
+  <summary style="cursor:pointer;font-weight:700">📝 Logged scrub · Oct 26, 2026</summary>
   <h1 style="font-size:1.3rem">📝 Logged scrub · Oct 26, 2026</h1>
-  <p class="sub">Published day note (git-backed). Full narrative lives on the <a href="index.html#scrub-2026-10-26" style="color:var(--accent);font-weight:600">Toolkit → Late Scalp</a> card. Encrypted journal entries untouched.</p>
+  <p class="sub">Published day note (git-backed). Full narrative lives on the <a href="index.html#scrub-2026-10-26" style="color:var(--accent);font-weight:600">Apex Book → Late Scalp</a> card. Encrypted journal entries untouched.</p>
   <div class="pcard">
     <p style="margin:0 0 6px"><b>Entry</b> 15:40:39 ET — BUY 4 × QQQ <b>712P</b> 0DTE @ <b>$0.15</b> ($60) · <b>Exits</b> 2@$0.45 (15:53) · 1@$0.41 (15:58) · 1@$0.30 (15:59:57)</p>
     <p style="margin:0 0 6px"><b>P&amp;L</b> <span class="pos">+$101</span> on $60 · flat by 4:00 PM ET</p>
     <p style="margin:0 0 6px"><b>Read:</b> kites flat at 3:30 → fresh judgment; 3:34 small up · 3:37 “jump with candle” · 3:40–3:41 put on reversal (call→put ~4m) · 3:46 wake candle scare → liquidity grab + bearish engulfing → take profit. Self-assessment: some luck; unsure luck vs skill. Theory: big rise then sideways near close often → profit-taking pullback / sell momentum.</p>
     <p style="margin:0"><span class="ls-b ls-bad">premium $0.15</span> below $0.20–$0.35 · <span class="ls-b ls-ok">map flip</span> puts vs morning CALL brief — user's own call / map flip</p>
   </div>
-</section>
+</details>
 
 <section class="card edit-only" id="kite-mgmt">
   <h1 style="font-size:1.3rem">🪁 Kite Management</h1>
-  <p class="sub">Protective trail log for remaining runner contracts. Same browser-local store as the toolkit page (<code>apex-kite-trail-log</code>). Cross-check <a href="index.html#kite-mgmt" style="color:var(--accent);font-weight:600">toolkit rules</a>, Late Scalp 3:30 hard stop, and the pin-risk banner above when unlocked.</p>
+  <p class="sub">Protective trail log for remaining runner contracts. Same browser-local store as the desk page (<code>apex-kite-trail-log</code>). Cross-check <a href="index.html#kite-mgmt" style="color:var(--accent);font-weight:600">desk rules</a>, Late Scalp 3:30 hard stop, and the pin-risk banner above when unlocked.</p>
   <div class="pcard"><ul class="ls-rules">
     <li><b>Initial floor:</b> after partial profits, manual protective limit sell on the kite at ~50% of current mark.</li>
     <li><b>Trail up:</b> when the kite doubles, cancel old order → new limit at ~50% of the new mark.</li>
@@ -228,7 +225,7 @@ label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;text-tr
   <div id="kite-body"></div>
 </section>
 
-<details class="card edit-only" id="moreTools"><summary>⚙️ More tools (paste text, screenshots, export/import, filters, settings, encryption, lock)</summary><div id="moreBody"></div></details>
+<details class="card edit-only" id="moreTools"><summary>⚙️ More tools (paste text, export/import, filters, encryption, tally, setup compare, kite log, lock)</summary><div id="moreBody"></div></details>
 <div class="note">⚠️ Educational tool only — not financial advice.</div>
 </main>
 <datalist id="picLabels"><option>Day chart</option><option>15m</option><option>1m</option><option>5m</option><option>Entry</option><option>Exit</option><option>Other</option></datalist>
@@ -568,7 +565,7 @@ function reportHTML(r,copyKey){ const icon={ok:'✓',broken:'✗',na:'–'};
   <div class="btns" style="justify-content:flex-start;margin-top:8px"><button data-copy="${esc(copyKey)}">📋 Copy summary</button></div></div>`; }
 function reportCard(day){ const r=reportCache[day]; return r?reportHTML(r,day):''; }
 function spark(vals){ if(!vals.length) return ''; const w=Math.max(120,vals.length*14), h=44, x=i=>vals.length===1?w/2:4+i*(w-8)/(vals.length-1), y=v=>h-4-(v/5)*(h-8);
-  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;max-width:${w}px;height:${h}px;background:#0b0f17;border:1px solid var(--line);border-radius:8px"><line x1="0" x2="${w}" y1="${y(4)}" y2="${y(4)}" stroke="#22c55e" stroke-dasharray="3 3" opacity=".5"/><polyline fill="none" stroke="#4f8cff" stroke-width="2" points="${vals.map((v,i)=>x(i)+','+y(v)).join(' ')}"/>${vals.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="${v>=4?'#22c55e':'#ef4444'}"/>`).join('')}</svg>`; }
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;max-width:${w}px;height:${h}px;background:var(--bg);border:1px solid var(--line);border-radius:8px"><line x1="0" x2="${w}" y1="${y(4)}" y2="${y(4)}" stroke="#22c55e" stroke-dasharray="3 3" opacity=".5"/><polyline fill="none" stroke="#4f8cff" stroke-width="2" points="${vals.map((v,i)=>x(i)+','+y(v)).join(' ')}"/>${vals.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="${v>=4?'#22c55e':'#ef4444'}"/>`).join('')}</svg>`; }
 function renderTally(){ const el=$('tally'); if(!token){ el.innerHTML=''; return; } computeReports();
   const reps=Object.values(reportCache).sort((a,b)=>a.day<b.day?-1:1), c=rcfg();
   const tot=reps.reduce((a,r)=>a+r.pl,0), w=reps.reduce((a,r)=>a+r.wins,0), l=reps.reduce((a,r)=>a+r.losses,0), td=reps.filter(r=>r.trades>0), avgF=td.length?td.reduce((a,r)=>a+r.followed,0)/td.length:NaN;
@@ -755,12 +752,20 @@ window.journalExecs=day=>entries.filter(e=>e.kind==='exec'&&dayKey(e.ts)===day);
   const tl=$('tradeList'), grid=tl.querySelector('.tl-grid'), txt=$('tlText'), wrap=document.createElement('div'); wrap.className='btns'; wrap.style.justifyContent='flex-start';
   wrap.append($('tlParse'),$('tlAdd'),$('tlReverse'));
   sec('Paste trade list as text / import options',grid,txt,wrap);
-  sec('Screenshots (each becomes a journal entry)',$('drop'));
   const io=$('exportBtn').parentElement; sec('Backup & refresh',io); io.prepend($('importFile').parentElement);
   sec('Search & filters',document.querySelector('.filters'));
   const cfg=document.createElement('div'); cfg.id='cfgBox'; sec('Report-card rule settings',cfg);
-  sec('Encryption',$('migrateBox'));
+  const be=$('beBanner'); if(be){ be.hidden=false; sec('Runner rule reminder',be); }
+  const essay=$('privacyEssay'); if(essay){ essay.hidden=false; sec('Encryption & backups',essay); }
+  sec('Encryption migration',$('migrateBox'));
   const lk=document.createElement('div'); lk.className='btns'; lk.style.justifyContent='flex-start'; lk.append($('lockBtn')); sec('Device',lk);
+  ['tally','setup-compare','scrub-2026-10-26','kite-mgmt'].forEach(id=>{ const el=$(id); if(!el) return; const t=el.querySelector('h1,summary'); sec(t?t.textContent.replace(/\s+/g,' ').trim():id, el); });
+})();
+(function(){ const h=location.hash.replace(/^#/,'');
+  if(['setup-compare','kite-mgmt','scrub-2026-10-26','tally','moreTools'].includes(h)){
+    const d=$('moreTools'); if(d) d.open=true;
+    const t=$(h); if(t) setTimeout(()=>t.scrollIntoView({block:'start'}),50);
+  }
 })();
 if(token&&!pass) token=''; // older devices: require passphrase too
 render(); load().catch(()=>{});
