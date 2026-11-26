@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#0e0f0c"/>
+  <g transform="translate(256 256) scale(0.72) translate(-256 -256)">
+  
+  <!-- Market sparkline: dip, bounce, push -->
+  <path d="M64 404 L128 372 L176 392 L268 292 L340 328 L448 216"
+        fill="none" stroke="#4f8cff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="448" cy="216" r="14" fill="#4f8cff"/>
+
+  <!-- Ears (behind head) -->
+  <ellipse cx="158" cy="168" rx="50" ry="70" transform="rotate(-28 158 168)" fill="#D4A054"/>
+  <ellipse cx="154" cy="166" rx="24" ry="40" transform="rotate(-28 154 166)" fill="#E39B88"/>
+  <ellipse cx="354" cy="168" rx="50" ry="70" transform="rotate(28 354 168)" fill="#D4A054"/>
+  <ellipse cx="358" cy="166" rx="24" ry="40" transform="rotate(28 358 166)" fill="#E39B88"/>
+
+  <!-- Head + cheek pouches -->
+  <ellipse cx="148" cy="298" rx="48" ry="44" fill="#E8C07A"/>
+  <ellipse cx="364" cy="298" rx="48" ry="44" fill="#E8C07A"/>
+  <ellipse cx="256" cy="262" rx="140" ry="130" fill="#E8C07A"/>
+  <ellipse cx="256" cy="230" rx="110" ry="78" fill="#F0D19A" opacity=".45"/>
+  <ellipse cx="256" cy="316" rx="90" ry="60" fill="#F3D7A8"/>
+
+  <!-- Eyes -->
+  <ellipse cx="208" cy="248" rx="20" ry="24" fill="#1A140C"/>
+  <ellipse cx="304" cy="248" rx="20" ry="24" fill="#1A140C"/>
+  <circle cx="216" cy="238" r="7" fill="#F7F0E4"/>
+  <circle cx="312" cy="238" r="7" fill="#F7F0E4"/>
+
+  <!-- Nose + smile -->
+  <ellipse cx="256" cy="296" rx="16" ry="11" fill="#C46B5A"/>
+  <path d="M256 308 Q256 330 228 336" fill="none" stroke="#A35A4C" stroke-width="6" stroke-linecap="round"/>
+  <path d="M256 308 Q256 330 284 336" fill="none" stroke="#A35A4C" stroke-width="6" stroke-linecap="round"/>
+
+  </g>
+</svg>
