@@ -53,6 +53,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
 .entry.draft{border:2px solid var(--amber)}.entry.dirty{border:2px solid var(--accent)}.draftTag{color:var(--amber);font-weight:700;font-size:.8rem}
 #status{margin-top:10px;font-size:.88rem;padding:8px 12px;border-radius:8px;background:var(--panel2);border:1px solid var(--line)}
 #status.err{border-color:var(--red);color:#fca5a5}#status.ok{border-color:var(--green);color:#86efac}
+.tl-status{margin-top:10px;font-size:.88rem;padding:8px 12px;border-radius:8px;background:var(--panel2);border:1px solid var(--line)}.tl-status.err{border-color:var(--red);color:#fca5a5}.tl-status.ok{border-color:var(--green);color:#86efac}
 .lockbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}.lockbar input{flex:1;min-width:220px}
 body.locked .edit-only{display:none!important}body:not(.locked) .ro-only{display:none!important}
 .entry input:disabled,.entry select:disabled,.entry textarea:disabled{opacity:1;color:var(--text);background:transparent;border-color:transparent}
@@ -158,6 +159,7 @@ label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;text-tr
     <button id="tlDiscard" class="danger">Discard preview</button>
     <button id="tlSave" class="primary">Save executions</button>
   </div>
+  <div id="tlStatus" class="tl-status" role="status" aria-live="polite" hidden></div>
   <div id="tlChart"></div>
   <div id="pvRange" class="tl-grid" style="margin-top:10px"></div>
   <div id="pvInfo" class="sub" style="margin:8px 0 0"></div>
@@ -269,6 +271,7 @@ const MAGIC=[77,72,69,49]; // "MHE1"
 async function encBlob(blob){ const {salt,iv,ct}=await encBytes(new Uint8Array(await blob.arrayBuffer())); const out=new Uint8Array(4+16+12+ct.length); out.set(MAGIC,0); out.set(salt,4); out.set(iv,20); out.set(ct,32); return out; }
 async function decBlob(buf){ const a=new Uint8Array(buf); if(MAGIC.some((m,i)=>a[i]!==m)) throw new Error('Not an encrypted image'); return new Blob([await decBytes(a.slice(4,20),a.slice(20,32),a.slice(32))],{type:'image/jpeg'}); }
 
+function tlMsg(m,kind=''){ status(m,kind); const b=$('tlStatus'); if(b){ b.textContent=m; b.className='tl-status '+kind; b.hidden=false; } if(kind) toast(m); }
 function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2600); }
 function status(m,kind=''){ const s=$('status'); s.textContent=m; s.className=kind; }
 
@@ -285,6 +288,8 @@ async function gh(path,opts={}){
     const reset=+r.headers.get('x-ratelimit-reset'); const at=reset?new Date(reset*1000).toLocaleTimeString('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit'})+' ET':'later';
     const e=new GHError(`GitHub API rate limit reached${token?'':' (60 requests/hour without a token)'} — resets at ${at}.`); e.rate=true; throw e; }
   if(r.status===401){ const e=new GHError('Bad or expired token (401). Lock and paste a new token.'); e.auth=true; throw e; }
+  const write=/^(PUT|DELETE|POST|PATCH)$/i.test(opts.method||'');
+  if(write&&(r.status===403||r.status===404)){ const e=new GHError(`GitHub ${r.status}: ${body.message||r.statusText} — your token can read but not write. Make a token with Contents: Read and write on ${OWNER}/${REPO} (or classic "repo" scope), then Lock and paste it.`); e.status=r.status; e.auth=true; throw e; }
   const e=new GHError(`GitHub ${r.status}: ${body.message||r.statusText}`); e.status=r.status; throw e;
 }
 const b64ToText=b=>new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\n/g,'')),c=>c.charCodeAt(0)));
@@ -316,11 +321,11 @@ async function load(){
 
 // mutate entries.json with SHA check; retry on conflict
 async function commitEntries(mutate,msg,chartMutate){
-  for(let attempt=0;attempt<4;attempt++){
+  for(let attempt=0;attempt<6;attempt++){
     const d=await readEntriesAPI(); const next=mutate(d.list.slice()); const ch=chartMutate?chartMutate({...d.charts}):d.charts;
     const body={message:msg,branch:BRANCH,content:textToB64(JSON.stringify(await encJSON({version:1,updated:new Date().toISOString(),entries:next,charts:ch})))}; if(d.sha) body.sha=d.sha;
     try{ await gh(`/contents/${ENTRIES}`,{method:'PUT',body:JSON.stringify(body)}); charts=ch; fileEncrypted=true; return next; }
-    catch(e){ if(e.status===409||e.status===422){ await new Promise(r=>setTimeout(r,400*(attempt+1))); continue; } throw e; }
+    catch(e){ if(e.status===409||e.status===422){ await new Promise(r=>setTimeout(r,500*(attempt+1))); continue; } throw e; }
   }
   throw new GHError('Save conflict — someone else updated the journal. Refresh and try again.');
 }
@@ -643,7 +648,7 @@ function renderTLChart(){
 const TP=window.TradeParser;
 $('tlDate').value=dayKey(Date.now());
 $('tlDate').addEventListener('change',renderTLChart);
-function parseTL(text){ const txt=text!==undefined?text:$('tlText').value; if(!txt.trim()){ status('Paste some order history first.','err'); return; }
+function parseTL(text){ const txt=text!==undefined?text:$('tlText').value; if(!txt.trim()){ tlMsg('Paste some order history first.','err'); return; }
   const res=TP.parse(txt,{date:$('tlDate').value,ticker:$('tlTicker').value.trim(),includeStocks:$('tlStocks').checked});
   $('tlText').value=''; // never keep the raw text around
   const all=res.rows; all.sort((a,b)=>a.ts-b.ts);
@@ -713,19 +718,19 @@ $('pvWrap').addEventListener('click',ev=>{ const t=ev.target;
   if(t.dataset.mk!==undefined){ const g=pv.ignored.splice(+t.dataset.mk,1)[0]; const r=TP.parse(g.raw,{date:$('tlDate').value,ticker:$('tlTicker').value}).rows[0]||{};
     const d=$('tlDate').value; pv.rows.push({ts:TP.parseETString(d+' 09:30:00'),ticker:$('tlTicker').value.toUpperCase(),strike:NaN,right:'',expiry:d,side:'',qty:NaN,price:NaN,...r,raw:g.raw}); renderPV(); } });
 const sameFill=(a,b)=>Math.abs(a.ts-b.ts)<1000&&a.ticker===b.ticker&&a.expiry===b.expiry&&+a.strike===+b.strike&&a.right===b.right&&a.side===b.side&&+a.qty===+b.qty&&Math.abs(a.price-b.price)<1e-9;
-$('tlSave').addEventListener('click',async()=>{ if(!pv||!pv.rows.length){ status('Nothing to save — parse a trade list first.','err'); return; }
-  const bad=pv.rows.filter(r=>!TP.valid(r)).length; if(bad){ status(`${bad} row(s) are incomplete (red). Fix or delete them before saving.`,'err'); return; }
+$('tlSave').addEventListener('click',async()=>{ if(!token){ tlMsg('🔒 Locked — unlock with your GitHub token and passphrase first.','err'); return; } if(!pv||!pv.rows.length){ tlMsg('Nothing to save — parse a trade list first.','err'); return; }
+  const bad=pv.rows.filter(r=>!TP.valid(r)).length; if(bad){ tlMsg(`${bad} row(s) are incomplete (red). Fix or delete them before saving.`,'err'); return; }
   const btn=$('tlSave'); btn.disabled=true; const batch='b'+Date.now().toString(36);
-  if(!pv.replaceIds.length){ const ex=entries.filter(x=>x.kind==='exec'); if(pv.rows.every(r=>ex.some(x=>sameFill(x,r)))){ btn.disabled=false; const n=pv.rows.length; pv=null; renderPV(); status(`All ${n} executions were already saved — nothing to commit.`,'ok'); return; } }
-  try{ status('Saving trade list (one commit)…'); const replace=new Set(pv.replaceIds); let dup=0;
+  if(!pv.replaceIds.length){ const ex=entries.filter(x=>x.kind==='exec'); if(pv.rows.every(r=>ex.some(x=>sameFill(x,r)))){ btn.disabled=false; const n=pv.rows.length; pv=null; renderPV(); tlMsg(`All ${n} executions were already saved — nothing to commit.`,'ok'); return; } }
+  try{ tlMsg('Saving trade list (one commit)…'); const replace=new Set(pv.replaceIds); let dup=0;
     const next=await commitEntries(l=>{ const keep=l.filter(x=>!replace.has(x.id)); const days=new Set(pv.rows.map(r=>dayKey(r.ts)));
       const existing=keep.filter(x=>x.kind==='exec'&&days.has(dayKey(x.ts)));
       const fresh=pv.rows.filter(r=>{ if(existing.some(x=>sameFill(x,r))){ dup++; return false; } return true; })
         .map((r,i)=>({...r,kind:'exec',id:'x'+Date.now().toString(36)+i.toString(36)+Math.random().toString(36).slice(2,5),batch}));
       const all=existing.concat(fresh); TP.tagRows((pv.prior||[]).concat(all)); const tm=window.SetupCompare?SetupCompare.tagMap():{}; all.forEach(x=>{ const k=SetupCompare.fk(x); if(k in tm) Object.assign(x,tm[k]); }); const ids=new Set(all.map(x=>x.id));
       return keep.filter(x=>!ids.has(x.id)).concat(all.map(cleanExec)); },`journal: trade list ${$('tlDate').value} (${pv.rows.length} fills)`);
-    const n=pv.rows.length-dup; pv=null; $('tlText').value=''; SetupCompare.clearPending(); renderPV(); merge(next); status(`Saved ${n} executions in one commit ✓${dup?` (${dup} duplicates already saved were skipped)`:''}`,'ok'); toast('Trade list saved');
-  }catch(e){ status(e.message,'err'); } finally{ btn.disabled=false; } });
+    const n=pv.rows.length-dup; pv=null; $('tlText').value=''; SetupCompare.clearPending(); renderPV(); merge(next); tlMsg(`Saved ${n} executions in one commit ✓${dup?` (${dup} duplicates already saved were skipped)`:''}`,'ok'); toast('Trade list saved');
+  }catch(e){ tlMsg(e.message,'err'); } finally{ btn.disabled=false; } });
 function editGroup(group){ const rows=entries.filter(e=>e.kind==='exec'&&e.group===group); if(!rows.length) return;
   if(pvDirty()&&!confirm('Replace the current unsaved preview?')) return;
   pv={rows:rows.map(r=>({...r,raw:''})),prior:[],ignored:[],format:'saved group',note:'',replaceIds:rows.map(r=>r.id)}; $('tlDate').value=dayKey(rows[0].ts); renderPV(); $('tradeList').scrollIntoView({behavior:'smooth'}); }
