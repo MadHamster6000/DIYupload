@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0f0c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e0f0c'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='34'%3E🐹%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="apex.css">
 <title>Apex Book</title>
 <meta name="description" content="Apex Book: QQQ 0DTE morning brief, playbook, trade journal, and reference tools.">
 <script>
@@ -121,19 +127,31 @@ details.pcard>summary::-webkit-details-marker{display:none}details.pcard>summary
 </head>
 <body>
 <header class="top"><div class="top-inner">
-  <div class="brand">🐹 MadHamster <span>Apex Book</span></div>
-  <nav id="nav">
-    <a href="journal.html" style="background:var(--accent);color:#fff;font-weight:600">📸 Trade Journal</a>
-    <a href="#morning-brief">☀️ Morning Brief</a>
+  <div class="brand-row">
+    <a class="brand" href="index.html">🐹 <span class="brand-pre">MadHamster&nbsp;</span><span>Apex Book</span></a>
+    <span class="nav-current" id="nav-current" hidden></span>
+  </div>
+  <div class="nav-wrap">
+  <nav id="nav" class="pills">
+    <a href="journal.html" class="nav-primary" style="background:var(--accent);color:#fff;font-weight:600">📸 Trade Journal</a>
+    <a href="#morning-brief" class="nav-primary">☀️ Morning Brief</a>
     <a href="#am-checklist">☑️ 晨早清單</a>
-    <a href="#playbook">🎯 Playbook</a>
+    <a href="#playbook" class="nav-primary">🎯 Playbook</a>
     <a href="#plan-ladder">🪜 Plan Ladder</a>
     <a href="#subway">🚇 Subway Line</a>
     <a href="#late-scalp">⏱️ Late Scalp</a>
     <a href="#kite-mgmt">🪁 Kite Mgmt</a>
-    <a href="reference.html">📚 Reference</a>
+    <a href="reference.html" class="nav-primary">📚 Reference</a>
   </nav>
+  </div>
 </div></header>
+<nav class="tabbar" aria-label="Primary">
+  <a href="index.html#morning-brief" data-tab="brief"><span class="tab-ic" aria-hidden="true">☀️</span><span>Brief</span></a>
+  <a href="journal.html" data-tab="journal"><span class="tab-ic" aria-hidden="true">📋</span><span>Journal</span></a>
+  <a href="index.html#playbook" data-tab="playbook"><span class="tab-ic" aria-hidden="true">🎯</span><span>Playbook</span></a>
+  <a href="reference.html" data-tab="reference"><span class="tab-ic" aria-hidden="true">📚</span><span>Reference</span></a>
+</nav>
+
 
 <main>
 <!-- 0. Morning Brief -->
@@ -305,5 +323,6 @@ details.pcard>summary::-webkit-details-marker{display:none}details.pcard>summary
 <script src="subway-line.js"></script>
 <script src="late-scalp.js"></script>
 <script src="kite-mgmt.js"></script>
+<script src="apex-nav.js"></script>
 </body>
 </html>

@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0f0c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e0f0c'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='34'%3E🐹%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="apex.css">
 <title>Trade Journal — Apex Book</title>
 <style>
 :root{--bg:#0e0f0c;--panel:#121826;--panel2:#182032;--line:#263048;--text:#e6ebf5;--muted:#8a96ad;--accent:#4f8cff;--green:#22c55e;--red:#ef4444;--amber:#f59e0b}
@@ -124,10 +130,24 @@ label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px;text-tr
 </head>
 <body class="locked">
 <header class="top"><div class="top-inner">
-  <div class="brand">🐹 MadHamster <span>Trade Journal</span></div>
-  <a href="index.html">← Back to Apex Book</a>
-  <a href="reference.html">📚 Reference</a>
+  <div class="brand-row">
+    <a class="brand" href="index.html">🐹 <span class="brand-pre">MadHamster&nbsp;</span><span>Apex Book</span></a>
+    <span class="nav-current" id="nav-current">Journal</span>
+  </div>
+  <div class="nav-wrap">
+  <nav id="nav" class="pills">
+    <a href="index.html" class="nav-primary">← Back to Apex Book</a>
+    <a href="reference.html" class="nav-primary">📚 Reference</a>
+  </nav>
+  </div>
 </div></header>
+<nav class="tabbar" aria-label="Primary">
+  <a href="index.html#morning-brief" data-tab="brief"><span class="tab-ic" aria-hidden="true">☀️</span><span>Brief</span></a>
+  <a href="journal.html" data-tab="journal"><span class="tab-ic" aria-hidden="true">📋</span><span>Journal</span></a>
+  <a href="index.html#playbook" data-tab="playbook"><span class="tab-ic" aria-hidden="true">🎯</span><span>Playbook</span></a>
+  <a href="reference.html" data-tab="reference"><span class="tab-ic" aria-hidden="true">📚</span><span>Reference</span></a>
+</nav>
+
 <main>
 <section class="card edit-only">
   <div id="dayNav"></div>
@@ -420,8 +440,8 @@ function groupCard(g,rows){ const pl=g.pl;
     <span>in ${g.bq} @ ${px(g.avgIn)} → out ${g.sq} @ ${px(g.avgOut)}</span>${g.open?`<span class="warn">${g.open} still open</span>`:''}
     <b class="${g.netPl>0?'pos':g.netPl<0?'neg':'muted'}">P/L ${money(g.netPl)}</b>${g.fee?`<span class="muted">(fees ${money(g.fee)})</span>`:''}
     <span class="edit-only" style="display:contents"><button data-gedit>Edit</button><button class="danger" data-gdel>Delete</button></span></div>
-    <div class="tbl"><table><thead><tr><th>Time (ET)</th><th>Side</th><th>Tag</th><th>Qty</th><th>Price</th><th>Value</th></tr></thead><tbody>
-    ${rows.sort((a,b)=>a.ts-b.ts).map(r=>`<tr><td>${tIme(r.ts)}</td><td class="${r.side==='buy'?'pos':'neg'}">${r.side.toUpperCase()}</td><td><span class="tag ${tagClass(r.tag)}">${esc(r.tag)}</span></td><td>${r.qty}</td><td>${px(r.price)}${(r.side==='buy'&&(r.right==='C'||r.right==='P')&&+r.price<0.30?' <span class="sc-b sc-bad" title="Entry fill under $0.30">possible passive bid</span>':'')}</td><td>${money(r.qty*r.price*TradeParser.mult(r))}</td></tr>`).join('')}
+    <div class="tbl"><table class="stack-sm"><thead><tr><th>Time (ET)</th><th>Side</th><th>Tag</th><th>Qty</th><th>Price</th><th>Value</th></tr></thead><tbody>
+    ${rows.sort((a,b)=>a.ts-b.ts).map(r=>`<tr><td data-label="Time">${tIme(r.ts)}</td><td data-label="Side" class="${r.side==='buy'?'pos':'neg'}">${r.side.toUpperCase()}</td><td data-label="Tag"><span class="tag ${tagClass(r.tag)}">${esc(r.tag)}</span></td><td data-label="Qty">${r.qty}</td><td data-label="Price">${px(r.price)}${(r.side==='buy'&&(r.right==='C'||r.right==='P')&&+r.price<0.30?' <span class="sc-b sc-bad" title="Entry fill under $0.30">possible passive bid</span>':'')}</td><td data-label="Value">${money(r.qty*r.price*TradeParser.mult(r))}</td></tr>`).join('')}
     </tbody></table></div></div>`; }
 // ---- day gallery: charts[day] = {pics:[{id,label,enc,ts}]}; legacy {ts,enc} (single 'day-<date>' image) is read as a 1-picture gallery
 function picsOf(c,day){ const x=c[day]; if(!x) return []; if(Array.isArray(x.pics)) return x.pics; return [{id:'day-'+day,label:'QQQ chart',enc:!!x.enc,ts:x.ts||0}]; }
@@ -681,27 +701,27 @@ function renderPV(){ renderSC(); const w=$('pvWrap');
   TP.tagRows((pv.prior||[]).concat(pv.rows)); const bad=pv.rows.filter(r=>!TP.valid(r)).length;
   $('pvInfo').innerHTML=`Parsed as <b>${esc(pv.format)}</b>: ${pv.rows.length} executions${bad?`, <span class="neg">${bad} need fixing</span>`:''}${pv.ignored.length?`, ${pv.ignored.length} lines skipped`:''}. ${pv.replaceIds.length?`<span class="warn">Editing a saved group — saving replaces ${pv.replaceIds.length} fills.</span> `:''}${esc(pv.note)} <span class="draftTag">UNSAVED PREVIEW</span>${pv.rows.length>400?' <span class="warn">Large range — table may be slow; pick fewer days.</span>':''}`;
   const opt=(v,list)=>list.map(([k,l])=>`<option value="${k}" ${v===k?'selected':''}>${l}</option>`).join('');
-  let h=`<div class="tbl"><table id="pvTable"><thead><tr><th>Time (ET)</th><th>Ticker</th><th>Expiry</th><th>Strike</th><th>C/P</th><th>Side</th><th>Qty</th><th>Price</th><th>Fee</th><th>Placed (ET)</th><th>Tag</th><th></th></tr></thead><tbody>`;
+  let h=`<div class="tbl"><table id="pvTable" class="stack-sm"><thead><tr><th>Time (ET)</th><th>Ticker</th><th>Expiry</th><th>Strike</th><th>C/P</th><th>Side</th><th>Qty</th><th>Price</th><th>Fee</th><th>Placed (ET)</th><th>Tag</th><th></th></tr></thead><tbody>`;
   pv.rows.forEach((r,i)=>{ const ok=TP.valid(r);
-    h+=`<tr class="${ok?'':'bad'}" data-i="${i}"><td><input class="w-time" data-k="ts" value="${isFinite(r.ts)?TP.fmtET(r.ts):''}" placeholder="YYYY-MM-DD HH:MM:SS"></td>
-    <td><input data-k="ticker" value="${esc(r.ticker)}" size="5"></td><td><input class="w-exp" data-k="expiry" value="${esc(r.expiry)}" placeholder="YYYY-MM-DD"></td>
-    <td><input data-k="strike" type="number" step="any" value="${isFinite(r.strike)?r.strike:''}"></td>
-    <td><select data-k="right"><option value=""></option>${opt(r.right,[['C','Call'],['P','Put'],['S','Stock']])}</select></td>
-    <td><select data-k="side"><option value=""></option>${opt(r.side,[['buy','Buy'],['sell','Sell']])}</select></td>
-    <td><input data-k="qty" type="number" step="1" min="0" value="${isFinite(r.qty)?r.qty:''}"></td>
-    <td><input data-k="price" type="number" step="any" min="0" value="${isFinite(r.price)?r.price:''}"></td>
-    <td><input data-k="fee" type="number" step="any" min="0" value="${+r.fee||0}" style="min-width:50px">${(r.side==='buy'&&(r.right==='C'||r.right==='P')&&+r.price<0.30?' <span class="sc-b sc-bad" title="Entry fill under $0.30">possible passive bid</span>':'')}</td>
-    <td>${r.side==='buy'?`<input data-k="placed" type="time" value="${r.placed?TP.fmtET(r.placed).slice(11,16):''}" title="Optional: when you placed the order. Blank = same as fill time (gap 0).">${r.placed&&isFinite(r.ts)?` <span class="muted">${Math.round((r.ts-r.placed)/60000)}m</span>`:''}`:''}</td>
-    <td>${r.tag?`<span class="tag ${tagClass(r.tag)}">${esc(r.tag)}</span>`:'<span class="neg">incomplete</span>'}</td>
-    <td><button class="x" data-rm="${i}" title="Delete row">✕</button></td></tr>`;
+    h+=`<tr class="${ok?'':'bad'}" data-i="${i}"><td data-label="Time"><input class="w-time" data-k="ts" value="${isFinite(r.ts)?TP.fmtET(r.ts):''}" placeholder="YYYY-MM-DD HH:MM:SS"></td>
+    <td data-label="Ticker"><input data-k="ticker" value="${esc(r.ticker)}" size="5"></td><td data-label="Expiry"><input class="w-exp" data-k="expiry" value="${esc(r.expiry)}" placeholder="YYYY-MM-DD"></td>
+    <td data-label="Strike"><input data-k="strike" type="number" step="any" value="${isFinite(r.strike)?r.strike:''}"></td>
+    <td data-label="C/P"><select data-k="right"><option value=""></option>${opt(r.right,[['C','Call'],['P','Put'],['S','Stock']])}</select></td>
+    <td data-label="Side"><select data-k="side"><option value=""></option>${opt(r.side,[['buy','Buy'],['sell','Sell']])}</select></td>
+    <td data-label="Qty"><input data-k="qty" type="number" step="1" min="0" value="${isFinite(r.qty)?r.qty:''}"></td>
+    <td data-label="Price"><input data-k="price" type="number" step="any" min="0" value="${isFinite(r.price)?r.price:''}"></td>
+    <td data-label="Fee"><input data-k="fee" type="number" step="any" min="0" value="${+r.fee||0}" style="min-width:50px">${(r.side==='buy'&&(r.right==='C'||r.right==='P')&&+r.price<0.30?' <span class="sc-b sc-bad" title="Entry fill under $0.30">possible passive bid</span>':'')}</td>
+    <td data-label="Placed">${r.side==='buy'?`<input data-k="placed" type="time" value="${r.placed?TP.fmtET(r.placed).slice(11,16):''}" title="Optional: when you placed the order. Blank = same as fill time (gap 0).">${r.placed&&isFinite(r.ts)?` <span class="muted">${Math.round((r.ts-r.placed)/60000)}m</span>`:''}`:''}</td>
+    <td data-label="Tag">${r.tag?`<span class="tag ${tagClass(r.tag)}">${esc(r.tag)}</span>`:'<span class="neg">incomplete</span>'}</td>
+    <td data-label=""><button class="x" data-rm="${i}" title="Delete row">✕</button></td></tr>`;
     if(!ok&&r.raw) h+=`<tr class="rawrow"><td colspan="12">raw: ${esc(r.raw)}</td></tr>`; });
   h+='</tbody></table></div>';
   const gs=TP.summarize(pv.rows);
   if(gs.length){ const tot=gs.reduce((a,g)=>a+g.pl,0);
     const fees=gs.reduce((a,g)=>a+g.fee,0), closed=gs.filter(g=>g.open===0&&g.hasCash), cash=closed.reduce((a,g)=>a+g.cash,0), cnet=closed.reduce((a,g)=>a+g.netPl,0);
     const chk=closed.length?`<p class="sub" style="margin-top:6px">Cash check (${closed.length} closed rounds): Σ net_cash_amount = <b>${money(cash)}</b> vs computed net P/L <b>${money(cnet)}</b> ${Math.abs(cash-cnet)<0.01?'<span class="pos">✓ match</span>':'<span class="warn">≠ — review rows</span>'}</p>`:'';
-    h+=`<h3 style="margin:14px 0 6px">Per-contract summary · realized <span class="${tot>0?'pos':tot<0?'neg':''}">${money(tot)}</span> · fees ${money(-fees)} · net <span class="${tot-fees>0?'pos':'neg'}">${money(tot-fees)}</span></h3><div class="tbl"><table><thead><tr><th>Contract</th><th>Round</th><th>Fills</th><th>Bought</th><th>Avg in</th><th>Sold</th><th>Avg out</th><th>Open</th><th>Gross P/L</th><th>Fees</th><th>Net P/L</th></tr></thead><tbody>`+
-      gs.map(g=>`<tr><td><b>${esc(g.label)}</b></td><td>${g.round}</td><td>${g.n}</td><td>${g.bq}</td><td>${px(g.avgIn)}</td><td>${g.sq}</td><td>${px(g.avgOut)}</td><td class="${g.open?'warn':''}">${g.open}</td><td class="${g.pl>0?'pos':g.pl<0?'neg':''}">${money(g.pl)}</td><td>${money(-g.fee)}</td><td class="${g.netPl>0?'pos':g.netPl<0?'neg':''}">${money(g.netPl)}</td></tr>`).join('')+'</tbody></table></div><p class="sub" style="margin-top:6px">P/L = (avg out − avg in) × matched qty × 100 (×1 for stock) − commissions. Positions carried from before the selected range only count fills inside the range.</p>'+chk; }
+    h+=`<h3 style="margin:14px 0 6px">Per-contract summary · realized <span class="${tot>0?'pos':tot<0?'neg':''}">${money(tot)}</span> · fees ${money(-fees)} · net <span class="${tot-fees>0?'pos':'neg'}">${money(tot-fees)}</span></h3><div class="tbl"><table class="stack-sm"><thead><tr><th>Contract</th><th>Round</th><th>Fills</th><th>Bought</th><th>Avg in</th><th>Sold</th><th>Avg out</th><th>Open</th><th>Gross P/L</th><th>Fees</th><th>Net P/L</th></tr></thead><tbody>`+
+      gs.map(g=>`<tr><td data-label="Contract"><b>${esc(g.label)}</b></td><td data-label="Round">${g.round}</td><td data-label="Fills">${g.n}</td><td data-label="Bought">${g.bq}</td><td data-label="Avg in">${px(g.avgIn)}</td><td data-label="Sold">${g.sq}</td><td data-label="Avg out">${px(g.avgOut)}</td><td data-label="Open" class="${g.open?'warn':''}">${g.open}</td><td data-label="Gross P/L" class="${g.pl>0?'pos':g.pl<0?'neg':''}">${money(g.pl)}</td><td data-label="Fees">${money(-g.fee)}</td><td data-label="Net P/L" class="${g.netPl>0?'pos':g.netPl<0?'neg':''}">${money(g.netPl)}</td></tr>`).join('')+'</tbody></table></div><p class="sub" style="margin-top:6px">P/L = (avg out − avg in) × matched qty × 100 (×1 for stock) − commissions. Positions carried from before the selected range only count fills inside the range.</p>'+chk; }
   pvReport=null; const pdays=[...new Set(pv.rows.map(r=>dayKey(r.ts)))];
   if(pdays.length===1&&pv.rows.some(r=>TP.valid(r))){ const others=entries.filter(e=>e.kind==='exec'&&dayKey(e.ts)!==pdays[0]); const H=JournalReport.history(others.concat(pv.rows.filter(r=>TP.valid(r)))); const hd=H.find(x=>x.day===pdays[0]); if(hd){ pvReport=JournalReport.report(pdays[0],hd.execs,H,rcfg()); h+=`<h3 style="margin:14px 0 6px">Report card (preview)</h3><div class="daychart">${reportHTML(pvReport,'__preview')}</div>`; } }
   if(pv.ignored.length) h+=`<h3 style="margin:14px 0 6px">Skipped lines — fix in the table if they were real fills</h3>`+pv.ignored.map((g,i)=>`<div class="ign"><span>${esc(g.raw)}<br><span class="muted">(${esc(g.why)})</span></span><span><button data-mk="${i}">Make row</button> <button class="x" data-ig="${i}">✕</button></span></div>`).join('');
@@ -770,5 +790,6 @@ window.journalExecs=day=>entries.filter(e=>e.kind==='exec'&&dayKey(e.ts)===day);
 if(token&&!pass) token=''; // older devices: require passphrase too
 render(); load().catch(()=>{});
 </script>
+<script src="apex-nav.js"></script>
 </body>
 </html>

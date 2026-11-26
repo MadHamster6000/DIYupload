@@ -1,0 +1,197 @@
+a.brand,a.brand:hover{color:inherit;text-decoration:none}
+.brand-row .brand{display:inline-flex;align-items:center;gap:.3em;min-width:0}
+@media (min-width:761px){
+  .top-inner .nav-wrap{flex:1;min-width:0}
+  .top-inner #nav{flex-wrap:wrap}
+}
+
+/* Apex Book design system + phone-first layout. Desktop keeps the existing page styles. */
+:root{
+  --bg:#0e0f0c;
+  --panel:#121826;
+  --panel2:#182032;
+  --line:#263048;
+  --text:#e6ebf5;
+  --muted:#8a96ad;
+  --accent:#4f8cff;
+  --green:#22c55e;
+  --red:#ef4444;
+  --amber:#f59e0b;
+  --purple:#a78bfa;
+  --call:var(--green);
+  --put:var(--red);
+  --neutral:var(--amber);
+  --radius:12px;
+  --radius-sm:8px;
+  --tap:44px;
+  --space-1:4px;
+  --space-2:8px;
+  --space-3:12px;
+  --space-4:16px;
+  --space-5:24px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-left:env(safe-area-inset-left,0px);
+  --safe-right:env(safe-area-inset-right,0px);
+  --header-pad-top:var(--safe-top);
+}
+html{max-width:100%;scroll-padding-top:calc(72px + var(--safe-top));scroll-padding-bottom:calc(72px + var(--safe-bottom))}
+body{max-width:100%;padding-left:var(--safe-left);padding-right:var(--safe-right)}
+.tabular,.mb-hero b,td,th,.stat .v{font-variant-numeric:tabular-nums}
+.tabbar{display:none}
+
+/* ---- Brief hero ---- */
+.mb-hero{background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin:0 0 14px;border-left:4px solid var(--neutral)}
+.mb-hero.put{border-left-color:var(--put)}
+.mb-hero.call{border-left-color:var(--call)}
+.mb-hero-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.mb-chip{display:inline-flex;align-items:center;min-height:28px;padding:2px 10px;border-radius:999px;font-size:.8rem;font-weight:800;letter-spacing:.3px;text-transform:uppercase}
+.mb-hero.put .mb-chip{background:#ef444426;color:#fca5a5}
+.mb-hero.call .mb-chip{background:#22c55e26;color:#86efac}
+.mb-hero.neutral .mb-chip{background:#f59e0b26;color:#fde68a}
+.mb-hero-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mb-hero-metrics div{background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 10px;min-width:0}
+.mb-hero-metrics span{display:block;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.mb-hero-metrics b{display:block;font-size:.98rem;font-weight:700;margin-top:2px;line-height:1.25;word-break:break-word}
+.mb-hero-inv{margin:10px 0 0;font-size:.86rem;color:var(--text);line-height:1.4}
+.mb-hero-inv span{display:block;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.brand-row{display:flex;align-items:center;gap:10px;min-width:0}
+.nav-current{margin-left:auto;color:var(--muted);font-size:.78rem;font-weight:600;white-space:nowrap}
+.nav-wrap{position:relative;min-width:0;flex:1}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+
+/* ===================== Phone layout ===================== */
+@media (max-width:760px){
+  html{overflow-x:hidden;font-size:16px;scroll-padding-top:calc(96px + var(--safe-top));scroll-padding-bottom:calc(68px + var(--safe-bottom))}
+  body{font-size:15px;line-height:1.45}
+  header.top{padding-top:var(--safe-top);background:rgba(14,15,12,.94);backdrop-filter:blur(14px)}
+  .top-inner{flex-direction:column;align-items:stretch;gap:8px;padding:8px 12px 10px;overflow:visible;max-width:none}
+  .brand{font-size:1.05rem;letter-spacing:0}
+  .brand-pre{display:none}
+  .nav-wrap{margin:0 -12px}
+  .nav-wrap::before,.nav-wrap::after{
+    content:"";position:absolute;top:0;bottom:0;width:16px;z-index:2;pointer-events:none
+  }
+  .nav-wrap::before{left:0;background:linear-gradient(90deg,var(--bg),transparent)}
+  .nav-wrap::after{right:0;background:linear-gradient(270deg,var(--bg),transparent)}
+  nav#nav,nav.pills{
+    display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;
+    scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;padding:0 16px
+  }
+  nav#nav::-webkit-scrollbar,nav.pills::-webkit-scrollbar{display:none}
+  nav#nav a,nav.pills a,.top-inner>a{
+    scroll-snap-align:start;flex:none;min-height:36px;padding:8px 12px;border-radius:999px;
+    font-size:.82rem;font-weight:600;background:var(--panel2);color:var(--muted);border:1px solid var(--line)
+  }
+  nav#nav a.nav-primary{display:none}
+  nav#nav a.active,nav.pills a.active,.top-inner>a.active{
+    color:#fff;background:var(--accent);border-color:var(--accent)
+  }
+
+  /* Bottom tabs */
+  .tabbar{
+    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;
+    background:rgba(14,15,12,.96);backdrop-filter:blur(14px);
+    border-top:1px solid var(--line);
+    padding:4px 8px calc(4px + var(--safe-bottom));
+    justify-content:space-around;gap:2px
+  }
+  .tabbar a{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:var(--tap);gap:1px;color:var(--muted);text-decoration:none;
+    font-size:.68rem;font-weight:700;letter-spacing:.2px;border-radius:10px;padding:4px 2px
+  }
+  .tabbar a .tab-ic{font-size:1.05rem;line-height:1}
+  .tabbar a.active{color:var(--text);background:var(--panel2)}
+  .tabbar a.active .tab-ic{filter:none}
+
+  main{padding:12px 12px calc(80px + var(--safe-bottom));max-width:none}
+  footer{padding:12px 12px calc(12px + var(--safe-bottom));font-size:.75rem}
+  body:has(.tabbar) footer{padding-bottom:calc(84px + var(--safe-bottom))}
+
+  section.card{padding:14px 12px;margin-bottom:14px;border-radius:var(--radius)}
+  h1{font-size:1.22rem;line-height:1.25}
+  h2{font-size:1.08rem;line-height:1.25}
+  h3{font-size:.92rem;margin:14px 0 8px}
+  .sub{font-size:.86rem;margin:0 0 12px}
+  .note{font-size:.84rem;padding:8px 10px}
+
+  /* Checklist / playbook rows */
+  .pb-head{gap:8px;margin-bottom:8px}
+  .pb-item{padding:8px 10px;gap:10px;min-height:var(--tap);align-items:center;font-size:.94rem;border-radius:var(--radius-sm)}
+  .pb-item input{width:22px;height:22px;margin:0;flex:none}
+  .pb-list{gap:6px}
+  .pb-count{font-size:1rem;padding:4px 8px}
+
+  .grid,.stats,.mb-grid,.mb-two,.pgrid,.tgrid,.two,.ls-grid{grid-template-columns:1fr}
+  .chart{height:220px}
+  .mb-card{padding:10px 12px;border-radius:var(--radius-sm)}
+  .mb-why{min-width:0}
+  .mb-t td,.mb-t th{padding:6px 8px;white-space:normal}
+  .mb-scan{padding:8px 10px}
+  .mb-scan>summary{font-size:.88rem;line-height:1.3;min-height:36px;display:flex;align-items:center}
+
+  /* Stack wide tables into labeled cards */
+  table.stack-sm thead{display:none}
+  table.stack-sm,table.stack-sm tbody{display:block;width:100%}
+  table.stack-sm tr{display:block;background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 10px;margin:0 0 8px;width:100%}
+  table.stack-sm td{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;text-align:right;white-space:normal;border:0;padding:5px 0;width:auto}
+  table.stack-sm td::before{content:attr(data-label);color:var(--muted);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;text-align:left;flex:0 0 5.8rem;padding-top:2px}
+  table.stack-sm td:empty{display:none}
+  table.stack-sm tr.rawrow td{display:block;text-align:left;font-size:.78rem;color:var(--muted)}
+  table.stack-sm tr.rawrow td::before{content:none}
+  table.stack-sm td input,table.stack-sm td select{width:auto;flex:1;min-width:0;max-width:100%}
+
+  .tbl{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;display:block}
+  .sw-wrap,.sw-hop{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .sw-metro{min-width:640px}
+
+  /* Plan ladder / late scalp / kite */
+  .pl-row{align-items:stretch}
+  .pl-f,.pl-w,.pl-n{flex:1 1 100%;min-width:0}
+  .pl-act{width:100%;justify-content:flex-end}
+  .pl-act button{min-height:var(--tap)}
+
+  button,.btn,label.btn{min-height:40px;padding:8px 14px}
+  input,select,textarea{font-size:16px} /* prevent iOS zoom */
+
+  /* Journal */
+  #tradeList .btns{display:grid;grid-template-columns:1fr;gap:8px;margin:10px 0 0}
+  #tradeList .btns button,#tradeList .btns .btn,#tradeList .btns label.btn{
+    width:100%;min-height:var(--tap);display:flex;align-items:center;justify-content:center;text-align:center;margin:0
+  }
+  #tradeList .btns .primary{order:-1}
+  .lockbar{flex-direction:column;align-items:stretch}
+  .lockbar input{min-width:0;width:100%;min-height:var(--tap)}
+  .lockbar button{width:100%;min-height:var(--tap)}
+  .drop{padding:14px}
+  .entry{grid-template-columns:1fr;padding:12px}
+  .filters{flex-direction:column}
+  .filters input,.filters select{min-width:0;width:100%;min-height:var(--tap)}
+  .rcard{min-width:0}
+  .grp .gh{flex-wrap:wrap;gap:6px}
+  #moreTools>summary{min-height:var(--tap);display:flex;align-items:center}
+
+  /* Reference calculators */
+  td input,th input{width:100%;max-width:110px}
+  .mb-hero-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mb-hero-metrics div:nth-child(5),
+  .mb-hero-metrics div:nth-child(6){grid-column:span 1}
+}
+
+@media (min-width:761px){
+  .tabbar{display:none!important}
+  .nav-current{display:none}
+  .brand-pre{display:inline}
+}
+
+@media (max-width:760px){
+  .mb-plan-line{display:none} /* hero already shows bias, A/B, target, invalidation */
+  #morning-brief > div:first-child{flex-direction:column;align-items:flex-start;gap:2px;margin-bottom:8px}
+}
+
